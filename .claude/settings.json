@@ -1,0 +1,34 @@
+{
+    "permissions": {
+      "allow": [
+        "Bash(git:*)",
+        "Bash(docker:*)",
+        "Bash(docker-compose:*)",
+        "Bash(helm:*)",
+        "Bash(kubectl:*)",
+        "Bash(npm:*)",
+        "Bash(npx:*)",
+        "Bash(next:*)",
+        "Bash(uv:*)",
+        "Bash(python:*)",
+        "Bash(python3:*)",
+        "Bash(pip:*)",
+        "Read",
+        "Edit",
+        "MultiEdit",
+        "Write",
+        "Glob",
+        "Grep",
+        "LS",
+        "TodoWrite"
+      ],
+      "deny": [
+        "Bash(rm -rf:*)",
+        "Bash(sudo:*)",
+        "Bash(curl:*)",
+        "Bash(wget:*)",
+        "Bash(chmod 777:*)",
+        "Bash(dd:*)"
+      ]
+    }
+}
