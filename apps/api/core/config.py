@@ -3,7 +3,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace"
+    database_url: str = (
+        "postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace"
+    )
     database_echo: bool = False
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
@@ -26,7 +28,7 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
-    @field_validator('jwt_secret_key')
+    @field_validator("jwt_secret_key")
     @classmethod
     def validate_jwt_secret(cls, v):
         if not v or v == "your-secret-key-change-in-production":
@@ -37,5 +39,6 @@ class Settings(BaseSettings):
         if len(v) < 32:
             raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
         return v
+
 
 settings = Settings()

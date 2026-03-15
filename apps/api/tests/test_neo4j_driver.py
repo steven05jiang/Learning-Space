@@ -1,6 +1,7 @@
 """
 Tests for Neo4j driver service.
 """
+
 import contextlib
 from unittest.mock import AsyncMock, patch
 
@@ -30,8 +31,7 @@ async def test_connect_and_create_constraints(neo4j_service):
     mock_driver.session = lambda: mock_session_context()
 
     with patch(
-        'services.neo4j_driver.AsyncGraphDatabase.driver',
-        return_value=mock_driver
+        "services.neo4j_driver.AsyncGraphDatabase.driver", return_value=mock_driver
     ):
         # Mock successful connectivity verification
         mock_driver.verify_connectivity = AsyncMock()
@@ -57,8 +57,7 @@ async def test_connect_failure_cleanup(neo4j_service):
     mock_driver.close = AsyncMock()
 
     with patch(
-        'services.neo4j_driver.AsyncGraphDatabase.driver',
-        return_value=mock_driver
+        "services.neo4j_driver.AsyncGraphDatabase.driver", return_value=mock_driver
     ):
         with pytest.raises(Exception, match="Connection failed"):
             await neo4j_service.connect()

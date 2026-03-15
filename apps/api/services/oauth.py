@@ -44,7 +44,7 @@ class GitHubOAuthProvider(OAuthProvider):
             "client_id": self.client_id,
             "redirect_uri": redirect_uri,
             "scope": "user:email",
-            "response_type": "code"
+            "response_type": "code",
         }
         return f"{self.auth_url}?{urlencode(params)}"
 
@@ -59,7 +59,7 @@ class GitHubOAuthProvider(OAuthProvider):
                     "client_secret": self.client_secret,
                     "code": code,
                     "redirect_uri": redirect_uri,
-                }
+                },
             )
             if response.status_code == 200:
                 data = response.json()
@@ -70,8 +70,7 @@ class GitHubOAuthProvider(OAuthProvider):
         """Get user info from GitHub."""
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                self.user_info_url,
-                headers={"Authorization": f"Bearer {access_token}"}
+                self.user_info_url, headers={"Authorization": f"Bearer {access_token}"}
             )
             if response.status_code == 200:
                 user_data = response.json()
@@ -79,7 +78,7 @@ class GitHubOAuthProvider(OAuthProvider):
                     "id": str(user_data["id"]),
                     "email": user_data.get("email"),
                     "display_name": user_data.get("name") or user_data.get("login"),
-                    "avatar_url": user_data.get("avatar_url")
+                    "avatar_url": user_data.get("avatar_url"),
                 }
         return None
 
@@ -100,7 +99,7 @@ class GoogleOAuthProvider(OAuthProvider):
             "redirect_uri": redirect_uri,
             "scope": "openid email profile",
             "response_type": "code",
-            "access_type": "offline"
+            "access_type": "offline",
         }
         return f"{self.auth_url}?{urlencode(params)}"
 
@@ -115,7 +114,7 @@ class GoogleOAuthProvider(OAuthProvider):
                     "code": code,
                     "grant_type": "authorization_code",
                     "redirect_uri": redirect_uri,
-                }
+                },
             )
             if response.status_code == 200:
                 data = response.json()
@@ -126,8 +125,7 @@ class GoogleOAuthProvider(OAuthProvider):
         """Get user info from Google."""
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                self.user_info_url,
-                headers={"Authorization": f"Bearer {access_token}"}
+                self.user_info_url, headers={"Authorization": f"Bearer {access_token}"}
             )
             if response.status_code == 200:
                 user_data = response.json()
@@ -135,7 +133,7 @@ class GoogleOAuthProvider(OAuthProvider):
                     "id": str(user_data["id"]),
                     "email": user_data.get("email"),
                     "display_name": user_data.get("name"),
-                    "avatar_url": user_data.get("picture")
+                    "avatar_url": user_data.get("picture"),
                 }
         return None
 
@@ -168,7 +166,7 @@ class TwitterOAuthProvider(OAuthProvider):
             "scope": "tweet.read users.read",
             "state": state,
             "code_challenge": code_challenge,
-            "code_challenge_method": "S256"
+            "code_challenge_method": "S256",
         }
         return f"{self.auth_url}?{urlencode(params)}"
 
@@ -194,14 +192,14 @@ class TwitterOAuthProvider(OAuthProvider):
                 self.token_url,
                 headers={
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": f"Basic {auth_encoded}"
+                    "Authorization": f"Basic {auth_encoded}",
                 },
                 data={
                     "code": code,
                     "grant_type": "authorization_code",
                     "redirect_uri": redirect_uri,
-                    "code_verifier": code_verifier
-                }
+                    "code_verifier": code_verifier,
+                },
             )
             if response.status_code == 200:
                 data = response.json()
@@ -213,7 +211,7 @@ class TwitterOAuthProvider(OAuthProvider):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.user_info_url}?user.fields=profile_image_url",
-                headers={"Authorization": f"Bearer {access_token}"}
+                headers={"Authorization": f"Bearer {access_token}"},
             )
             if response.status_code == 200:
                 data = response.json()
@@ -222,20 +220,22 @@ class TwitterOAuthProvider(OAuthProvider):
                     "id": str(user_data["id"]),
                     "email": None,  # Twitter doesn't provide email by default
                     "display_name": user_data.get("name"),
-                    "avatar_url": user_data.get("profile_image_url")
+                    "avatar_url": user_data.get("profile_image_url"),
                 }
         return None
 
     def _generate_code_verifier(self) -> str:
         """Generate PKCE code verifier (random 43-128 character string)."""
-        return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode(
-            'utf-8'
-        ).rstrip('=')
+        return (
+            base64.urlsafe_b64encode(secrets.token_bytes(32))
+            .decode("utf-8")
+            .rstrip("=")
+        )
 
     def _generate_code_challenge(self, code_verifier: str) -> str:
         """Generate PKCE code challenge (SHA256 hash of verifier, base64url)."""
-        digest = hashlib.sha256(code_verifier.encode('utf-8')).digest()
-        return base64.urlsafe_b64encode(digest).decode('utf-8').rstrip('=')
+        digest = hashlib.sha256(code_verifier.encode("utf-8")).digest()
+        return base64.urlsafe_b64encode(digest).decode("utf-8").rstrip("=")
 
     def _generate_state(self) -> str:
         """Generate cryptographically secure random state."""

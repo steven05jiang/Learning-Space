@@ -1,6 +1,7 @@
 """
 Health check endpoints for the API.
 """
+
 from fastapi import APIRouter, Depends
 
 from core.errors import InternalServerError
@@ -16,9 +17,7 @@ async def health():
 
 
 @router.get("/neo4j")
-async def neo4j_health(
-    neo4j: Neo4jDriverService = Depends(get_neo4j_driver)
-):
+async def neo4j_health(neo4j: Neo4jDriverService = Depends(get_neo4j_driver)):
     """Neo4j database health check."""
     result = await neo4j.health_check()
 

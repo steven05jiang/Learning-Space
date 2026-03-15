@@ -91,11 +91,7 @@ class TestAuthService:
     async def test_generate_jwt_token(self):
         """Test JWT token generation for user."""
         # Create test user
-        user = User(
-            id=123,
-            email="test@example.com",
-            display_name="Test User"
-        )
+        user = User(id=123, email="test@example.com", display_name="Test User")
 
         # Generate token
         token = auth_service.generate_jwt_token(user)
@@ -154,14 +150,14 @@ def test_oauth_login_invalid_provider():
     assert "Unsupported OAuth provider" in data["detail"]
 
 
-@patch('services.auth.auth_service.authenticate_oauth_user')
-@patch('services.oauth.GitHubOAuthProvider.exchange_code')
-@patch('services.oauth.GitHubOAuthProvider.get_user_info')
+@patch("services.auth.auth_service.authenticate_oauth_user")
+@patch("services.oauth.GitHubOAuthProvider.exchange_code")
+@patch("services.oauth.GitHubOAuthProvider.get_user_info")
 @pytest.mark.asyncio
 async def test_oauth_callback_success(
     mock_get_user_info: AsyncMock,
     mock_exchange_code: AsyncMock,
-    mock_authenticate: AsyncMock
+    mock_authenticate: AsyncMock,
 ):
     """Test successful OAuth callback."""
     # Mock user for return value
@@ -169,7 +165,7 @@ async def test_oauth_callback_success(
         id=123,
         email="testuser@example.com",
         display_name="Test User",
-        avatar_url="https://example.com/avatar.jpg"
+        avatar_url="https://example.com/avatar.jpg",
     )
 
     # Mock OAuth provider responses
@@ -178,7 +174,7 @@ async def test_oauth_callback_success(
         "id": "123456",
         "email": "testuser@example.com",
         "display_name": "Test User",
-        "avatar_url": "https://example.com/avatar.jpg"
+        "avatar_url": "https://example.com/avatar.jpg",
     }
     # Mock auth service response
     mock_authenticate.return_value = (mock_user, "mock_jwt_token")

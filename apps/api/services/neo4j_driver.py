@@ -1,6 +1,7 @@
 """
 Neo4j driver service for Learning Space.
 """
+
 import logging
 from typing import Any
 
@@ -25,8 +26,7 @@ class Neo4jDriverService:
         logger.info("Connecting to Neo4j database...")
 
         self._driver = AsyncGraphDatabase.driver(
-            settings.neo4j_uri,
-            auth=(settings.neo4j_user, settings.neo4j_password)
+            settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
         )
 
         # Verify connectivity
@@ -83,14 +83,14 @@ class Neo4jDriverService:
                 if record and record["test"] == 1:
                     return {
                         "status": "healthy",
-                        "message": "Neo4j connection successful"
+                        "message": "Neo4j connection successful",
                     }
                 else:
                     return {"status": "error", "message": "Invalid response from Neo4j"}
         except Exception as e:
             return {
                 "status": "error",
-                "message": f"Neo4j health check failed: {str(e)}"
+                "message": f"Neo4j health check failed: {str(e)}",
             }
 
 

@@ -11,7 +11,7 @@ from core.errors import (
     http_exception_wrapper,
 )
 from models.database import get_db
-from routers import auth, health
+from routers import auth, health, resources
 from services.neo4j_driver import neo4j_driver
 
 
@@ -25,11 +25,7 @@ async def lifespan(app: FastAPI):
     await neo4j_driver.disconnect()
 
 
-app = FastAPI(
-    title="Learning Space API",
-    version="0.1.0",
-    lifespan=lifespan
-)
+app = FastAPI(title="Learning Space API", version="0.1.0", lifespan=lifespan)
 
 # Register exception handlers in order of specificity
 app.add_exception_handler(APIError, api_exception_handler)
@@ -39,6 +35,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 # Include routers
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(resources.router)
 
 
 @app.get("/db-health")
@@ -52,4 +49,5 @@ async def db_health_check(db: AsyncSession = Depends(get_db)):
         # For health checks, we might want to return 503 Service Unavailable
         # but keep consistent with the error format
         from core.errors import InternalServerError
+
         raise InternalServerError(f"Database connection failed: {str(e)}")
