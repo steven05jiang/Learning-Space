@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import AnyUrl, field_validator
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,11 +50,30 @@ class Settings(BaseSettings):
     # Frontend URL (for CORS)
     frontend_url: str = "http://localhost:3000"
 
-    @field_validator("secret_key")
-    @classmethod
-    def secret_key_not_default_in_production(cls, v: str, info) -> str:
-        # info.data may not have 'environment' yet during validation order
-        return v
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        """Enforce security requirements for production environment."""
+        if self.environment == "production":
+            # Secret key must not be default
+            if self.secret_key == "change-me-in-production":
+                raise ValueError("SECRET_KEY must be changed from default value in production")
+
+            # Debug must be disabled
+            if self.debug is True:
+                raise ValueError("DEBUG must be False in production")
+
+            # Critical secrets must be present
+            if not self.openai_api_key:
+                raise ValueError("OPENAI_API_KEY is required in production")
+
+            # Database credentials should be non-default
+            if "learningspace:learningspace" in self.database_url:
+                raise ValueError("Production database credentials must not use default values")
+
+            if self.neo4j_password == "learningspace":
+                raise ValueError("NEO4J_PASSWORD must not use default value in production")
+
+        return self
 
 
 @lru_cache

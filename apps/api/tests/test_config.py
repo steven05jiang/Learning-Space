@@ -16,7 +16,8 @@ def test_default_settings_load():
 
 def test_env_override():
     with patch.dict(os.environ, {"DEBUG": "true", "OPENAI_MODEL": "gpt-4o"}):
-        # Force a fresh Settings parse (bypass cache)
+        # Direct Settings() instantiation bypasses the lru_cache decorator on get_settings()
+        # This ensures we get a fresh instance that will read the current environment state
         s = Settings()
         assert s.debug is True
         assert s.openai_model == "gpt-4o"
