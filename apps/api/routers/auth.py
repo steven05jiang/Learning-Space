@@ -1,14 +1,35 @@
+import logging
 from typing import Dict
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from core.errors import ErrorCode, InternalServerError, ValidationError
 from models.database import get_db
 from services.auth import auth_service
 from services.oauth import oauth_service
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
+def _get_redirect_uri(request: Request, provider: str) -> str:
+    """Get secure redirect URI for OAuth callback."""
+    # Use configured base URL if available, otherwise use request URL
+    oauth_base = getattr(settings, 'oauth_redirect_base_url', None)
+
+    if oauth_base:
+        base_url = oauth_base.rstrip("/")
+    else:
+        # Validate HTTPS in production
+        base_url = str(request.base_url).rstrip("/")
+        if not base_url.startswith(('http://localhost', 'http://127.0.0.1', 'https://')):
+            # In production, require HTTPS
+            base_url = base_url.replace('http://', 'https://', 1)
+
+    return f"{base_url}/auth/callback/{provider}"
 
 
 @router.get("/login/{provider}")
@@ -28,9 +49,8 @@ async def oauth_login(
             ErrorCode.PROVIDER_NOT_SUPPORTED
         )
 
-    # Create redirect URI
-    base_url = str(request.base_url).rstrip("/")
-    redirect_uri = f"{base_url}/auth/callback/{provider}"
+    # Create secure redirect URI
+    redirect_uri = _get_redirect_uri(request, provider)
 
     # Get authorization URL
     auth_url = await oauth_provider.get_authorization_url(redirect_uri)
@@ -45,9 +65,10 @@ async def oauth_login(
 async def oauth_callback(
     provider: str,
     code: str = Query(...),
+    state: str = Query(None),
     request: Request = None,
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, str]:
+) -> Dict:
     """
     Handle OAuth callback and complete authentication.
 
@@ -61,11 +82,13 @@ async def oauth_callback(
         )
 
     # Create redirect URI (same as used in login)
-    base_url = str(request.base_url).rstrip("/")
-    redirect_uri = f"{base_url}/auth/callback/{provider}"
+    redirect_uri = _get_redirect_uri(request, provider)
 
-    # Exchange code for access token
-    access_token = await oauth_provider.exchange_code(code, redirect_uri)
+    # Exchange code for access token (pass state for PKCE providers)
+    if provider == "twitter":
+        access_token = await oauth_provider.exchange_code(code, redirect_uri, state)
+    else:
+        access_token = await oauth_provider.exchange_code(code, redirect_uri)
     if not access_token:
         raise ValidationError("Failed to exchange authorization code for access token")
 
@@ -97,7 +120,12 @@ async def oauth_callback(
             }
         }
     except Exception as e:
-        raise InternalServerError(f"Authentication failed: {str(e)}")
+        # Log the actual error server-side for debugging
+        logger.error(
+            f"OAuth authentication failed for {provider}: {str(e)}", exc_info=True
+        )
+        # Return generic error to client without exposing details
+        raise InternalServerError("Authentication failed. Please try again.")
 
 
 @router.get("/providers")

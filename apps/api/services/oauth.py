@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import secrets
 from typing import Dict, Optional
 from urllib.parse import urlencode
 
@@ -145,34 +148,59 @@ class TwitterOAuthProvider(OAuthProvider):
         self.auth_url = "https://twitter.com/i/oauth2/authorize"
         self.token_url = "https://api.twitter.com/2/oauth2/token"
         self.user_info_url = "https://api.twitter.com/2/users/me"
+        # Store PKCE values temporarily - in production use session/cache
+        self._code_verifier_store = {}
 
     async def get_authorization_url(self, redirect_uri: str) -> str:
         """Get Twitter OAuth authorization URL."""
+        # Generate PKCE values
+        code_verifier = self._generate_code_verifier()
+        code_challenge = self._generate_code_challenge(code_verifier)
+        state = self._generate_state()
+
+        # Store code_verifier for later use in token exchange
+        self._code_verifier_store[state] = code_verifier
+
         params = {
             "response_type": "code",
             "client_id": self.client_id,
             "redirect_uri": redirect_uri,
             "scope": "tweet.read users.read",
-            "state": "state",  # In production, use a random state
-            "code_challenge": "challenge",  # In production, use PKCE
-            "code_challenge_method": "plain"
+            "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256"
         }
         return f"{self.auth_url}?{urlencode(params)}"
 
-    async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
+    async def exchange_code(
+        self, code: str, redirect_uri: str, state: str = None
+    ) -> Optional[str]:
         """Exchange code for Twitter access token."""
+        # Retrieve code_verifier from store
+        code_verifier = self._code_verifier_store.get(state) if state else None
+        if not code_verifier:
+            return None
+
+        # Clean up used code_verifier
+        if state:
+            self._code_verifier_store.pop(state, None)
+
+        # Create proper basic auth header
+        auth_string = f"{self.client_id}:{self.client_secret}"
+        auth_encoded = base64.b64encode(auth_string.encode()).decode()
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 self.token_url,
                 headers={
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": f"Basic {self.client_id}:{self.client_secret}"
+                    "Authorization": f"Basic {auth_encoded}"
                 },
                 data={
                     "code": code,
                     "grant_type": "authorization_code",
                     "redirect_uri": redirect_uri,
-                    "code_verifier": "challenge"  # In production, use proper PKCE
+                    "code_verifier": code_verifier
                 }
             )
             if response.status_code == 200:
@@ -197,6 +225,21 @@ class TwitterOAuthProvider(OAuthProvider):
                     "avatar_url": user_data.get("profile_image_url")
                 }
         return None
+
+    def _generate_code_verifier(self) -> str:
+        """Generate PKCE code verifier (random 43-128 character string)."""
+        return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode(
+            'utf-8'
+        ).rstrip('=')
+
+    def _generate_code_challenge(self, code_verifier: str) -> str:
+        """Generate PKCE code challenge (SHA256 hash of verifier, base64url)."""
+        digest = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+        return base64.urlsafe_b64encode(digest).decode('utf-8').rstrip('=')
+
+    def _generate_state(self) -> str:
+        """Generate cryptographically secure random state."""
+        return secrets.token_urlsafe(32)
 
 
 class OAuthService:

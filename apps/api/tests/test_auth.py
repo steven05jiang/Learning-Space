@@ -154,14 +154,24 @@ def test_oauth_login_invalid_provider():
     assert "Unsupported OAuth provider" in data["detail"]
 
 
-@pytest.mark.skip(reason="Integration test - requires database and mocking setup")
+@patch('services.auth.auth_service.authenticate_oauth_user')
 @patch('services.oauth.GitHubOAuthProvider.exchange_code')
 @patch('services.oauth.GitHubOAuthProvider.get_user_info')
-def test_oauth_callback_success(
+@pytest.mark.asyncio
+async def test_oauth_callback_success(
     mock_get_user_info: AsyncMock,
-    mock_exchange_code: AsyncMock
+    mock_exchange_code: AsyncMock,
+    mock_authenticate: AsyncMock
 ):
     """Test successful OAuth callback."""
+    # Mock user for return value
+    mock_user = User(
+        id=123,
+        email="testuser@example.com",
+        display_name="Test User",
+        avatar_url="https://example.com/avatar.jpg"
+    )
+
     # Mock OAuth provider responses
     mock_exchange_code.return_value = "test_access_token"
     mock_get_user_info.return_value = {
@@ -170,6 +180,8 @@ def test_oauth_callback_success(
         "display_name": "Test User",
         "avatar_url": "https://example.com/avatar.jpg"
     }
+    # Mock auth service response
+    mock_authenticate.return_value = (mock_user, "mock_jwt_token")
 
     # Test callback
     response = client.get("/auth/callback/github?code=test_code")

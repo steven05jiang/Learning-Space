@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -16,12 +17,25 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     twitter_client_id: str = ""
     twitter_client_secret: str = ""
+    oauth_redirect_base_url: str = ""  # Optional: override for OAuth redirects
 
     # JWT Settings
-    jwt_secret_key: str = "your-secret-key-change-in-production"
+    jwt_secret_key: str  # No default - must be provided via environment
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 30
 
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @field_validator('jwt_secret_key')
+    @classmethod
+    def validate_jwt_secret(cls, v):
+        if not v or v == "your-secret-key-change-in-production":
+            raise ValueError(
+                "JWT_SECRET_KEY must be set to a secure value. "
+                "Do not use the default value in production."
+            )
+        if len(v) < 32:
+            raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
+        return v
 
 settings = Settings()
