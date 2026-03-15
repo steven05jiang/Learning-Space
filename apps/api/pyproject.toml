@@ -24,6 +24,8 @@ dev = [
     "pytest-asyncio",
     "httpx",
     "ruff",
+    "pip-audit",
+    "bandit[toml]",
 ]
 
 [build-system]
@@ -48,6 +50,9 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration tests requiring real databases (deselect with '-m not integration')",
+]
 
 [dependency-groups]
 dev = [

@@ -30,11 +30,38 @@ Read `memory/active/<task-id>.md` to understand:
 - Run lint/build/test and confirm all pass
 - Commit: `git commit -m "fix: review feedback round <N>"`
 
-## Step 3 — Push & Report
+## Step 3 — Run CI Check
+
+Before pushing, run the local CI check from the repo root and capture the output:
+
+```bash
+make ci-check 2>&1 | tee /tmp/ci-output.txt
+echo "Exit code: $?"
+```
+
+Read the output to confirm every stage **PASS**es:
+- `api-lint` — ruff check and format check
+- `api-test` — all unit tests green
+- `api-security` — pip-audit and bandit clean
+
+If any stage fails, fix the issue before proceeding. Do not push with a failing CI.
+
+## Step 4 — Push & Report
 
 - Push the branch: `git push origin <branch>`
-- If no PR exists yet, create one:
-  `gh pr create --title "<task-id>: <description>" --body "<requirements summary>"`
+- If no PR exists yet, create one. Include the CI result summary in the PR body:
+  ```
+  GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create \
+    --title "<task-id>: <description>" \
+    --body "<requirements summary>
+
+  ## CI Check (local)
+  - api-lint: ✅ PASS
+  - api-test: ✅ PASS  (N passed)
+  - api-security: ✅ PASS
+  - web-lint: ✅ / ⚠️ SKIP
+  - web-build: ✅ / ⚠️ SKIP"
+  ```
 - Post a GitHub comment on the PR summarising what was implemented or fixed:
   `gh pr comment <PR number> --body "<summary of implementation or fixes applied>"`
 - Output a structured result in this exact format:
@@ -55,7 +82,7 @@ TASK: TASK-001
 REASON: <specific reason>
 ```
 
-## Step 4 — Merge (when instructed by PM)
+## Step 5 — Merge (when instructed by PM)
 
 When the PM instructs you to merge after reviewer approval:
 
@@ -93,3 +120,12 @@ When the PM instructs you to merge after reviewer approval:
   TASK: <task-id>
   REASON: <specific reason>
   ```
+
+## Memory File Boundaries (STRICT)
+
+You may only write to files under `memory/active/`. You must NEVER write to or stage:
+- `memory/dev-tracker.md` — owned by the PM exclusively
+- `memory/completed/**` — owned by the PM exclusively
+- Any other file outside `memory/active/` in the memory/ tree
+
+When committing, always stage files explicitly by name. Never use `git add memory/` or `git add .` — doing so risks capturing tracker or completed files. If `git status` shows `memory/dev-tracker.md` or any `memory/completed/` file as modified, leave them unstaged.

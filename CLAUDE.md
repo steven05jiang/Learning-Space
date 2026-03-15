@@ -69,6 +69,45 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 
 ---
 
+## CI — Running Locally
+
+```bash
+# Quick check (lint + unit tests + security scan — no infrastructure needed)
+make ci-check
+
+# Full CI (requires running infrastructure first)
+make infra-up
+make ci
+
+# Individual targets
+make api-lint        # ruff check + format check
+make api-test        # pytest unit tests (no real DB)
+make api-integration # pytest -m integration (needs postgres + neo4j)
+make api-security    # pip-audit + bandit
+make web-lint        # next lint
+make web-build       # next build
+make web-security    # npm audit
+```
+
+**Integration tests** are marked `@pytest.mark.integration` and require real services.
+Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `make api-integration`.
+
+---
+
+## Task Tracker Files
+
+| Tracker | File | Prefix | Scope |
+|---------|------|--------|-------|
+| Feature development | `memory/dev-tracker.md` | `DEV-` | Product features per exec-plan |
+| Bug fixes | `memory/bugs-tracker.md` | `BUG-` | Defects and regressions |
+| DevOps / Infrastructure | `memory/ops-tracker.md` | `OPS-` | Deploy, k8s, ArgoCD, monitoring |
+| Build / CI / Tooling | `memory/build-tracker.md` | `BUILD-` | CI pipelines, test frameworks, tooling |
+
+All task files (regardless of tracker) live in `memory/active/` and `memory/completed/`.
+Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
+
+---
+
 ## SSOT Ownership (Single Source of Truth — modify SSOT first, never create duplicates)
 
 | Info Type | SSOT File | Do NOT write to |
@@ -77,7 +116,10 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 | Project strategic status | Each project's `PROJECT_CONTEXT.md` | dev-tracker.md, projects.md |
 | Cross-project overview | `memory/projects.md` | (summary + pointers only) |
 | Technical pitfalls | Each project's `MEMORY.md` | dev-tracker.md |
-| Daily progress | `memory/dev-tracker.md` | track the progress |
+| Feature progress | `memory/dev-tracker.md` | track the progress |
+| Bug progress | `memory/bugs-tracker.md` | track bug fixes |
+| Ops progress | `memory/ops-tracker.md` | track ops work |
+| Build/CI progress | `memory/build-tracker.md` | track build work |
 | In-flight task registry | `memory/active/` | (cross-session task status) |
 
 ---
@@ -88,7 +130,10 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 |-------|------|---------------|
 | Auto Memory | Project `memory/MEMORY.md` | Technical pitfalls, API details |
 | Pattern library | `patterns.md` | Cross-project reusable patterns |
-| Hot data layer | `memory/dev-tracker.md` | Centralized project tracker |
+| Feature tracker | `memory/dev-tracker.md` | DEV task progress |
+| Bug tracker | `memory/bugs-tracker.md` | BUG task progress |
+| Ops tracker | `memory/ops-tracker.md` | OPS task progress |
+| Build tracker | `memory/build-tracker.md` | BUILD task progress |
 | Task registry | `memory/active/ + memory/completed/` | Cross-session in-flight tasks |
 
 ### Sub-project Memory Routes (read before operating on a project)
@@ -103,7 +148,10 @@ Routes determine write targets. Unlisted projects share the main MEMORY.md.
 |----------|-----------|
 | Technical design | `Read docs/technical-design.md` |
 | Requirements | `Read docs/requirements.md` |
-| Goals/todos | `Read memory/dev-tracker.md` |
+| Feature goals/todos | `Read memory/dev-tracker.md` |
+| Bug status | `Read memory/bugs-tracker.md` |
+| Ops status | `Read memory/ops-tracker.md` |
+| Build/CI status | `Read memory/build-tracker.md` |
 | Project overview | `Read memory/projects.md` |
 
 ---

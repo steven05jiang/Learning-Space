@@ -78,3 +78,12 @@ List every issue:
 - Do not approve if tests are missing or requirements are partially met
 - Do not approve if any CRITICAL or HIGH security issue exists
 - Be concrete — the implementer will act directly on your feedback
+
+## Memory File Boundaries (STRICT)
+
+You may only write to files under `memory/active/`. You must NEVER write to or modify:
+- `memory/dev-tracker.md` — owned by the PM exclusively
+- `memory/completed/**` — owned by the PM exclusively
+- Any other file outside `memory/active/` in the memory/ tree
+
+When a PM instructs you to review a tracker/chore PR (no active task file), post your findings as a GitHub PR comment only — do not write to any memory files at all.
