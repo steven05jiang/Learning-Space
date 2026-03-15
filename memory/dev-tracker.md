@@ -4,15 +4,15 @@
 **Sprint:** Tier 1 — Foundation
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-15 (DEV-005 merged — Tier 2 auth backend unblocked)
+**Last Updated:** 2026-03-15 (DEV-010 merged, DEV-013 active)
 
 ---
 
 ## Progress Summary
 - Total: 51 tasks
-- ✅ Completed: 8
-- 🔄 Active: 0
-- ⏳ Pending: 43
+- ✅ Completed: 11
+- 🔄 Active: 1
+- ⏳ Pending: 39
 - ⚠️ Stuck: 0
 
 ---
@@ -30,10 +30,10 @@
 ## 🔴 Tier 2 — MVP Core
 
 - [x] DEV-005: Implement OAuth login flow (multi-provider) — Unblocks all protected routes (PR #13 ✅)
-- [ ] DEV-006: Implement auth middleware / dependency — get_current_user for protected endpoints
-- [ ] DEV-009: Implement GET /auth/me endpoint — Frontend needs logged-in state
-- [ ] DEV-010: Implement POST /auth/logout — Complete auth lifecycle
-- [ ] DEV-013: Implement POST /resources (create) — Core first user journey: submit a resource
+- [x] DEV-006: Implement auth middleware / dependency — get_current_user for protected endpoints (PR #16 ✅)
+- [x] DEV-009: Implement GET /auth/me endpoint — Frontend needs logged-in state (PR #17 ✅)
+- [x] DEV-010: Implement POST /auth/logout — Complete auth lifecycle (PR #18 ✅)
+- [~] DEV-013: Implement POST /resources (create) — Core first user journey: submit a resource
 - [ ] DEV-014: Implement GET /resources (list) with filters — View resources after submitting
 - [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
 - [ ] DEV-019: Implement task queue infrastructure — Async resource processing
