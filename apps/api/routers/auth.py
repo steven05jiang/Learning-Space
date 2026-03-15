@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.deps import get_current_user
 from core.errors import ErrorCode, InternalServerError, ValidationError
 from models.database import get_db
+from models.user import User
 from services.auth import auth_service
 from services.oauth import oauth_service
 
@@ -126,6 +128,37 @@ async def oauth_callback(
         )
         # Return generic error to client without exposing details
         raise InternalServerError("Authentication failed. Please try again.")
+
+
+@router.get("/me")
+async def get_current_user_profile(
+    current_user: User = Depends(get_current_user)
+) -> Dict:
+    """
+    Get the current authenticated user's profile.
+
+    Returns the user's profile information including:
+    - id, email, display_name, avatar_url, created_at
+    - linked OAuth providers
+
+    Requires valid JWT authentication.
+    """
+    # Get linked providers from user's accounts
+    providers = []
+    for account in current_user.accounts:
+        providers.append({
+            "provider": account.provider,
+            "last_login_at": account.last_login_at.isoformat() if account.last_login_at else None
+        })
+
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "avatar_url": current_user.avatar_url,
+        "created_at": current_user.created_at.isoformat(),
+        "providers": providers
+    }
 
 
 @router.get("/providers")

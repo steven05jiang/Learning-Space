@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from core.jwt import verify_token
 from models.database import get_db
@@ -61,7 +62,7 @@ async def get_current_user(
         )
 
     try:
-        stmt = select(User).where(User.id == user_id_int)
+        stmt = select(User).where(User.id == user_id_int).options(selectinload(User.accounts))
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
