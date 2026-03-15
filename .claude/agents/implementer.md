@@ -55,8 +55,41 @@ TASK: TASK-001
 REASON: <specific reason>
 ```
 
+## Step 4 — Merge (when instructed by PM)
+
+When the PM instructs you to merge after reviewer approval:
+
+1. Read `memory/active/<task-id>.md` for the PR number
+2. Run: `gh pr merge <PR> --merge`
+3. If **succeeds**:
+   - Append to Progress Log in `memory/active/<task-id>.md`: `YYYY-MM-DD HH:MM — PR #N merged`
+   - Output:
+     ```
+     RESULT: MERGED
+     TASK: <task-id>
+     PR: #N
+     SUMMARY: <one paragraph of what was implemented>
+     ```
+4. If **fails due to conflicts**:
+   - `git fetch origin main && git merge origin/main`
+   - Fix conflicts, commit: `git commit -m "fix: resolve merge conflicts"`
+   - Push: `git push`
+   - Append to Progress Log: `YYYY-MM-DD HH:MM — Resolved merge conflicts, re-review needed`
+   - Output:
+     ```
+     RESULT: NEEDS_REVIEW
+     TASK: <task-id>
+     PR: #N
+     ```
+
 ## Rules
 
 - Never ask for human input
 - Do not run reviewers yourself — the PM handles review dispatch
-- Only output `STUCK` if you genuinely cannot make progress after a reasonable attempt
+- Always update `memory/active/<task-id>.md` before outputting your result
+- Only output `STUCK` if you genuinely cannot make progress after a reasonable attempt:
+  ```
+  RESULT: STUCK
+  TASK: <task-id>
+  REASON: <specific reason>
+  ```

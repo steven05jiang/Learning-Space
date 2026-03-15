@@ -227,53 +227,37 @@ When each implementer returns `PR_READY`, immediately update
 For each task with a `PR_READY` result, run this loop until the PR is merged
 or the task is stuck:
 
-### Step 7a — Dispatch Both Reviewers in Parallel
+### Step 7a — Dispatch pr-reviewer
 
-Tell each reviewer:
+Spawn the `pr-reviewer` subagent. Tell it:
 - The task ID and path to its context file: `memory/active/TASK-XXX.md`
 - The PR number
-- Instruction to fetch the diff with `gh pr diff <PR number>` and review it
-- Instruction to return `APPROVED` or `CHANGES REQUESTED` with specific feedback
 
-Dispatch simultaneously:
-- **`pr-reviewer`** — code quality, correctness, tests, style
-- **`security-reviewer`** — OWASP Top 10, sensitive data exposure, injection risks
+The reviewer will:
+- Fetch the diff via `gh pr diff <PR>`
+- Check code quality **and** security (OWASP Top 10) in a single pass
+- Post a GitHub PR comment with its findings
+- Update `memory/active/TASK-XXX.md` with the review results
+- Return `APPROVED` or `CHANGES REQUESTED`
 
-### Step 7b — Collect Review Results
+### Step 7b — Act on Results
 
-After both reviewers return, update `memory/active/TASK-XXX.md`:
-
-```markdown
-## Review Rounds
-<increment count>
-
-## Progress Log
-- YYYY-MM-DD HH:MM — Review round N complete
-  - pr-reviewer: APPROVED / CHANGES REQUESTED
-  - security-reviewer: APPROVED / CHANGES REQUESTED
-  - Feedback: <paste all change requests verbatim>
-```
-
-### Step 7c — Act on Results
-
-**If both return APPROVED:**
+**If the reviewer returns APPROVED:**
 - Dispatch the `implementer` subagent with:
   - Task ID and context file path
-  - Instruction: "Merge the PR. Run: `gh pr merge <PR number> --merge`"
-  - If merge fails due to conflicts: resolve them, push, then return `NEEDS_REVIEW`
-    so the PM can trigger another review round before re-attempting merge
-- If merge succeeds → go to Phase 8 (complete this task)
-- If the implementer returns `NEEDS_REVIEW` → loop back to Step 7a
+  - Instruction: "Merge the PR" (implementer mode: merge)
+- If the implementer returns `MERGED` → go to Phase 8 (complete this task)
+- If the implementer returns `NEEDS_REVIEW` (merge conflict resolved) →
+  loop back to Step 7a for a fresh review round
 
-**If either returns CHANGES REQUESTED:**
-- Increment the stuck counter for this task (track internally)
-- If the same feedback has been requested 3+ times with no progress:
-  - Mark task as STUCK (see Phase 8 — On STUCK)
-  - Stop the loop for this task
+**If the reviewer returns CHANGES REQUESTED:**
+- Track how many times this task has had CHANGES REQUESTED (internal counter)
+- If the same feedback has been raised 3+ times with no progress:
+  - Mark task as STUCK (see Phase 8 — On STUCK) and stop the loop
 - Otherwise, dispatch the `implementer` subagent with:
   - Task ID and context file path (which now contains all review feedback)
-  - Instruction: "Fix the review feedback listed in the Progress Log of your context file"
-- When the implementer returns `PR_READY`, append to the Progress Log and loop back to Step 7a
+  - Instruction: "Fix the review feedback in your context file's Progress Log" (implementer mode: fix)
+- When the implementer returns `PR_READY` → loop back to Step 7a
 
 **Parallelism note:** If multiple tasks are in the review loop simultaneously,
 run their review dispatches in parallel where there are no dependencies.
