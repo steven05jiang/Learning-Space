@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -159,6 +159,35 @@ async def get_current_user_profile(
         "created_at": current_user.created_at.isoformat(),
         "providers": providers
     }
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_user(
+    current_user: User = Depends(get_current_user)
+) -> Response:
+    """
+    Log out the current authenticated user.
+
+    Invalidates the current session. In this JWT-based implementation,
+    the client should delete the token from local storage.
+
+    Returns HTTP 204 No Content on success.
+    Requires valid JWT authentication.
+
+    Note: For production use, consider implementing a token blacklist
+    for immediate token invalidation server-side.
+    """
+    # Log the logout event
+    logger.info(f"User {current_user.id} ({current_user.email}) logged out")
+
+    # In a JWT-based auth system, logout is primarily client-side
+    # The client should delete the token from storage
+    # For enhanced security, you could:
+    # 1. Add the token to a blacklist (requires token storage/caching)
+    # 2. Use shorter-lived tokens with refresh tokens
+    # 3. Store session data server-side instead of pure JWT
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/providers")
