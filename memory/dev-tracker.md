@@ -4,15 +4,15 @@
 **Sprint:** Tier 1 — Foundation
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-14 (synced — DEV-001 moved to completed)
+**Last Updated:** 2026-03-15 (Tier 2 started — dispatching DEV-005)
 
 ---
 
 ## Progress Summary
 - Total: 51 tasks
-- ✅ Completed: 4
-- 🔄 Active: 0
-- ⏳ Pending: 47
+- ✅ Completed: 7
+- 🔄 Active: 1
+- ⏳ Pending: 43
 - ⚠️ Stuck: 0
 
 ---
@@ -23,13 +23,13 @@
 - [x] DEV-004: Set up environment variable configuration — Pydantic Settings, .env.example, production validator (PR #2 ✅)
 - [x] DEV-002: Configure PostgreSQL schema and migrations — Users, resources, accounts data layer via Alembic (PR #7 ✅)
 - [x] DEV-003: Configure Neo4j connection and schema setup — Graph driver connection + uniqueness constraints (PR #8 ✅)
-- [ ] DEV-012: Implement Pydantic models for resources — Shared request/response models for resource endpoints
-- [ ] DEV-037: Implement health check endpoint — GET /health returns 200; used by CI and k8s probes
-- [ ] DEV-038: Implement standard error handling — Consistent error format before any endpoint returns errors
+- [x] DEV-012: Implement Pydantic models for resources — Shared request/response models for resource endpoints (PR #10 ✅)
+- [x] DEV-037: Implement health check endpoint — GET /health returns 200; used by CI and k8s probes (PR #11 ✅)
+- [x] DEV-038: Implement standard error handling — Consistent error format before any endpoint returns errors (PR #12 ✅)
 
 ## 🔴 Tier 2 — MVP Core
 
-- [ ] DEV-005: Implement OAuth login flow (multi-provider) — Unblocks all protected routes
+- [~] DEV-005: Implement OAuth login flow (multi-provider) — Unblocks all protected routes
 - [ ] DEV-006: Implement auth middleware / dependency — get_current_user for protected endpoints
 - [ ] DEV-009: Implement GET /auth/me endpoint — Frontend needs logged-in state
 - [ ] DEV-010: Implement POST /auth/logout — Complete auth lifecycle
