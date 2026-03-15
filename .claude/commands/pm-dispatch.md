@@ -9,7 +9,63 @@ Max parallel agents: $ARGUMENTS (default: 3 if not provided)
 
 ---
 
+## Session Usage Monitor (run at every phase boundary)
+
+At the start of each phase and after each agent returns, check the current
+session token usage. If usage exceeds **95%**, trigger an **Emergency State
+Save** and exit the cycle immediately — do not dispatch any more agents.
+
+### How to check usage
+
+The current session usage percentage is shown in the Claude Code status bar.
+Read it before proceeding past any phase boundary. If you cannot determine
+the exact percentage, be conservative: treat any signs of context pressure
+(slow responses, truncated outputs, warnings) as ≥95%.
+
+### Emergency State Save procedure
+
+When usage ≥ 95%, execute these steps **before exiting**:
+
+1. **Flush in-flight task states.** For every task currently dispatched but
+   not yet finalized, append to its `memory/active/TASK-XXX.md` Progress Log:
+   ```
+   YYYY-MM-DD HH:MM — ⏸️ PAUSED: session context limit reached (≥95%). Resume next session.
+   ```
+   Set `**Status:**` to `⏸️ Paused`.
+
+2. **Sync dev-tracker.md.** Update all in-progress markers to reflect paused
+   state. Update `Last Updated`. Add a top-level note:
+   ```
+   > ⚠️ Cycle interrupted at YYYY-MM-DD HH:MM — session usage hit 95%.
+   > Resume with /pm-dispatch to continue from paused tasks.
+   ```
+
+3. **Output the Emergency Exit Report:**
+   ```
+   ⚠️  SESSION LIMIT REACHED — Emergency State Save
+   ================================================
+   Usage:   ≥95% — halting dispatch to preserve context
+
+   Tasks saved:
+     ⏸️  TASK-001 — Paused (implementation in progress, branch: feature/...)
+     ⏸️  TASK-002 — Paused (awaiting review, PR #12)
+
+   State persisted to:
+     memory/active/TASK-001.md
+     memory/active/TASK-002.md
+     memory/dev-tracker.md
+
+   ▶ Run /pm-dispatch to resume from saved state in a fresh session.
+   ```
+
+4. **Stop.** Do not proceed to any further phase. Do not dispatch agents.
+   Do not wait for user input — exit the cycle immediately after the report.
+
+---
+
 ## Phase 1 — Sync with Current Plan
+
+> 🔋 **Session check:** Verify usage < 95% before proceeding.
 
 1. Read `exec-plans/current-plan.md` to find:
    - The **Active Version** (e.g. `v2`) from the Active Version table
@@ -86,6 +142,8 @@ Log the sync result:
 ---
 
 ## Phase 3 — Propose Cycle Goal (requires user approval)
+
+> 🔋 **Session check:** Verify usage < 95% before proceeding.
 
 Each invocation of `/pm-dispatch` represents one **development cycle**.
 The default cycle budget is **1 hour of effort**. The user may override this
@@ -191,6 +249,9 @@ Also update `memory/dev-tracker.md`:
 
 ## Phase 6 — Dispatch Implementers in Parallel
 
+> 🔋 **Session check:** Verify usage < 95% before dispatching any agent. If
+> ≥95%, trigger Emergency State Save and exit immediately.
+
 Spawn one `implementer` subagent per selected task **simultaneously**.
 
 Tell each implementer:
@@ -223,6 +284,9 @@ When each implementer returns `PR_READY`, immediately update
 ---
 
 ## Phase 7 — Review Loop (PM-owned)
+
+> 🔋 **Session check:** Verify usage < 95% before each review iteration. If
+> ≥95% at any point in the loop, trigger Emergency State Save and exit.
 
 For each task with a `PR_READY` result, run this loop until the PR is merged
 or the task is stuck:
@@ -299,6 +363,22 @@ N rounds before approval
    - Update Progress Summary counts
    - Update `Last Updated`
 
+4. Persist memory state changes via the implementer → pr-reviewer flow:
+
+   **Dispatch the `implementer` subagent** with instruction "Persist memory state":
+   - Check out a new branch: `chore/tracker-TASK-XXX-complete`
+   - Stage and commit **only** the already-written files: `memory/completed/TASK-XXX.md`, `memory/dev-tracker.md`
+   - Commit message: `chore: mark TASK-XXX complete (PR #N merged)`
+   - Push the branch and open a PR with `GH_TOKEN=$GH_TOKEN_IMPLEMENTER`
+   - **Do NOT update any task status files** — the files are already final; writing to them again would create a new unpersisted change.
+   - Return `PR_READY` with the new PR number
+
+   **Dispatch the `pr-reviewer` subagent** against that PR:
+   - Review only for accuracy of the committed content (correct status, counts, PR refs)
+   - **Do NOT write to any memory files** as part of the review — post findings as a PR comment only
+   - If `APPROVED` → dispatch `implementer` to merge the PR (`GH_TOKEN=$GH_TOKEN_IMPLEMENTER`) with no further file edits
+   - If `CHANGES REQUESTED` → dispatch `implementer` to amend the committed files and re-push; loop back to review
+
 ### On STUCK:
 
 1. Update `memory/active/TASK-XXX.md`:
@@ -308,6 +388,22 @@ N rounds before approval
 2. Update `memory/dev-tracker.md`:
    - Change `- [~] TASK-001: ...` → `- [!] TASK-001: ... (⚠️ STUCK)`
    - Update Progress Summary counts
+
+3. Persist memory state changes via the implementer → pr-reviewer flow:
+
+   **Dispatch the `implementer` subagent** with instruction "Persist memory state":
+   - Check out a new branch: `chore/tracker-TASK-XXX-stuck`
+   - Stage and commit **only** the already-written files: `memory/active/TASK-XXX.md`, `memory/dev-tracker.md`
+   - Commit message: `chore: mark TASK-XXX stuck — <brief reason>`
+   - Push the branch and open a PR with `GH_TOKEN=$GH_TOKEN_IMPLEMENTER`
+   - **Do NOT update any task status files** — the files are already final; writing to them again would create a new unpersisted change.
+   - Return `PR_READY` with the new PR number
+
+   **Dispatch the `pr-reviewer` subagent** against that PR:
+   - Review only for accuracy of the committed content (correct status, reason, counts)
+   - **Do NOT write to any memory files** as part of the review — post findings as a PR comment only
+   - If `APPROVED` → dispatch `implementer` to merge the PR with no further file edits
+   - If `CHANGES REQUESTED` → dispatch `implementer` to amend the committed files and re-push; loop back to review
 
 ---
 
