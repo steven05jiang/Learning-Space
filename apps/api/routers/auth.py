@@ -20,25 +20,24 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 def _get_redirect_uri(request: Request, provider: str) -> str:
     """Get secure redirect URI for OAuth callback."""
     # Use configured base URL if available, otherwise use request URL
-    oauth_base = getattr(settings, 'oauth_redirect_base_url', None)
+    oauth_base = getattr(settings, "oauth_redirect_base_url", None)
 
     if oauth_base:
         base_url = oauth_base.rstrip("/")
     else:
         # Validate HTTPS in production
         base_url = str(request.base_url).rstrip("/")
-        if not base_url.startswith(('http://localhost', 'http://127.0.0.1', 'https://')):
+        if not base_url.startswith(
+            ("http://localhost", "http://127.0.0.1", "https://")
+        ):
             # In production, require HTTPS
-            base_url = base_url.replace('http://', 'https://', 1)
+            base_url = base_url.replace("http://", "https://", 1)
 
     return f"{base_url}/auth/callback/{provider}"
 
 
 @router.get("/login/{provider}")
-async def oauth_login(
-    provider: str,
-    request: Request
-) -> Dict[str, str]:
+async def oauth_login(provider: str, request: Request) -> Dict[str, str]:
     """
     Initiate OAuth login flow for the specified provider.
 
@@ -47,8 +46,7 @@ async def oauth_login(
     oauth_provider = oauth_service.get_provider(provider)
     if not oauth_provider:
         raise ValidationError(
-            f"Unsupported OAuth provider: {provider}",
-            ErrorCode.PROVIDER_NOT_SUPPORTED
+            f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
         )
 
     # Create secure redirect URI
@@ -57,10 +55,7 @@ async def oauth_login(
     # Get authorization URL
     auth_url = await oauth_provider.get_authorization_url(redirect_uri)
 
-    return {
-        "authorization_url": auth_url,
-        "provider": provider
-    }
+    return {"authorization_url": auth_url, "provider": provider}
 
 
 @router.get("/callback/{provider}")
@@ -69,7 +64,7 @@ async def oauth_callback(
     code: str = Query(...),
     state: str = Query(None),
     request: Request = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Dict:
     """
     Handle OAuth callback and complete authentication.
@@ -79,8 +74,7 @@ async def oauth_callback(
     oauth_provider = oauth_service.get_provider(provider)
     if not oauth_provider:
         raise ValidationError(
-            f"Unsupported OAuth provider: {provider}",
-            ErrorCode.PROVIDER_NOT_SUPPORTED
+            f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
         )
 
     # Create redirect URI (same as used in login)
@@ -108,7 +102,7 @@ async def oauth_callback(
             access_token=access_token,
             user_info=user_info,
             # Most providers don't provide refresh tokens in basic flow
-            refresh_token=None
+            refresh_token=None,
         )
 
         return {
@@ -118,8 +112,8 @@ async def oauth_callback(
                 "id": user.id,
                 "email": user.email,
                 "display_name": user.display_name,
-                "avatar_url": user.avatar_url
-            }
+                "avatar_url": user.avatar_url,
+            },
         }
     except Exception as e:
         # Log the actual error server-side for debugging
@@ -130,41 +124,8 @@ async def oauth_callback(
         raise InternalServerError("Authentication failed. Please try again.")
 
 
-@router.get("/me")
-async def get_current_user_profile(
-    current_user: User = Depends(get_current_user)
-) -> Dict:
-    """
-    Get the current authenticated user's profile.
-
-    Returns the user's profile information including:
-    - id, email, display_name, avatar_url, created_at
-    - linked OAuth providers
-
-    Requires valid JWT authentication.
-    """
-    # Get linked providers from user's accounts
-    providers = []
-    for account in current_user.accounts:
-        providers.append({
-            "provider": account.provider,
-            "last_login_at": account.last_login_at.isoformat() if account.last_login_at else None
-        })
-
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "display_name": current_user.display_name,
-        "avatar_url": current_user.avatar_url,
-        "created_at": current_user.created_at.isoformat(),
-        "providers": providers
-    }
-
-
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout_user(
-    current_user: User = Depends(get_current_user)
-) -> Response:
+async def logout_user(current_user: User = Depends(get_current_user)) -> Response:
     """
     Log out the current authenticated user.
 
@@ -193,6 +154,4 @@ async def logout_user(
 @router.get("/providers")
 async def get_supported_providers() -> Dict[str, list]:
     """Get list of supported OAuth providers."""
-    return {
-        "providers": oauth_service.get_supported_providers()
-    }
+    return {"providers": oauth_service.get_supported_providers()}

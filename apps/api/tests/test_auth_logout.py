@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-import pytest
 from fastapi.testclient import TestClient
 
 from core.deps import get_current_user
@@ -32,7 +31,7 @@ class TestAuthLogoutEndpoint:
             id=123,
             email="test@example.com",
             display_name="Test User",
-            created_at=datetime(2023, 1, 1, tzinfo=timezone.utc)
+            created_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
         test_user.accounts = []
 
@@ -47,7 +46,7 @@ class TestAuthLogoutEndpoint:
             token_data = {
                 "sub": str(test_user.id),
                 "email": test_user.email,
-                "display_name": test_user.display_name
+                "display_name": test_user.display_name,
             }
             token = create_access_token(token_data)
 
@@ -69,7 +68,7 @@ class TestAuthLogoutEndpoint:
             id=456,
             email="user1@example.com",
             display_name="User One",
-            created_at=datetime(2023, 1, 1, tzinfo=timezone.utc)
+            created_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
         user1.accounts = []
 
@@ -78,7 +77,7 @@ class TestAuthLogoutEndpoint:
             id=789,
             email="user2@example.com",
             display_name="User Two",
-            created_at=datetime(2023, 1, 1, tzinfo=timezone.utc)
+            created_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
         user2.accounts = []
 

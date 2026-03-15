@@ -1,13 +1,11 @@
 """
 Dependency injection utilities for the API.
 """
-from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from core.jwt import verify_token
 from models.database import get_db
@@ -18,7 +16,7 @@ security = HTTPBearer()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     FastAPI dependency to get the current authenticated user.
@@ -62,7 +60,7 @@ async def get_current_user(
         )
 
     try:
-        stmt = select(User).where(User.id == user_id_int).options(selectinload(User.accounts))
+        stmt = select(User).where(User.id == user_id_int)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
