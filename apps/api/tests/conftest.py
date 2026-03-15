@@ -7,8 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from core.jwt import create_access_token
 from main import app
 from models.database import Base, get_db
+from models.user import User
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -34,9 +36,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    async_session = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
         yield session
@@ -47,6 +47,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create a test client with database override."""
+
     def get_test_db():
         return db_session
 
@@ -56,3 +57,29 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def test_user(db_session: AsyncSession) -> User:
+    """Create a test user in the database."""
+    user = User(
+        email="test@example.com",
+        display_name="Test User",
+        avatar_url="https://example.com/avatar.jpg",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+async def auth_headers(test_user: User) -> dict:
+    """Create authentication headers with a valid JWT token."""
+    token_data = {
+        "sub": str(test_user.id),
+        "email": test_user.email,
+        "display_name": test_user.display_name,
+    }
+    token = create_access_token(token_data)
+    return {"Authorization": f"Bearer {token}"}

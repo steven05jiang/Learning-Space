@@ -19,9 +19,10 @@ class Resource(Base):
     __tablename__ = "resources"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    url = Column(String, nullable=False)
-    raw_text = Column(Text, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content_type = Column(String, nullable=False)
+    original_content = Column(Text, nullable=False)
+    prefer_provider = Column(String, nullable=True)
     title = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
     tags = Column(JSONB, nullable=True, default=list)
