@@ -12,6 +12,7 @@ dependencies = [
     "asyncpg",
     "pydantic-settings",
     "python-dotenv",
+    "greenlet>=3.3.2",
 ]
 
 [project.optional-dependencies]
