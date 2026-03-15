@@ -10,9 +10,9 @@
 
 ## Progress Summary
 - Total: 51 tasks
-- ✅ Completed: 2
+- ✅ Completed: 3
 - 🔄 Active: 1
-- ⏳ Pending: 48
+- ⏳ Pending: 47
 - ⚠️ Stuck: 0
 
 ---
@@ -21,8 +21,8 @@
 
 - [x] DEV-001: Initialize monorepo and project structure — Scaffold monorepo, apps (api + web) (PR #1 ✅)
 - [x] DEV-004: Set up environment variable configuration — Pydantic Settings, .env.example, production validator (PR #2 ✅)
-- [~] DEV-002: Configure PostgreSQL schema and migrations — Users, resources, accounts data layer via Alembic
-- [ ] DEV-003: Configure Neo4j connection and schema setup — Graph driver connection + uniqueness constraints
+- [x] DEV-002: Configure PostgreSQL schema and migrations — Users, resources, accounts data layer via Alembic (PR #7 ✅)
+- [~] DEV-003: Configure Neo4j connection and schema setup — Graph driver connection + uniqueness constraints
 - [ ] DEV-012: Implement Pydantic models for resources — Shared request/response models for resource endpoints
 - [ ] DEV-037: Implement health check endpoint — GET /health returns 200; used by CI and k8s probes
 - [ ] DEV-038: Implement standard error handling — Consistent error format before any endpoint returns errors
