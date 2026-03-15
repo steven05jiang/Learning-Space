@@ -1,9 +1,15 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.errors import (
+    APIError,
+    api_exception_handler,
+    generic_exception_handler,
+    http_exception_wrapper,
+)
 from models.database import get_db
 from routers import health
 from services.neo4j_driver import neo4j_driver
@@ -25,6 +31,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Register exception handlers in order of specificity
+app.add_exception_handler(APIError, api_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_wrapper)
+app.add_exception_handler(Exception, generic_exception_handler)
+
 # Include routers
 app.include_router(health.router)
 
@@ -36,5 +47,8 @@ async def db_health_check(db: AsyncSession = Depends(get_db)):
         # Simple query to test database connection
         await db.execute(text("SELECT 1"))
         return {"status": "database healthy"}
-    except Exception:
-        return {"status": "database error"}
+    except Exception as e:
+        # For health checks, we might want to return 503 Service Unavailable
+        # but keep consistent with the error format
+        from core.errors import InternalServerError
+        raise InternalServerError(f"Database connection failed: {str(e)}")
