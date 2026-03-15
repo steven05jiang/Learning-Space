@@ -10,8 +10,8 @@
 
 ## Progress Summary
 - Total: 51 tasks
-- ✅ Completed: 0
-- 🔄 Active: 2
+- ✅ Completed: 2
+- 🔄 Active: 0
 - ⏳ Pending: 49
 - ⚠️ Stuck: 0
 
@@ -19,8 +19,8 @@
 
 ## 🔴 Tier 1 — Foundation
 
-- [~] DEV-001: Initialize monorepo and project structure — Scaffold monorepo, apps (api + web), CI pipeline (PR #1 🔄 review round 1: pr-reviewer APPROVED, security-reviewer CHANGES REQUESTED)
-- [~] DEV-004: Set up environment variable configuration — All services need config before connecting to anything (PR #2 🔄 awaiting review)
+- [x] DEV-001: Initialize monorepo and project structure — Scaffold monorepo, apps (api + web) (PR #1 ✅)
+- [x] DEV-004: Set up environment variable configuration — Pydantic Settings, .env.example, production validator (PR #2 ✅)
 - [ ] DEV-002: Configure PostgreSQL schema and migrations — Users, resources, accounts data layer via Alembic
 - [ ] DEV-003: Configure Neo4j connection and schema setup — Graph driver connection + uniqueness constraints
 - [ ] DEV-012: Implement Pydantic models for resources — Shared request/response models for resource endpoints
