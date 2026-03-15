@@ -1,12 +1,14 @@
 import logging
 from typing import Dict
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.deps import get_current_user
 from core.errors import ErrorCode, InternalServerError, ValidationError
 from models.database import get_db
+from models.user import User
 from services.auth import auth_service
 from services.oauth import oauth_service
 
@@ -18,25 +20,24 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 def _get_redirect_uri(request: Request, provider: str) -> str:
     """Get secure redirect URI for OAuth callback."""
     # Use configured base URL if available, otherwise use request URL
-    oauth_base = getattr(settings, 'oauth_redirect_base_url', None)
+    oauth_base = getattr(settings, "oauth_redirect_base_url", None)
 
     if oauth_base:
         base_url = oauth_base.rstrip("/")
     else:
         # Validate HTTPS in production
         base_url = str(request.base_url).rstrip("/")
-        if not base_url.startswith(('http://localhost', 'http://127.0.0.1', 'https://')):
+        if not base_url.startswith(
+            ("http://localhost", "http://127.0.0.1", "https://")
+        ):
             # In production, require HTTPS
-            base_url = base_url.replace('http://', 'https://', 1)
+            base_url = base_url.replace("http://", "https://", 1)
 
     return f"{base_url}/auth/callback/{provider}"
 
 
 @router.get("/login/{provider}")
-async def oauth_login(
-    provider: str,
-    request: Request
-) -> Dict[str, str]:
+async def oauth_login(provider: str, request: Request) -> Dict[str, str]:
     """
     Initiate OAuth login flow for the specified provider.
 
@@ -45,8 +46,7 @@ async def oauth_login(
     oauth_provider = oauth_service.get_provider(provider)
     if not oauth_provider:
         raise ValidationError(
-            f"Unsupported OAuth provider: {provider}",
-            ErrorCode.PROVIDER_NOT_SUPPORTED
+            f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
         )
 
     # Create secure redirect URI
@@ -55,10 +55,7 @@ async def oauth_login(
     # Get authorization URL
     auth_url = await oauth_provider.get_authorization_url(redirect_uri)
 
-    return {
-        "authorization_url": auth_url,
-        "provider": provider
-    }
+    return {"authorization_url": auth_url, "provider": provider}
 
 
 @router.get("/callback/{provider}")
@@ -67,7 +64,7 @@ async def oauth_callback(
     code: str = Query(...),
     state: str = Query(None),
     request: Request = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Dict:
     """
     Handle OAuth callback and complete authentication.
@@ -77,8 +74,7 @@ async def oauth_callback(
     oauth_provider = oauth_service.get_provider(provider)
     if not oauth_provider:
         raise ValidationError(
-            f"Unsupported OAuth provider: {provider}",
-            ErrorCode.PROVIDER_NOT_SUPPORTED
+            f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
         )
 
     # Create redirect URI (same as used in login)
@@ -106,7 +102,7 @@ async def oauth_callback(
             access_token=access_token,
             user_info=user_info,
             # Most providers don't provide refresh tokens in basic flow
-            refresh_token=None
+            refresh_token=None,
         )
 
         return {
@@ -116,8 +112,8 @@ async def oauth_callback(
                 "id": user.id,
                 "email": user.email,
                 "display_name": user.display_name,
-                "avatar_url": user.avatar_url
-            }
+                "avatar_url": user.avatar_url,
+            },
         }
     except Exception as e:
         # Log the actual error server-side for debugging
@@ -128,9 +124,34 @@ async def oauth_callback(
         raise InternalServerError("Authentication failed. Please try again.")
 
 
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_user(current_user: User = Depends(get_current_user)) -> Response:
+    """
+    Log out the current authenticated user.
+
+    Invalidates the current session. In this JWT-based implementation,
+    the client should delete the token from local storage.
+
+    Returns HTTP 204 No Content on success.
+    Requires valid JWT authentication.
+
+    Note: For production use, consider implementing a token blacklist
+    for immediate token invalidation server-side.
+    """
+    # Log the logout event
+    logger.info(f"User {current_user.id} ({current_user.email}) logged out")
+
+    # In a JWT-based auth system, logout is primarily client-side
+    # The client should delete the token from storage
+    # For enhanced security, you could:
+    # 1. Add the token to a blacklist (requires token storage/caching)
+    # 2. Use shorter-lived tokens with refresh tokens
+    # 3. Store session data server-side instead of pure JWT
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get("/providers")
 async def get_supported_providers() -> Dict[str, list]:
     """Get list of supported OAuth providers."""
-    return {
-        "providers": oauth_service.get_supported_providers()
-    }
+    return {"providers": oauth_service.get_supported_providers()}
