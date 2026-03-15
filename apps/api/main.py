@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.database import get_db
 from routers import health
 from services.neo4j_driver import neo4j_driver
 
@@ -24,3 +27,14 @@ app = FastAPI(
 
 # Include routers
 app.include_router(health.router)
+
+
+@app.get("/db-health")
+async def db_health_check(db: AsyncSession = Depends(get_db)):
+    """Database health check endpoint."""
+    try:
+        # Simple query to test database connection
+        await db.execute(text("SELECT 1"))
+        return {"status": "database healthy"}
+    except Exception:
+        return {"status": "database error"}

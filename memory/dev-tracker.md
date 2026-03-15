@@ -4,7 +4,7 @@
 **Sprint:** Tier 1 — Foundation
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-14 (synced)
+**Last Updated:** 2026-03-14 (synced — DEV-001 moved to completed)
 
 ---
 

@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings",
     "python-dotenv",
     "neo4j>=6.1.0",
+    "greenlet>=3.3.2",
 ]
 
 [project.optional-dependencies]
