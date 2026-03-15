@@ -1,8 +1,8 @@
 """
 Tests for Neo4j driver service.
 """
-from unittest.mock import AsyncMock, patch
 import contextlib
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
