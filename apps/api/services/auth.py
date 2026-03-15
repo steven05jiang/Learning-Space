@@ -1,0 +1,131 @@
+from datetime import datetime, timezone
+from typing import Dict, Optional, Tuple
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from core.jwt import create_access_token
+from models.account import Account
+from models.user import User
+
+
+class AuthService:
+    """Authentication service for OAuth login."""
+
+    async def find_user_by_provider_account(
+        self, db: AsyncSession, provider: str, provider_account_id: str
+    ) -> Optional[User]:
+        """Find user by provider account."""
+        stmt = (
+            select(User)
+            .join(Account)
+            .where(
+                Account.provider == provider,
+                Account.provider_account_id == provider_account_id
+            )
+            .options(selectinload(User.accounts))
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def create_user_with_account(
+        self,
+        db: AsyncSession,
+        provider: str,
+        provider_account_id: str,
+        access_token: str,
+        user_info: Dict,
+        refresh_token: Optional[str] = None
+    ) -> User:
+        """Create a new user with associated OAuth account."""
+        # Create user
+        user = User(
+            email=user_info.get(
+                "email", f"{provider}_{provider_account_id}@example.com"
+            ),
+            display_name=user_info.get("display_name", "Unknown User"),
+            avatar_url=user_info.get("avatar_url")
+        )
+        db.add(user)
+        await db.flush()  # Get the user ID
+
+        # Create account
+        account = Account(
+            user_id=user.id,
+            provider=provider,
+            provider_account_id=provider_account_id,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            last_login_at=datetime.now(timezone.utc)
+        )
+        db.add(account)
+        await db.commit()
+
+        # Refresh to get relationships
+        await db.refresh(user, ["accounts"])
+        return user
+
+    async def update_account_tokens(
+        self,
+        db: AsyncSession,
+        user: User,
+        provider: str,
+        access_token: str,
+        refresh_token: Optional[str] = None
+    ) -> None:
+        """Update account tokens and last login time."""
+        for account in user.accounts:
+            if account.provider == provider:
+                account.access_token = access_token
+                if refresh_token:
+                    account.refresh_token = refresh_token
+                account.last_login_at = datetime.now(timezone.utc)
+                break
+        await db.commit()
+
+    def generate_jwt_token(self, user: User) -> str:
+        """Generate JWT token for authenticated user."""
+        token_data = {
+            "sub": str(user.id),
+            "email": user.email,
+            "display_name": user.display_name
+        }
+        return create_access_token(token_data)
+
+    async def authenticate_oauth_user(
+        self,
+        db: AsyncSession,
+        provider: str,
+        provider_account_id: str,
+        access_token: str,
+        user_info: Dict,
+        refresh_token: Optional[str] = None
+    ) -> Tuple[User, str]:
+        """
+        Authenticate or create OAuth user.
+        Returns (user, jwt_token).
+        """
+        # Check if user exists
+        user = await self.find_user_by_provider_account(
+            db, provider, provider_account_id
+        )
+
+        if user:
+            # Update existing user's tokens
+            await self.update_account_tokens(
+                db, user, provider, access_token, refresh_token
+            )
+        else:
+            # Create new user
+            user = await self.create_user_with_account(
+                db, provider, provider_account_id, access_token, user_info,
+                refresh_token
+            )
+
+        # Generate JWT token
+        jwt_token = self.generate_jwt_token(user)
+        return user, jwt_token
+
+
+auth_service = AuthService()

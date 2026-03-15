@@ -11,7 +11,7 @@ from core.errors import (
     http_exception_wrapper,
 )
 from models.database import get_db
-from routers import health
+from routers import auth, health
 from services.neo4j_driver import neo4j_driver
 
 
@@ -38,6 +38,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 # Include routers
 app.include_router(health.router)
+app.include_router(auth.router)
 
 
 @app.get("/db-health")

@@ -1,0 +1,221 @@
+from typing import Dict, Optional
+from urllib.parse import urlencode
+
+import httpx
+
+from core.config import settings
+
+
+class OAuthProvider:
+    """Base OAuth provider class."""
+
+    def __init__(self, client_id: str, client_secret: str):
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    async def get_authorization_url(self, redirect_uri: str) -> str:
+        """Get the OAuth authorization URL."""
+        raise NotImplementedError
+
+    async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
+        """Exchange authorization code for access token."""
+        raise NotImplementedError
+
+    async def get_user_info(self, access_token: str) -> Optional[Dict]:
+        """Get user information from the provider."""
+        raise NotImplementedError
+
+
+class GitHubOAuthProvider(OAuthProvider):
+    """GitHub OAuth provider."""
+
+    def __init__(self):
+        super().__init__(settings.github_client_id, settings.github_client_secret)
+        self.auth_url = "https://github.com/login/oauth/authorize"
+        self.token_url = "https://github.com/login/oauth/access_token"
+        self.user_info_url = "https://api.github.com/user"
+
+    async def get_authorization_url(self, redirect_uri: str) -> str:
+        """Get GitHub OAuth authorization URL."""
+        params = {
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "user:email",
+            "response_type": "code"
+        }
+        return f"{self.auth_url}?{urlencode(params)}"
+
+    async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
+        """Exchange code for GitHub access token."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.token_url,
+                headers={"Accept": "application/json"},
+                data={
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                }
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("access_token")
+        return None
+
+    async def get_user_info(self, access_token: str) -> Optional[Dict]:
+        """Get user info from GitHub."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                self.user_info_url,
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            if response.status_code == 200:
+                user_data = response.json()
+                return {
+                    "id": str(user_data["id"]),
+                    "email": user_data.get("email"),
+                    "display_name": user_data.get("name") or user_data.get("login"),
+                    "avatar_url": user_data.get("avatar_url")
+                }
+        return None
+
+
+class GoogleOAuthProvider(OAuthProvider):
+    """Google OAuth provider."""
+
+    def __init__(self):
+        super().__init__(settings.google_client_id, settings.google_client_secret)
+        self.auth_url = "https://accounts.google.com/o/oauth2/auth"
+        self.token_url = "https://oauth2.googleapis.com/token"
+        self.user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+    async def get_authorization_url(self, redirect_uri: str) -> str:
+        """Get Google OAuth authorization URL."""
+        params = {
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "openid email profile",
+            "response_type": "code",
+            "access_type": "offline"
+        }
+        return f"{self.auth_url}?{urlencode(params)}"
+
+    async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
+        """Exchange code for Google access token."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.token_url,
+                data={
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": redirect_uri,
+                }
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("access_token")
+        return None
+
+    async def get_user_info(self, access_token: str) -> Optional[Dict]:
+        """Get user info from Google."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                self.user_info_url,
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            if response.status_code == 200:
+                user_data = response.json()
+                return {
+                    "id": str(user_data["id"]),
+                    "email": user_data.get("email"),
+                    "display_name": user_data.get("name"),
+                    "avatar_url": user_data.get("picture")
+                }
+        return None
+
+
+class TwitterOAuthProvider(OAuthProvider):
+    """Twitter OAuth provider (OAuth 2.0 PKCE)."""
+
+    def __init__(self):
+        super().__init__(settings.twitter_client_id, settings.twitter_client_secret)
+        self.auth_url = "https://twitter.com/i/oauth2/authorize"
+        self.token_url = "https://api.twitter.com/2/oauth2/token"
+        self.user_info_url = "https://api.twitter.com/2/users/me"
+
+    async def get_authorization_url(self, redirect_uri: str) -> str:
+        """Get Twitter OAuth authorization URL."""
+        params = {
+            "response_type": "code",
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "tweet.read users.read",
+            "state": "state",  # In production, use a random state
+            "code_challenge": "challenge",  # In production, use PKCE
+            "code_challenge_method": "plain"
+        }
+        return f"{self.auth_url}?{urlencode(params)}"
+
+    async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
+        """Exchange code for Twitter access token."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.token_url,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": f"Basic {self.client_id}:{self.client_secret}"
+                },
+                data={
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": redirect_uri,
+                    "code_verifier": "challenge"  # In production, use proper PKCE
+                }
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("access_token")
+        return None
+
+    async def get_user_info(self, access_token: str) -> Optional[Dict]:
+        """Get user info from Twitter."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.user_info_url}?user.fields=profile_image_url",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                user_data = data.get("data", {})
+                return {
+                    "id": str(user_data["id"]),
+                    "email": None,  # Twitter doesn't provide email by default
+                    "display_name": user_data.get("name"),
+                    "avatar_url": user_data.get("profile_image_url")
+                }
+        return None
+
+
+class OAuthService:
+    """OAuth service for managing multiple providers."""
+
+    def __init__(self):
+        self.providers = {
+            "github": GitHubOAuthProvider(),
+            "google": GoogleOAuthProvider(),
+            "twitter": TwitterOAuthProvider(),
+        }
+
+    def get_provider(self, provider_name: str) -> Optional[OAuthProvider]:
+        """Get OAuth provider by name."""
+        return self.providers.get(provider_name.lower())
+
+    def get_supported_providers(self) -> list[str]:
+        """Get list of supported OAuth providers."""
+        return list(self.providers.keys())
+
+
+oauth_service = OAuthService()

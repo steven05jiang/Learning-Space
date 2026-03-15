@@ -9,6 +9,19 @@ class Settings(BaseSettings):
     neo4j_password: str = "changeme"
     redis_url: str = "redis://localhost:6379"
 
+    # OAuth Settings
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    twitter_client_id: str = ""
+    twitter_client_secret: str = ""
+
+    # JWT Settings
+    jwt_secret_key: str = "your-secret-key-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 30
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 settings = Settings()
