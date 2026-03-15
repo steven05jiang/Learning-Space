@@ -18,12 +18,12 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
 
     # PostgreSQL
-    database_url: str = "postgresql+asyncpg://learningspace:learningspace@localhost:5432/learningspace"
+    database_url: str = ""
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = "learningspace"
+    neo4j_password: str = ""
 
     # Redis
     redis_url: str = "redis://localhost:6379"
@@ -56,7 +56,9 @@ class Settings(BaseSettings):
         if self.environment == "production":
             # Secret key must not be default
             if self.secret_key == "change-me-in-production":
-                raise ValueError("SECRET_KEY must be changed from default value in production")
+                raise ValueError(
+                    "SECRET_KEY must be changed from default value in production"
+                )
 
             # Debug must be disabled
             if self.debug is True:
@@ -68,10 +70,14 @@ class Settings(BaseSettings):
 
             # Database credentials should be non-default
             if "learningspace:learningspace" in self.database_url:
-                raise ValueError("Production database credentials must not use default values")
+                raise ValueError(
+                    "Production database credentials must not use default values"
+                )
 
             if self.neo4j_password == "learningspace":
-                raise ValueError("NEO4J_PASSWORD must not use default value in production")
+                raise ValueError(
+                    "NEO4J_PASSWORD must not use default value in production"
+                )
 
         return self
 
