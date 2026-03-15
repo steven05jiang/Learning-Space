@@ -31,6 +31,7 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 - **Language**: English | **Code**: Follow project lint rules | **Commits**: Atomic, one commit = one change
 - **Verification**: Claude runs it | **Tests**: Must work offline, use mock/fixtures
 - **Python**: Use `uv` for all project/dependency management. `uv init` to scaffold, `uv add` to add dependencies, `uv run` to execute scripts/tests. Never use raw `pip install` or `python -m venv`.
+- **GitHub tokens**: Always use `GH_TOKEN=<value of GH_TOKEN_IMPLEMENTER>` when pushing code/branches or creating PRs with `gh`. Always use `GH_TOKEN=<value of GH_TOKEN_REVIEWER>` when reviewing, requesting changes, or approving PRs with `gh`. Example: `GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create ...` / `GH_TOKEN=$GH_TOKEN_REVIEWER gh pr review ...`
 
 ---
 
