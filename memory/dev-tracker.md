@@ -4,23 +4,23 @@
 **Sprint:** Tier 1 — Foundation
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-14
+**Last Updated:** 2026-03-14 (synced)
 
 ---
 
 ## Progress Summary
 - Total: 51 tasks
 - ✅ Completed: 0
-- 🔄 Active: 1
-- ⏳ Pending: 50
+- 🔄 Active: 2
+- ⏳ Pending: 49
 - ⚠️ Stuck: 0
 
 ---
 
 ## 🔴 Tier 1 — Foundation
 
-- [~] DEV-001: Initialize monorepo and project structure — Scaffold monorepo, apps (api + web), CI pipeline
-- [ ] DEV-004: Set up environment variable configuration — All services need config before connecting to anything
+- [~] DEV-001: Initialize monorepo and project structure — Scaffold monorepo, apps (api + web), CI pipeline (PR #1 🔄 review round 1: pr-reviewer APPROVED, security-reviewer CHANGES REQUESTED)
+- [~] DEV-004: Set up environment variable configuration — All services need config before connecting to anything (PR #2 🔄 awaiting review)
 - [ ] DEV-002: Configure PostgreSQL schema and migrations — Users, resources, accounts data layer via Alembic
 - [ ] DEV-003: Configure Neo4j connection and schema setup — Graph driver connection + uniqueness constraints
 - [ ] DEV-012: Implement Pydantic models for resources — Shared request/response models for resource endpoints

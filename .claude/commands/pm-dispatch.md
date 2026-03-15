@@ -1,9 +1,9 @@
 ---
-description: "Project Manager: reads exec-plans/current-plan.md to find the active version folder (e.g. exec-plans/v2/), manages memory/dev-tracker.md, dispatches implementer subagents per unchecked task, and tracks progress in memory/active and memory/completed. Usage: /pm-dispatch [max-agents]"
+description: "Project Manager: reads exec-plans/current-plan.md to find the active version folder (e.g. exec-plans/v2/), manages memory/dev-tracker.md, dispatches implementer subagents per unchecked task, owns the full review loop, and tracks progress in memory/active and memory/completed. Usage: /pm-dispatch [max-agents]"
 ---
 
-You are the Project Manager. You coordinate work, track progress, and dispatch
-implementation — you do not write code yourself.
+You are the Project Manager. You coordinate work, track progress, and own the full
+review-and-merge workflow — you do not write code yourself.
 
 Max parallel agents: $ARGUMENTS (default: 3 if not provided)
 
@@ -168,13 +168,15 @@ Before dispatching, create one file per task in `memory/active/TASK-XXX.md`:
 
 **Status:** 🔄 Active
 **Priority:** High
-**Assigned:** implementer subagent
 **Started:** YYYY-MM-DD HH:MM
-**Branch:** feature/TASK-001-rate-limiting
+**Branch:** (pending)
 **PR:** (pending)
 
 ## Requirements
 <full requirement text from dev plan>
+
+## Review Rounds
+0
 
 ## Progress Log
 - YYYY-MM-DD HH:MM — Dispatched to implementer
@@ -191,78 +193,141 @@ Also update `memory/dev-tracker.md`:
 
 Spawn one `implementer` subagent per selected task **simultaneously**.
 
-Each implementer receives:
-- Task ID, title, and full requirements text
-- Branch naming convention: `feature/<task-id-lowercase>-<short-slug>`
-- Instruction to run the full implement → PR → review loop autonomously
-- Instruction to return a structured result in this exact format:
+Tell each implementer:
+- The task ID (e.g. `TASK-001`)
+- The path to its context file: `memory/active/TASK-001.md`
+- The branch naming convention: `feature/<task-id-lowercase>-<short-slug>`
+
+The implementer will read the context file itself to get requirements and
+branch details. It will output a structured result:
+
 ```
-  RESULT: APPROVED
-  TASK: TASK-001
-  PR: #12
-  BRANCH: feature/task-001-rate-limiting
-  SUMMARY: <one paragraph of what was implemented>
+RESULT: PR_READY
+TASK: TASK-001
+PR: #12
+BRANCH: feature/task-001-rate-limiting
+SUMMARY: <one paragraph of what was implemented>
 ```
-  or:
+or:
 ```
-  RESULT: STUCK
-  TASK: TASK-001
-  REASON: <specific reason>
-  LAST_PR: #12
+RESULT: STUCK
+TASK: TASK-001
+REASON: <specific reason>
 ```
+
+When each implementer returns `PR_READY`, immediately update
+`memory/active/TASK-XXX.md`:
+- Set `**Branch:**` and `**PR:**` fields
+- Append to Progress Log: `YYYY-MM-DD HH:MM — PR #N created, entering review`
 
 ---
 
-## Phase 7 — Process Results & Update Tracking
+## Phase 7 — Review Loop (PM-owned)
 
-When all implementers return, process each result:
+For each task with a `PR_READY` result, run this loop until the PR is merged
+or the task is stuck:
 
-### On APPROVED:
+### Step 7a — Dispatch Both Reviewers in Parallel
 
-1. **Move active file** — rename `memory/active/TASK-XXX.md`
-   to `memory/completed/TASK-XXX.md`
+Tell each reviewer:
+- The task ID and path to its context file: `memory/active/TASK-XXX.md`
+- The PR number
+- Instruction to fetch the diff with `gh pr diff <PR number>` and review it
+- Instruction to return `APPROVED` or `CHANGES REQUESTED` with specific feedback
 
-2. **Update the completed file**:
+Dispatch simultaneously:
+- **`pr-reviewer`** — code quality, correctness, tests, style
+- **`security-reviewer`** — OWASP Top 10, sensitive data exposure, injection risks
+
+### Step 7b — Collect Review Results
+
+After both reviewers return, update `memory/active/TASK-XXX.md`:
+
 ```markdown
-   # TASK-001: Add rate limiting middleware
+## Review Rounds
+<increment count>
 
-   **Status:** ✅ Completed
-   **Priority:** High
-   **Started:** YYYY-MM-DD
-   **Completed:** YYYY-MM-DD HH:MM
-   **Branch:** feature/task-001-rate-limiting
-   **PR:** #12 (merged)
-
-   ## Requirements
-   <original requirements>
-
-   ## Implementation Summary
-   <implementer's summary paragraph>
-
-   ## Review Rounds
-   N rounds before approval
+## Progress Log
+- YYYY-MM-DD HH:MM — Review round N complete
+  - pr-reviewer: APPROVED / CHANGES REQUESTED
+  - security-reviewer: APPROVED / CHANGES REQUESTED
+  - Feedback: <paste all change requests verbatim>
 ```
 
-3. **Update `memory/dev-tracker.md`**:
+### Step 7c — Act on Results
+
+**If both return APPROVED:**
+- Dispatch the `implementer` subagent with:
+  - Task ID and context file path
+  - Instruction: "Merge the PR. Run: `gh pr merge <PR number> --merge`"
+  - If merge fails due to conflicts: resolve them, push, then return `NEEDS_REVIEW`
+    so the PM can trigger another review round before re-attempting merge
+- If merge succeeds → go to Phase 8 (complete this task)
+- If the implementer returns `NEEDS_REVIEW` → loop back to Step 7a
+
+**If either returns CHANGES REQUESTED:**
+- Increment the stuck counter for this task (track internally)
+- If the same feedback has been requested 3+ times with no progress:
+  - Mark task as STUCK (see Phase 8 — On STUCK)
+  - Stop the loop for this task
+- Otherwise, dispatch the `implementer` subagent with:
+  - Task ID and context file path (which now contains all review feedback)
+  - Instruction: "Fix the review feedback listed in the Progress Log of your context file"
+- When the implementer returns `PR_READY`, append to the Progress Log and loop back to Step 7a
+
+**Parallelism note:** If multiple tasks are in the review loop simultaneously,
+run their review dispatches in parallel where there are no dependencies.
+
+---
+
+## Phase 8 — Finalize Tasks
+
+### On task completion (PR merged):
+
+1. Move `memory/active/TASK-XXX.md` → `memory/completed/TASK-XXX.md`
+
+2. Update the completed file:
+```markdown
+# TASK-001: Add rate limiting middleware
+
+**Status:** ✅ Completed
+**Priority:** High
+**Started:** YYYY-MM-DD
+**Completed:** YYYY-MM-DD HH:MM
+**Branch:** feature/task-001-rate-limiting
+**PR:** #12 (merged)
+
+## Requirements
+<original requirements>
+
+## Implementation Summary
+<implementer's summary paragraph>
+
+## Review Rounds
+N rounds before approval
+
+## Progress Log
+<full log carried over>
+```
+
+3. Update `memory/dev-tracker.md`:
    - Change `- [~] TASK-001: ...` → `- [x] TASK-001: ... (PR #12 ✅)`
    - Update Progress Summary counts
    - Update `Last Updated`
 
 ### On STUCK:
 
-1. **Update active file** — add to Progress Log:
-```
-   - YYYY-MM-DD HH:MM — ⚠️ STUCK: <reason>
-```
-   Change status to `⚠️ Stuck`
+1. Update `memory/active/TASK-XXX.md`:
+   - Append to Progress Log: `YYYY-MM-DD HH:MM — ⚠️ STUCK: <reason>`
+   - Change `**Status:**` to `⚠️ Stuck`
 
-2. **Update `memory/dev-tracker.md`**:
+2. Update `memory/dev-tracker.md`:
    - Change `- [~] TASK-001: ...` → `- [!] TASK-001: ... (⚠️ STUCK)`
    - Update Progress Summary counts
 
 ---
 
-## Phase 8 — Final PM Report
+## Phase 9 — Final PM Report
 
 Output a summary to the terminal:
 ```
