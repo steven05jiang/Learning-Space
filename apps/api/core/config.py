@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://changeme:changeme@localhost:5432/learningspace"
     neo4j_uri: str = "bolt://localhost:7687"

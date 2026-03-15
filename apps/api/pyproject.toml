@@ -12,6 +12,7 @@ dependencies = [
     "asyncpg",
     "pydantic-settings",
     "python-dotenv",
+    "neo4j>=6.1.0",
 ]
 
 [project.optional-dependencies]
