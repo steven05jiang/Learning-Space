@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
 from models.database import get_db
-from models.resource import Resource, ResourceStatus
+from models.resource import Resource
 from models.user import User
-from schemas.resource import ResourceCreate, ResourceResponse
+from schemas.resource import ResourceCreate, ResourceResponse, ResourceStatus
 
 logger = logging.getLogger(__name__)
 

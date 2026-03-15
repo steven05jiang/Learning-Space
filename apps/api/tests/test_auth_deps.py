@@ -21,7 +21,7 @@ class TestGetCurrentUser:
             id=123,
             email="test@example.com",
             display_name="Test User",
-            avatar_url="https://example.com/avatar.jpg"
+            avatar_url="https://example.com/avatar.jpg",
         )
 
         # Mock database session and query
@@ -37,7 +37,7 @@ class TestGetCurrentUser:
         token_data = {
             "sub": str(test_user.id),
             "email": test_user.email,
-            "display_name": test_user.display_name
+            "display_name": test_user.display_name,
         }
         token = create_access_token(token_data)
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
@@ -73,7 +73,7 @@ class TestGetCurrentUser:
 
         token_data = {
             "email": "test@example.com",
-            "display_name": "Test User"
+            "display_name": "Test User",
             # Missing 'sub' field
         }
         token = create_access_token(token_data)
@@ -102,7 +102,7 @@ class TestGetCurrentUser:
         token_data = {
             "sub": "99999",  # Non-existent user ID
             "email": "nonexistent@example.com",
-            "display_name": "Nonexistent User"
+            "display_name": "Nonexistent User",
         }
         token = create_access_token(token_data)
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
@@ -116,13 +116,13 @@ class TestGetCurrentUser:
 
     @pytest.mark.asyncio
     async def test_invalid_user_id_format_raises_401(self):
-        """Test that a token with invalid user ID format raises HTTPException with 401."""
+        """Test that a token with invalid user ID format raises HTTPException."""
         mock_db = AsyncMock(spec=AsyncSession)
 
         token_data = {
             "sub": "not_a_number",  # Invalid user ID format
             "email": "test@example.com",
-            "display_name": "Test User"
+            "display_name": "Test User",
         }
         token = create_access_token(token_data)
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
@@ -144,7 +144,7 @@ class TestGetCurrentUser:
         token_data = {
             "sub": "123",
             "email": "test@example.com",
-            "display_name": "Test User"
+            "display_name": "Test User",
         }
         token = create_access_token(token_data)
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)

@@ -1,4 +1,5 @@
 """Tests for Pydantic schemas."""
+
 from datetime import datetime
 
 import pytest
@@ -20,7 +21,7 @@ class TestResourceCreate:
         """Test creating a valid URL resource."""
         data = {
             "content_type": "url",
-            "original_content": "https://example.com/article"
+            "original_content": "https://example.com/article",
         }
         resource = ResourceCreate(**data)
         assert resource.content_type == ContentType.URL
@@ -31,7 +32,7 @@ class TestResourceCreate:
         """Test creating a valid text resource."""
         data = {
             "content_type": "text",
-            "original_content": "This is some sample text content"
+            "original_content": "This is some sample text content",
         }
         resource = ResourceCreate(**data)
         assert resource.content_type == ContentType.TEXT
@@ -42,44 +43,32 @@ class TestResourceCreate:
         data = {
             "content_type": "url",
             "original_content": "https://twitter.com/example",
-            "prefer_provider": "twitter"
+            "prefer_provider": "twitter",
         }
         resource = ResourceCreate(**data)
         assert resource.prefer_provider == "twitter"
 
     def test_invalid_content_type(self):
         """Test that invalid content_type raises ValidationError."""
-        data = {
-            "content_type": "invalid",
-            "original_content": "https://example.com"
-        }
+        data = {"content_type": "invalid", "original_content": "https://example.com"}
         with pytest.raises(ValidationError):
             ResourceCreate(**data)
 
     def test_empty_original_content(self):
         """Test that empty original_content raises ValidationError."""
-        data = {
-            "content_type": "url",
-            "original_content": ""
-        }
+        data = {"content_type": "url", "original_content": ""}
         with pytest.raises(ValidationError):
             ResourceCreate(**data)
 
     def test_whitespace_original_content(self):
         """Test that whitespace-only original_content raises ValidationError."""
-        data = {
-            "content_type": "text",
-            "original_content": "   \n\t  "
-        }
+        data = {"content_type": "text", "original_content": "   \n\t  "}
         with pytest.raises(ValidationError):
             ResourceCreate(**data)
 
     def test_strips_whitespace(self):
         """Test that original_content whitespace is stripped."""
-        data = {
-            "content_type": "text",
-            "original_content": "  content with spaces  "
-        }
+        data = {"content_type": "text", "original_content": "  content with spaces  "}
         resource = ResourceCreate(**data)
         assert resource.original_content == "content with spaces"
 
@@ -97,10 +86,7 @@ class TestResourceUpdate:
 
     def test_partial_update(self):
         """Test updating only some fields."""
-        data = {
-            "title": "Updated title",
-            "tags": ["new", "tags"]
-        }
+        data = {"title": "Updated title", "tags": ["new", "tags"]}
         resource = ResourceUpdate(**data)
         assert resource.title == "Updated title"
         assert resource.tags == ["new", "tags"]
@@ -109,17 +95,13 @@ class TestResourceUpdate:
 
     def test_empty_original_content_validation(self):
         """Test that empty original_content raises ValidationError."""
-        data = {
-            "original_content": ""
-        }
+        data = {"original_content": ""}
         with pytest.raises(ValidationError):
             ResourceUpdate(**data)
 
     def test_strips_original_content_whitespace(self):
         """Test that original_content whitespace is stripped."""
-        data = {
-            "original_content": "  updated content  "
-        }
+        data = {"original_content": "  updated content  "}
         resource = ResourceUpdate(**data)
         assert resource.original_content == "updated content"
 
@@ -139,7 +121,7 @@ class TestResourceResponse:
             "tags": ["example", "article"],
             "status": "READY",
             "created_at": datetime.now(),
-            "updated_at": datetime.now()
+            "updated_at": datetime.now(),
         }
         resource = ResourceResponse(**data)
         assert resource.id == "550e8400-e29b-41d4-a716-446655440000"
@@ -156,7 +138,7 @@ class TestResourceResponse:
             "original_content": "Some text content",
             "status": "PENDING",
             "created_at": datetime.now(),
-            "updated_at": datetime.now()
+            "updated_at": datetime.now(),
         }
         resource = ResourceResponse(**data)
         assert resource.title is None
@@ -173,7 +155,7 @@ class TestResourceResponse:
             "original_content": "https://example.com",
             "status": "INVALID_STATUS",
             "created_at": datetime.now(),
-            "updated_at": datetime.now()
+            "updated_at": datetime.now(),
         }
         with pytest.raises(ValidationError):
             ResourceResponse(**data)

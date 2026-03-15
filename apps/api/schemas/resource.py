@@ -1,4 +1,5 @@
 """Pydantic schemas for resource API endpoints."""
+
 import enum
 from datetime import datetime
 from typing import Optional
@@ -8,12 +9,14 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 class ContentType(str, enum.Enum):
     """Valid content types for resources."""
+
     URL = "url"
     TEXT = "text"
 
 
 class ResourceStatus(str, enum.Enum):
     """Resource processing status."""
+
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     READY = "READY"
@@ -22,37 +25,40 @@ class ResourceStatus(str, enum.Enum):
 
 class ResourceCreate(BaseModel):
     """Request schema for creating a new resource."""
+
     content_type: ContentType
     original_content: str
     prefer_provider: Optional[str] = None
 
-    @field_validator('original_content')
+    @field_validator("original_content")
     @classmethod
     def validate_original_content(cls, v: str) -> str:
         """Validate that original_content is not empty."""
         if not v or not v.strip():
-            raise ValueError('original_content cannot be empty')
+            raise ValueError("original_content cannot be empty")
         return v.strip()
 
 
 class ResourceUpdate(BaseModel):
     """Request schema for updating a resource."""
+
     title: Optional[str] = None
     summary: Optional[str] = None
     tags: Optional[list[str]] = None
     original_content: Optional[str] = None
 
-    @field_validator('original_content')
+    @field_validator("original_content")
     @classmethod
     def validate_original_content(cls, v: Optional[str]) -> Optional[str]:
         """Validate that original_content is not empty if provided."""
         if v is not None and (not v or not v.strip()):
-            raise ValueError('original_content cannot be empty')
+            raise ValueError("original_content cannot be empty")
         return v.strip() if v else None
 
 
 class ResourceResponse(BaseModel):
     """Response schema for resource data."""
+
     id: str
     owner_id: str
     content_type: ContentType

@@ -8,7 +8,7 @@ def test_user_model():
     user = User(
         email="test@example.com",
         display_name="Test User",
-        avatar_url="https://example.com/avatar.jpg"
+        avatar_url="https://example.com/avatar.jpg",
     )
 
     assert user.email == "test@example.com"
@@ -23,7 +23,7 @@ def test_account_model():
         provider="google",
         provider_account_id="google_123",
         access_token="access_token_123",
-        refresh_token="refresh_token_123"
+        refresh_token="refresh_token_123",
     )
 
     assert account.user_id == 1
@@ -42,7 +42,7 @@ def test_resource_model():
         title="Example Article",
         summary="Summary of the article",
         tags=["tag1", "tag2"],
-        status=ResourceStatus.READY
+        status=ResourceStatus.READY,
     )
 
     assert resource.user_id == 1

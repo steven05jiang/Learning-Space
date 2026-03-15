@@ -1,6 +1,7 @@
 """
 Tests for error handling system.
 """
+
 from fastapi.testclient import TestClient
 
 from core.errors import (

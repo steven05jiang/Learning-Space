@@ -22,7 +22,7 @@ class AuthService:
             .join(Account)
             .where(
                 Account.provider == provider,
-                Account.provider_account_id == provider_account_id
+                Account.provider_account_id == provider_account_id,
             )
             .options(selectinload(User.accounts))
         )
@@ -36,7 +36,7 @@ class AuthService:
         provider_account_id: str,
         access_token: str,
         user_info: Dict,
-        refresh_token: Optional[str] = None
+        refresh_token: Optional[str] = None,
     ) -> User:
         """Create a new user with associated OAuth account."""
         # Create user
@@ -45,7 +45,7 @@ class AuthService:
                 "email", f"{provider}_{provider_account_id}@example.com"
             ),
             display_name=user_info.get("display_name", "Unknown User"),
-            avatar_url=user_info.get("avatar_url")
+            avatar_url=user_info.get("avatar_url"),
         )
         db.add(user)
         await db.flush()  # Get the user ID
@@ -57,7 +57,7 @@ class AuthService:
             provider_account_id=provider_account_id,
             access_token=access_token,
             refresh_token=refresh_token,
-            last_login_at=datetime.now(timezone.utc)
+            last_login_at=datetime.now(timezone.utc),
         )
         db.add(account)
         await db.commit()
@@ -72,7 +72,7 @@ class AuthService:
         user: User,
         provider: str,
         access_token: str,
-        refresh_token: Optional[str] = None
+        refresh_token: Optional[str] = None,
     ) -> None:
         """Update account tokens and last login time."""
         for account in user.accounts:
@@ -89,7 +89,7 @@ class AuthService:
         token_data = {
             "sub": str(user.id),
             "email": user.email,
-            "display_name": user.display_name
+            "display_name": user.display_name,
         }
         return create_access_token(token_data)
 
@@ -100,7 +100,7 @@ class AuthService:
         provider_account_id: str,
         access_token: str,
         user_info: Dict,
-        refresh_token: Optional[str] = None
+        refresh_token: Optional[str] = None,
     ) -> Tuple[User, str]:
         """
         Authenticate or create OAuth user.
@@ -119,8 +119,12 @@ class AuthService:
         else:
             # Create new user
             user = await self.create_user_with_account(
-                db, provider, provider_account_id, access_token, user_info,
-                refresh_token
+                db,
+                provider,
+                provider_account_id,
+                access_token,
+                user_info,
+                refresh_token,
             )
 
         # Generate JWT token

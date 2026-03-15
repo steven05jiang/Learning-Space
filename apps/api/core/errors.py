@@ -8,6 +8,7 @@ Implements the standard error format per section 3.5:
   "status": 404
 }
 """
+
 import logging
 from enum import Enum
 from typing import Any, Dict, Optional
@@ -57,7 +58,7 @@ class APIError(HTTPException):
         detail: str,
         code: ErrorCode,
         status_code: int,
-        headers: Optional[Dict[str, Any]] = None
+        headers: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(status_code=status_code, detail=detail, headers=headers)
         self.code = code
@@ -78,7 +79,7 @@ class UnauthorizedError(APIError):
     def __init__(
         self,
         detail: str = "Authentication required",
-        code: ErrorCode = ErrorCode.UNAUTHORIZED
+        code: ErrorCode = ErrorCode.UNAUTHORIZED,
     ):
         super().__init__(
             detail=detail, code=code, status_code=status.HTTP_401_UNAUTHORIZED
@@ -89,9 +90,7 @@ class ForbiddenError(APIError):
     """Access forbidden (403)."""
 
     def __init__(
-        self,
-        detail: str = "Access forbidden",
-        code: ErrorCode = ErrorCode.FORBIDDEN
+        self, detail: str = "Access forbidden", code: ErrorCode = ErrorCode.FORBIDDEN
     ):
         super().__init__(
             detail=detail, code=code, status_code=status.HTTP_403_FORBIDDEN
@@ -101,9 +100,7 @@ class ForbiddenError(APIError):
 class NotFoundError(APIError):
     """Resource not found (404)."""
 
-    def __init__(
-        self, detail: str, code: ErrorCode = ErrorCode.RESOURCE_NOT_FOUND
-    ):
+    def __init__(self, detail: str, code: ErrorCode = ErrorCode.RESOURCE_NOT_FOUND):
         super().__init__(
             detail=detail, code=code, status_code=status.HTTP_404_NOT_FOUND
         )
@@ -122,12 +119,10 @@ class RateLimitError(APIError):
     def __init__(
         self,
         detail: str = "Rate limit exceeded",
-        code: ErrorCode = ErrorCode.RATE_LIMIT_EXCEEDED
+        code: ErrorCode = ErrorCode.RATE_LIMIT_EXCEEDED,
     ):
         super().__init__(
-            detail=detail,
-            code=code,
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS
+            detail=detail, code=code, status_code=status.HTTP_429_TOO_MANY_REQUESTS
         )
 
 
@@ -137,12 +132,10 @@ class InternalServerError(APIError):
     def __init__(
         self,
         detail: str = "Internal server error",
-        code: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR
+        code: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR,
     ):
         super().__init__(
-            detail=detail,
-            code=code,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            detail=detail, code=code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 
@@ -161,7 +154,7 @@ def cannot_unlink_last_account() -> ValidationError:
     """Error when trying to unlink the user's last account."""
     return ValidationError(
         "Cannot unlink the last account. Users must have at least one linked account.",
-        code=ErrorCode.CANNOT_UNLINK_LAST_ACCOUNT
+        code=ErrorCode.CANNOT_UNLINK_LAST_ACCOUNT,
     )
 
 
@@ -169,7 +162,7 @@ def account_already_linked() -> ConflictError:
     """Error when trying to link an account that's already linked to another user."""
     return ConflictError(
         "This account is already linked to another user.",
-        code=ErrorCode.ACCOUNT_ALREADY_LINKED
+        code=ErrorCode.ACCOUNT_ALREADY_LINKED,
     )
 
 
@@ -177,11 +170,7 @@ async def api_exception_handler(request: Request, exc: APIError) -> JSONResponse
     """Custom exception handler for APIError instances."""
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
-            "code": exc.code,
-            "status": exc.status_code
-        }
+        content={"detail": exc.detail, "code": exc.code, "status": exc.status_code},
     )
 
 
@@ -203,11 +192,7 @@ async def http_exception_wrapper(request: Request, exc: HTTPException) -> JSONRe
 
         return JSONResponse(
             status_code=exc.status_code,
-            content={
-                "detail": exc.detail,
-                "code": code,
-                "status": exc.status_code
-            }
+            content={"detail": exc.detail, "code": code, "status": exc.status_code},
         )
 
     # If it's already an APIError, use the original handler
@@ -225,6 +210,6 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         content={
             "detail": "An unexpected error occurred",
             "code": ErrorCode.INTERNAL_SERVER_ERROR,
-            "status": status.HTTP_500_INTERNAL_SERVER_ERROR
-        }
+            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+        },
     )
