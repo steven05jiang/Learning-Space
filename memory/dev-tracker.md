@@ -4,14 +4,14 @@
 **Sprint:** Tier 1 — Foundation
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-15 (Tier 2 started — dispatching DEV-005)
+**Last Updated:** 2026-03-15 (DEV-005 merged — Tier 2 auth backend unblocked)
 
 ---
 
 ## Progress Summary
 - Total: 51 tasks
-- ✅ Completed: 7
-- 🔄 Active: 1
+- ✅ Completed: 8
+- 🔄 Active: 0
 - ⏳ Pending: 43
 - ⚠️ Stuck: 0
 
@@ -29,7 +29,7 @@
 
 ## 🔴 Tier 2 — MVP Core
 
-- [~] DEV-005: Implement OAuth login flow (multi-provider) — Unblocks all protected routes
+- [x] DEV-005: Implement OAuth login flow (multi-provider) — Unblocks all protected routes (PR #13 ✅)
 - [ ] DEV-006: Implement auth middleware / dependency — get_current_user for protected endpoints
 - [ ] DEV-009: Implement GET /auth/me endpoint — Frontend needs logged-in state
 - [ ] DEV-010: Implement POST /auth/logout — Complete auth lifecycle
