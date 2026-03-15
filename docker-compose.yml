@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_USER: learningspace
-      POSTGRES_PASSWORD: learningspace
-      POSTGRES_DB: learningspace
+      POSTGRES_USER: ${POSTGRES_USER:-learningspace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-learningspace}
     ports:
       - "5432:5432"
     volumes:
@@ -13,7 +13,7 @@ services:
   neo4j:
     image: neo4j:5
     environment:
-      NEO4J_AUTH: neo4j/learningspace
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/changeme}
     ports:
       - "7474:7474"
       - "7687:7687"

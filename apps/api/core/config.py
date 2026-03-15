@@ -18,12 +18,12 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
 
     # PostgreSQL
-    database_url: str = ""
+    database_url: str = "postgresql+asyncpg://changeme:changeme@localhost:5432/learningspace"
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = ""
+    neo4j_password: str = "changeme"
 
     # Redis
     redis_url: str = "redis://localhost:6379"

@@ -197,7 +197,6 @@ Tell each implementer:
 - The task ID (e.g. `TASK-001`)
 - The path to its context file: `memory/active/TASK-001.md`
 - The branch naming convention: `feature/<task-id-lowercase>-<short-slug>`
-- Mode: `implement`
 
 The implementer will read the context file itself to get requirements and
 branch details. It will output a structured result:
@@ -233,21 +232,20 @@ or the task is stuck:
 Spawn the `pr-reviewer` subagent. Tell it:
 - The task ID and path to its context file: `memory/active/TASK-XXX.md`
 - The PR number
-- The current review round number (increment each time)
 
 The reviewer will:
 - Fetch the diff via `gh pr diff <PR>`
+- Check code quality **and** security (OWASP Top 10) in a single pass
 - Post a GitHub PR comment with its findings
 - Update `memory/active/TASK-XXX.md` with the review results
-- Return `APPROVED` or `CHANGES REQUESTED` with specific feedback
+- Return `APPROVED` or `CHANGES REQUESTED`
 
 ### Step 7b — Act on Results
 
 **If the reviewer returns APPROVED:**
 - Dispatch the `implementer` subagent with:
   - Task ID and context file path
-  - Mode: `merge`
-  - Instruction: "Merge PR #N"
+  - Instruction: "Merge the PR" (implementer mode: merge)
 - If the implementer returns `MERGED` → go to Phase 8 (complete this task)
 - If the implementer returns `NEEDS_REVIEW` (merge conflict resolved) →
   loop back to Step 7a for a fresh review round
@@ -255,11 +253,10 @@ The reviewer will:
 **If the reviewer returns CHANGES REQUESTED:**
 - Track how many times this task has had CHANGES REQUESTED (internal counter)
 - If the same feedback has been raised 3+ times with no progress:
-  - Mark the task STUCK (see Phase 8 — On STUCK) and stop the loop
+  - Mark task as STUCK (see Phase 8 — On STUCK) and stop the loop
 - Otherwise, dispatch the `implementer` subagent with:
-  - Task ID and context file path
-  - Mode: `fix`
-  - Instruction: "Fix the review feedback in your context file's Progress Log"
+  - Task ID and context file path (which now contains all review feedback)
+  - Instruction: "Fix the review feedback in your context file's Progress Log" (implementer mode: fix)
 - When the implementer returns `PR_READY` → loop back to Step 7a
 
 **Parallelism note:** If multiple tasks are in the review loop simultaneously,
