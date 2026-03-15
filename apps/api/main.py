@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.database import get_db
@@ -17,7 +18,7 @@ async def db_health_check(db: AsyncSession = Depends(get_db)):
     """Database health check endpoint."""
     try:
         # Simple query to test database connection
-        await db.execute("SELECT 1")
+        await db.execute(text("SELECT 1"))
         return {"status": "database healthy"}
-    except Exception as e:
-        return {"status": "database error", "error": str(e)}
+    except Exception:
+        return {"status": "database error"}
