@@ -8,6 +8,7 @@ Implements the standard error format per section 3.5:
   "status": 404
 }
 """
+import logging
 from enum import Enum
 from typing import Any, Dict, Optional
 
@@ -216,7 +217,6 @@ async def http_exception_wrapper(request: Request, exc: HTTPException) -> JSONRe
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected exceptions with our standard error format."""
     # Log the exception for debugging
-    import logging
     logger = logging.getLogger(__name__)
     logger.exception("Unhandled exception: %s", exc)
 
