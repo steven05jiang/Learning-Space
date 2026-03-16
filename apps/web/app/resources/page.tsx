@@ -115,7 +115,7 @@ export default function ResourcesPage() {
     if (user) {
       fetchResources(pagination);
     }
-  }, [user, fetchResources, pagination]);
+  }, [user, fetchResources]);
 
   // Polling for status updates - every 10 seconds
   useEffect(() => {
