@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
 from models.database import get_db
-from models.resource import Resource, ResourceStatus as ModelResourceStatus
+from models.resource import Resource
+from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
 from schemas.resource import (
     ContentType,
@@ -94,7 +95,9 @@ async def create_resource(
 
 @router.get("/", response_model=ResourceListResponse)
 async def list_resources(
-    status_filter: Optional[ResourceStatus] = Query(None, alias="status", description="Filter by resource status"),
+    status_filter: Optional[ResourceStatus] = Query(
+        None, alias="status", description="Filter by resource status"
+    ),
     limit: int = Query(20, ge=1, le=100, description="Number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     current_user: User = Depends(get_current_user),
@@ -103,7 +106,8 @@ async def list_resources(
     """
     List resources owned by the authenticated user.
 
-    - **status**: Optional filter by resource status (PENDING, PROCESSING, READY, FAILED)
+    - **status**: Optional filter by resource status
+      (PENDING, PROCESSING, READY, FAILED)
     - **limit**: Maximum number of items to return (1-100, default 20)
     - **offset**: Number of items to skip for pagination (default 0)
 
@@ -120,9 +124,13 @@ async def list_resources(
     query = query.order_by(Resource.created_at.desc())
 
     # Get total count for pagination
-    count_query = select(func.count(Resource.id)).where(Resource.owner_id == current_user.id)
+    count_query = select(func.count(Resource.id)).where(
+        Resource.owner_id == current_user.id
+    )
     if status_filter:
-        count_query = count_query.where(Resource.status == ModelResourceStatus(status_filter.value))
+        count_query = count_query.where(
+            Resource.status == ModelResourceStatus(status_filter.value)
+        )
 
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
@@ -138,7 +146,11 @@ async def list_resources(
     items = []
     for resource in resources:
         # Set url field if content_type is URL
-        url = resource.original_content if resource.content_type == ContentType.URL.value else None
+        url = (
+            resource.original_content
+            if resource.content_type == ContentType.URL.value
+            else None
+        )
 
         item = ResourceListItem(
             id=str(resource.id),
@@ -153,7 +165,8 @@ async def list_resources(
 
     logger.info(
         f"Listed {len(items)} resources for user {current_user.id} "
-        f"(total: {total}, offset: {offset}, limit: {limit}, status_filter: {status_filter})"
+        f"(total: {total}, offset: {offset}, limit: {limit}, "
+        f"status_filter: {status_filter})"
     )
 
     return ResourceListResponse(

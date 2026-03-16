@@ -1,7 +1,8 @@
 """Tests for GET /resources endpoint (resource listing)."""
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -111,9 +112,7 @@ class TestListResources:
                 assert item["url"].startswith("http")
 
     @pytest.mark.asyncio
-    async def test_list_resources_empty(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_list_resources_empty(self, client: AsyncClient, auth_headers: dict):
         """Test listing resources when user has none."""
         response = await client.get("/resources/", headers=auth_headers)
 
@@ -235,7 +234,11 @@ class TestListResources:
 
     @pytest.mark.asyncio
     async def test_list_resources_isolation(
-        self, client: AsyncClient, auth_headers: dict, sample_resources, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        sample_resources,
+        db_session: AsyncSession,
     ):
         """Test that users only see their own resources."""
         # Create another user with resources
