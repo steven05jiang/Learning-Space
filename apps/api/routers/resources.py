@@ -1,7 +1,6 @@
 """Resource management endpoints."""
 
 import logging
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
@@ -55,6 +54,8 @@ async def create_resource(
     A background job is enqueued for processing the resource.
     """
     # Create the resource in the database
+    from datetime import datetime, timezone
+
     resource = Resource(
         owner_id=current_user.id,
         content_type=resource_data.content_type.value,
