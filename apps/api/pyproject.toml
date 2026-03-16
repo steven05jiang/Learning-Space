@@ -15,7 +15,6 @@ dependencies = [
     "neo4j>=6.1.0",
     "greenlet>=3.3.2",
     "authlib>=1.6.9",
-    "python-jose[cryptography]>=3.5.0",
 ]
 
 [project.optional-dependencies]
