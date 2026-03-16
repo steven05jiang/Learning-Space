@@ -226,5 +226,3 @@ def test_oauth_callback_invalid_provider():
     data = response.json()
     assert "detail" in data
     assert "Unsupported OAuth provider" in data["detail"]
-
-
