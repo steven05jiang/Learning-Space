@@ -18,4 +18,4 @@
 
 ## Bugs
 
-_No bugs reported yet._
+- [ ] BUG-001: Migrate JWT from python-jose to authlib — `python-jose` pulls in `ecdsa` (CVE-2024-23342, no fix available); `authlib` (already a dep) supports JWT and eliminates the transitive vulnerability

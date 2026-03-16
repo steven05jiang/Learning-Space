@@ -18,4 +18,4 @@
 
 ## Tasks
 
-_No ops tasks yet._
+- [ ] OPS-001: Upgrade Next.js to 16.x — GHSA-9g9p-9gw9-jx7f (Image Optimizer DoS) and GHSA-h25m-26qc-wcjf (RSC HTTP deserialization) are only patched in Next.js 16; web-security scan currently set to `--audit-level=critical` as workaround

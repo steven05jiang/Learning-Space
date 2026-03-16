@@ -54,6 +54,11 @@ markers = [
     "integration: marks tests as integration tests requiring real databases (deselect with '-m not integration')",
 ]
 
+[tool.bandit]
+exclude_dirs = [".venv", "tests"]
+# B105: false positives on OAuth token type strings ("bearer") and token endpoint URLs
+skips = ["B105"]
+
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",

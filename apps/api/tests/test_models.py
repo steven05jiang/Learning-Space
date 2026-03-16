@@ -36,18 +36,18 @@ def test_account_model():
 def test_resource_model():
     """Test Resource model creation."""
     resource = Resource(
-        user_id=1,
-        url="https://example.com",
-        raw_text="Some raw text content",
+        owner_id=1,
+        content_type="url",
+        original_content="https://example.com",
         title="Example Article",
         summary="Summary of the article",
         tags=["tag1", "tag2"],
         status=ResourceStatus.READY,
     )
 
-    assert resource.user_id == 1
-    assert resource.url == "https://example.com"
-    assert resource.raw_text == "Some raw text content"
+    assert resource.owner_id == 1
+    assert resource.content_type == "url"
+    assert resource.original_content == "https://example.com"
     assert resource.title == "Example Article"
     assert resource.summary == "Summary of the article"
     assert resource.tags == ["tag1", "tag2"]
