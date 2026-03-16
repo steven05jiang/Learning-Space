@@ -102,6 +102,7 @@ Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `mak
 | Bug fixes | `memory/bugs-tracker.md` | `BUG-` | Defects and regressions |
 | DevOps / Infrastructure | `memory/ops-tracker.md` | `OPS-` | Deploy, k8s, ArgoCD, monitoring |
 | Build / CI / Tooling | `memory/build-tracker.md` | `BUILD-` | CI pipelines, test frameworks, tooling |
+| Tech debt | `memory/tech-debt-tracker.md` | `TD-` | Refactors, cleanups, architectural improvements |
 
 All task files (regardless of tracker) live in `memory/active/` and `memory/completed/`.
 Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
@@ -120,6 +121,7 @@ Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
 | Bug progress | `memory/bugs-tracker.md` | track bug fixes |
 | Ops progress | `memory/ops-tracker.md` | track ops work |
 | Build/CI progress | `memory/build-tracker.md` | track build work |
+| Tech debt progress | `memory/tech-debt-tracker.md` | track refactors and cleanups |
 | In-flight task registry | `memory/active/` | (cross-session task status) |
 
 ---
@@ -134,6 +136,7 @@ Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
 | Bug tracker | `memory/bugs-tracker.md` | BUG task progress |
 | Ops tracker | `memory/ops-tracker.md` | OPS task progress |
 | Build tracker | `memory/build-tracker.md` | BUILD task progress |
+| Tech debt tracker | `memory/tech-debt-tracker.md` | TD task progress |
 | Task registry | `memory/active/ + memory/completed/` | Cross-session in-flight tasks |
 
 ### Sub-project Memory Routes (read before operating on a project)
@@ -152,6 +155,7 @@ Routes determine write targets. Unlisted projects share the main MEMORY.md.
 | Bug status | `Read memory/bugs-tracker.md` |
 | Ops status | `Read memory/ops-tracker.md` |
 | Build/CI status | `Read memory/build-tracker.md` |
+| Tech debt status | `Read memory/tech-debt-tracker.md` |
 | Project overview | `Read memory/projects.md` |
 
 ---

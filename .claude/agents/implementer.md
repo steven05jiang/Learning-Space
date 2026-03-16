@@ -28,7 +28,7 @@ Read `memory/active/<task-id>.md` to understand:
 - Address every piece of review feedback listed in the Progress Log of the task context file
 - Do **not** commit yet — proceed to Step 3 first
 
-## Step 3 — Verify New Code Runs (targeted, before full CI)
+## Step 3 — Verify New Code Runs (targeted, before commit)
 
 Run targeted checks against **only what you just wrote**. Fix every failure before moving on — do not proceed to Step 4 with any red output.
 
@@ -57,6 +57,11 @@ echo "Exit: $?"
 
 Read every line of output. For each `FAILED` or `ERROR` entry, fix the code and re-run. Repeat until the file shows all `PASSED`. If you cannot make a test pass after three focused attempts, output `STUCK` — do not paper over it.
 
+**Test coverage expectations:**
+- Write unit tests for every new function, method, and branch path
+- Add integration tests (marked `@pytest.mark.integration`) for any new endpoint, DB interaction, or service boundary — these run in CI and catch real infrastructure issues early
+- Aim for high coverage on new code; do not leave untested happy paths or error branches
+
 ### 3d — For web changes: type-check
 
 If you modified anything under `apps/web/`:
@@ -77,22 +82,28 @@ git commit -m "<task-id>: <description>"
 git commit -m "fix: review feedback round <N>"
 ```
 
-## Step 4 — Full CI Check
+## Step 4 — Lint + Unit Test Check
 
-Run the full local CI suite from the repo root and read the output:
+Run lint and unit tests from the repo root and read the output:
 
 ```bash
-make ci-check 2>&1 | tee /tmp/ci-output.txt
-echo "Exit code: $?"
+make api-lint 2>&1 | tee /tmp/lint-output.txt
+echo "Lint exit: $?"
+make api-test 2>&1 | tee /tmp/test-output.txt
+echo "Test exit: $?"
+```
+
+If you touched web files, also run:
+```bash
+make web-lint && make web-build
 ```
 
 Confirm every stage passes:
 - `api-lint` — ruff check and format check ✅
 - `api-test` — all unit tests green ✅
-- `api-security` — pip-audit and bandit clean ✅
 - `web-lint` + `web-build` — if web files were touched ✅
 
-If any stage fails, fix the issue, re-run Step 3c for the relevant test file, then re-run `make ci-check`. Do not push with a failing CI.
+If any stage fails, fix the issue, re-run Step 3c for the relevant test file, then re-run the failing stage. Do not push with failing lint or tests. Security scanning and integration tests run in CI — you do not need to run them locally.
 
 ## Step 5 — Push & Report
 
@@ -106,7 +117,6 @@ If any stage fails, fix the issue, re-run Step 3c for the relevant test file, th
   ## CI Check (local)
   - api-lint: ✅ PASS
   - api-test: ✅ PASS  (N passed)
-  - api-security: ✅ PASS
   - web-lint: ✅ / ⚠️ SKIP
   - web-build: ✅ / ⚠️ SKIP"
   ```
@@ -135,8 +145,14 @@ REASON: <specific reason>
 When the PM instructs you to merge after reviewer approval:
 
 1. Read `memory/active/<task-id>.md` for the PR number
-2. Run: `gh pr merge <PR> --merge`
-3. If **succeeds**:
+2. Verify all CI status checks on the PR are green before merging:
+   ```bash
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr checks <PR>
+   ```
+   If any check is still running, wait. If any check has failed, do **not** merge — report `STUCK` with the failing check name. Do not bypass failing status checks.
+3. Confirm the latest reviewer approval covers the most recent commit. If new commits were pushed after the last approval, a fresh review from the pr-reviewer is required before merging.
+4. Run: `GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr merge <PR> --merge`
+5. If **succeeds**:
    - Append to Progress Log in `memory/active/<task-id>.md`: `YYYY-MM-DD HH:MM — PR #N merged`
    - Output:
      ```
@@ -145,7 +161,7 @@ When the PM instructs you to merge after reviewer approval:
      PR: #N
      SUMMARY: <one paragraph of what was implemented>
      ```
-4. If **fails due to conflicts**:
+6. If **fails due to conflicts**:
    - `git fetch origin main && git merge origin/main`
    - Fix conflicts, commit: `git commit -m "fix: resolve merge conflicts"`
    - Push: `git push`
