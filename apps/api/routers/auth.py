@@ -163,3 +163,14 @@ async def logout_user(current_user: User = Depends(get_current_user)) -> Respons
 async def get_supported_providers() -> Dict[str, list]:
     """Get list of supported OAuth providers."""
     return {"providers": oauth_service.get_supported_providers()}
+
+
+@router.get("/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)) -> Dict:
+    """Return the currently authenticated user's profile."""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "avatar_url": current_user.avatar_url,
+    }

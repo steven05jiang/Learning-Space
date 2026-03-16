@@ -226,3 +226,51 @@ def test_oauth_callback_invalid_provider():
     data = response.json()
     assert "detail" in data
     assert "Unsupported OAuth provider" in data["detail"]
+
+
+def test_get_current_user_info_authenticated():
+    """Test getting current user info with valid authentication."""
+    from core.deps import get_current_user
+
+    # Create a test user
+    test_user = User(
+        id=123,
+        email="test@example.com",
+        display_name="Test User",
+        avatar_url="https://example.com/avatar.jpg",
+    )
+
+    # Override the get_current_user dependency
+    def get_test_user():
+        return test_user
+
+    app.dependency_overrides[get_current_user] = get_test_user
+
+    try:
+        # Generate a JWT token for the test user
+        token = auth_service.generate_jwt_token(test_user)
+
+        # Make request with authentication header
+        response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == 123
+        assert data["email"] == "test@example.com"
+        assert data["display_name"] == "Test User"
+        assert data["avatar_url"] == "https://example.com/avatar.jpg"
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_get_current_user_info_unauthenticated():
+    """Test getting current user info without authentication."""
+    response = client.get("/auth/me")
+    assert response.status_code == 401  # Unauthorized
+
+
+def test_get_current_user_info_invalid_token():
+    """Test getting current user info with invalid token."""
+    response = client.get("/auth/me", headers={"Authorization": "Bearer invalid_token"})
+    assert response.status_code == 401  # Unauthorized
