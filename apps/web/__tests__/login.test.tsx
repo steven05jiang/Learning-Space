@@ -14,12 +14,9 @@ process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:8000'
 const mockPush = jest.fn()
 const mockGet = jest.fn()
 
-// Mock window.location
-const mockLocation = {
-  href: '',
-  assign: jest.fn(),
-  reload: jest.fn(),
-  replace: jest.fn(),
+// Access the global href setter spy from jest.setup.js
+declare global {
+  var mockLocationHrefSetter: jest.Mock
 }
 
 beforeEach(() => {
@@ -29,12 +26,12 @@ beforeEach(() => {
   ;(useSearchParams as jest.Mock).mockReturnValue({
     get: mockGet,
   })
-  // Reset location href
-  mockLocation.href = ''
-  // Mock window.location assignment
-  Object.defineProperty(window, 'location', {
-    value: mockLocation,
-    writable: true
+  // Suppress JSDOM navigation errors globally
+  jest.spyOn(console, 'error').mockImplementation((error) => {
+    // Only suppress JSDOM navigation errors, let other errors through for debugging
+    if (!(error && error.message === 'Not implemented: navigation (except hash changes)')) {
+      console.warn(error)
+    }
   })
 })
 
@@ -44,6 +41,18 @@ describe('LoginPage', () => {
     ;(fetch as jest.MockedFunction<typeof fetch>).mockClear()
     mockPush.mockClear()
     mockGet.mockClear()
+
+    // Reset the global href setter spy
+    global.mockLocationHrefSetter.mockClear()
+
+    // Mock localStorage methods as spies
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {})
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null)
+    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   it('renders login page with OAuth providers', () => {
@@ -57,8 +66,11 @@ describe('LoginPage', () => {
   })
 
   it('redirects if user is already logged in', () => {
-    localStorage.setItem('auth_token', 'mock-token')
-    localStorage.setItem('user_info', JSON.stringify({ id: '1', email: 'test@example.com' }))
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === 'auth_token') return 'mock-token'
+      if (key === 'user_info') return JSON.stringify({ id: '1', email: 'test@example.com' })
+      return null
+    })
 
     render(<LoginPage />)
 
@@ -66,8 +78,11 @@ describe('LoginPage', () => {
   })
 
   it('does not redirect if only token exists without user info', () => {
-    localStorage.setItem('auth_token', 'mock-token')
-    // No user_info set
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === 'auth_token') return 'mock-token'
+      // No user_info set
+      return null
+    })
 
     render(<LoginPage />)
 
@@ -75,8 +90,11 @@ describe('LoginPage', () => {
   })
 
   it('redirects to returnTo URL if provided', () => {
-    localStorage.setItem('auth_token', 'mock-token')
-    localStorage.setItem('user_info', JSON.stringify({ id: '1', email: 'test@example.com' }))
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === 'auth_token') return 'mock-token'
+      if (key === 'user_info') return JSON.stringify({ id: '1', email: 'test@example.com' })
+      return null
+    })
     mockGet.mockReturnValue('/dashboard')
 
     render(<LoginPage />)
@@ -85,13 +103,18 @@ describe('LoginPage', () => {
   })
 
   it('initiates OAuth login when provider button is clicked', async () => {
+    // Ensure localStorage setItem doesn't throw
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+      // Store the values without throwing
+    })
+
     const mockResponse = {
       ok: true,
-      json: jest.fn().mockResolvedValue({
+      json: jest.fn(() => Promise.resolve({
         authorization_url: 'https://github.com/login/oauth/authorize?state=test-state',
         provider: 'github',
         state: 'test-state',
-      }),
+      })),
     }
     ;(fetch as jest.Mock).mockResolvedValue(mockResponse)
 
@@ -108,7 +131,20 @@ describe('LoginPage', () => {
     expect(mockResponse.json).toHaveBeenCalled()
 
     // Verify state is stored for CSRF protection
-    expect(localStorage.getItem('oauth_state_github')).toBe('test-state')
+    expect(localStorage.setItem).toHaveBeenCalledWith('oauth_state_github', 'test-state')
+
+    // CRITICAL: Verify that the response contains the correct authorization URL that would be assigned to window.location.href
+    await waitFor(() => {
+      expect(mockResponse.json).toHaveBeenCalled()
+    })
+    const responseData = await mockResponse.json()
+    expect(responseData.authorization_url).toBe('https://github.com/login/oauth/authorize?state=test-state')
+
+    // Wait for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Verify that window.location.href was actually set to the authorization URL
+    expect(global.mockLocationHrefSetter).toHaveBeenCalledWith('https://github.com/login/oauth/authorize?state=test-state')
   })
 
   it('handles OAuth login error', async () => {
@@ -184,13 +220,11 @@ describe('LoginPage', () => {
 
     // Mock localStorage.setItem to throw on first call, succeed on second
     let callCount = 0
-    const originalSetItem = localStorage.setItem
-    localStorage.setItem = jest.fn().mockImplementation((key, value) => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
       if (key.startsWith('oauth_state_') && callCount === 0) {
         callCount++
         throw new Error('QuotaExceededError')
       }
-      return originalSetItem.call(localStorage, key, value)
     })
 
     render(<LoginPage />)
@@ -220,7 +254,7 @@ describe('LoginPage', () => {
     ;(fetch as jest.Mock).mockResolvedValue(mockResponse)
 
     // Mock localStorage.setItem to always throw
-    localStorage.setItem = jest.fn().mockImplementation(() => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('QuotaExceededError')
     })
 
@@ -244,4 +278,5 @@ describe('LoginPage', () => {
       expect(loadingSpinner).toHaveAttribute('aria-label')
     }
   })
+
 })
