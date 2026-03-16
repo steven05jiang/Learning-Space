@@ -1,7 +1,7 @@
 ── Starting infrastructure ────────────────────────────
 docker compose up -d
- Container learning-space-redis-1 Running 
- Container learning-space-neo4j-1 Running 
  Container learning-space-postgres-1 Running 
+ Container learning-space-neo4j-1 Running 
+ Container learning-space-redis-1 Running 
    Waiting for PostgreSQL...
    PostgreSQL ready.

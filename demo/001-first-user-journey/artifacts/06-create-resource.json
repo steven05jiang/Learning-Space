@@ -1,9 +1,0 @@
-{
-  "http_status": 500,
-  "error": {
-    "detail": "An unexpected error occurred",
-    "code": "INTERNAL_SERVER_ERROR",
-    "status": 500
-  },
-  "known_bug": "BUG: router passes datetime.now(timezone.utc) to TIMESTAMP WITHOUT TIME ZONE column. Fix: use datetime.utcnow() or strip tzinfo."
-}
