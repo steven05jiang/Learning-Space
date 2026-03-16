@@ -76,11 +76,58 @@ GET /health      → 200 {"status": "healthy", "message": "API is running"}
 GET /db-health   → 200 {"status": "database healthy"}
 ```
 
-### Step 5 — Authenticate (simulate OAuth via direct JWT)
+### Step 5 — Authenticate
 
-Since OAuth providers require real credentials, we simulate a logged-in user by
-minting a JWT directly with the test secret key. This is exactly what the backend
-does after a successful OAuth callback.
+The login page shows GitHub / Google / Twitter buttons, but clicking them will return
+**"Failed to fetch"** because `apps/api/.env` ships with placeholder OAuth credentials
+(`test_github_id`, etc.). Choose one of the two options below.
+
+---
+
+#### Option A — JWT shortcut (no setup, recommended for demos)
+
+Mint a token directly from the terminal — this is exactly what the backend issues after
+a real OAuth callback:
+
+```bash
+cd apps/api
+uv run python -c "
+from core.jwt import create_access_token
+token = create_access_token({'sub': '1', 'email': 'demo@learningspace.dev'})
+print(token)
+"
+```
+
+Then open the browser console at `http://localhost:3001` and paste:
+
+```javascript
+localStorage.setItem('auth_token', '<paste token here>')
+localStorage.setItem('user_info', JSON.stringify({
+  id: 1, email: 'demo@learningspace.dev', display_name: 'Demo User', avatar_url: null
+}))
+location.href = '/dashboard'
+```
+
+You will land directly on the dashboard as the demo user.
+
+---
+
+#### Option B — Real GitHub OAuth (~5 min setup)
+
+1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
+2. Fill in:
+   - **Homepage URL:** `http://localhost:3001`
+   - **Authorization callback URL:** `http://localhost:8000/auth/callback/github`
+3. Copy the **Client ID** and generate a **Client Secret**
+4. Update `apps/api/.env`:
+   ```
+   GITHUB_CLIENT_ID=<your real client id>
+   GITHUB_CLIENT_SECRET=<your real client secret>
+   ```
+5. Restart the API server — the "Continue with GitHub" button will complete the full browser OAuth flow
+
+> Google and Twitter require the same pattern via their respective developer consoles,
+> but GitHub is the fastest to register.
 
 ### Step 6 — Verify authenticated user
 
