@@ -14,16 +14,16 @@ global.localStorage = localStorageMock
 global.fetch = jest.fn()
 
 // Mock window.location.href setter to avoid JSDOM navigation errors
-Object.defineProperty(window, 'location', {
-  value: {
-    href: 'http://localhost/',
-    assign: jest.fn(),
-    reload: jest.fn(),
-    replace: jest.fn(),
-    toString: jest.fn(() => 'http://localhost/'),
-  },
-  configurable: true,
-})
+const mockLocation = {
+  href: 'http://localhost/',
+  assign: jest.fn(),
+  reload: jest.fn(),
+  replace: jest.fn(),
+  toString: jest.fn(() => 'http://localhost/'),
+}
+
+delete window.location
+window.location = mockLocation
 
 // Clean up after each test
 afterEach(() => {
