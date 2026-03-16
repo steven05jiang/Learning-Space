@@ -4,15 +4,15 @@
 **Sprint:** Tier 2 — MVP Core
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-15 (DEV-013 merged PR #20)
+**Last Updated:** 2026-03-15
 
 ---
 
 ## Progress Summary
 - Total: 51 tasks
 - ✅ Completed: 12
-- 🔄 Active: 0
-- ⏳ Pending: 39
+- 🔄 Active: 4
+- ⏳ Pending: 35
 - ⚠️ Stuck: 0
 
 ---
@@ -34,15 +34,15 @@
 - [x] DEV-009: Implement GET /auth/me endpoint — Frontend needs logged-in state (PR #17 ✅)
 - [x] DEV-010: Implement POST /auth/logout — Complete auth lifecycle (PR #18 ✅)
 - [x] DEV-013: Implement POST /resources (create) — Core first user journey: submit a resource (PR #20 ✅)
-- [ ] DEV-014: Implement GET /resources (list) with filters — View resources after submitting
+- [~] DEV-014: Implement GET /resources (list) with filters — View resources after submitting
 - [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
 - [ ] DEV-019: Implement task queue infrastructure — Async resource processing
 - [ ] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
 - [ ] DEV-022: Implement LLM processing (title, summary, tags) — Core value: auto-summarize and tag
 - [ ] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update
-- [ ] DEV-039: Implement OAuth login UI (multi-provider) — User-facing login page
-- [ ] DEV-041: Implement resource submission form — User-facing resource submit UI
-- [ ] DEV-042: Implement resource list view — View resources and processing status
+- [~] DEV-039: Implement OAuth login UI (multi-provider) — User-facing login page
+- [~] DEV-041: Implement resource submission form — User-facing resource submit UI
+- [~] DEV-042: Implement resource list view — View resources and processing status
 - [ ] DEV-011: Unit tests — Authentication — Verify auth works before building on it
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD works
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface User {
   id: string;
@@ -65,10 +66,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center space-x-4">
               {user?.avatar_url && (
-                <img
+                <Image
                   className="h-8 w-8 rounded-full"
                   src={user.avatar_url}
                   alt={user.display_name}
+                  width={32}
+                  height={32}
                 />
               )}
               <div className="text-sm">
