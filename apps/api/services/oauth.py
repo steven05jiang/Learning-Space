@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import secrets
+import time
 from typing import Dict, Optional
 from urllib.parse import urlencode
 
@@ -277,7 +278,7 @@ class OAuthService:
         """Store state for later validation."""
         self._state_store[state] = {
             "provider": provider,
-            "created_at": secrets.randbits(64),  # Simple timestamp substitute
+            "created_at": time.time(),
         }
 
     def validate_and_consume_state(self, state: str, provider: str) -> bool:
@@ -287,6 +288,10 @@ class OAuthService:
 
         stored = self._state_store.pop(state, None)
         if not stored:
+            return False
+
+        # Check if state has expired (10 minutes = 600 seconds)
+        if time.time() - stored["created_at"] > 600:
             return False
 
         return stored["provider"] == provider
