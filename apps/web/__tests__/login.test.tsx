@@ -103,6 +103,11 @@ describe('LoginPage', () => {
   })
 
   it('initiates OAuth login when provider button is clicked', async () => {
+    // Ensure localStorage setItem doesn't throw
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+      // Store the values without throwing
+    })
+
     const mockResponse = {
       ok: true,
       json: jest.fn(() => Promise.resolve({
@@ -135,10 +140,11 @@ describe('LoginPage', () => {
     const responseData = await mockResponse.json()
     expect(responseData.authorization_url).toBe('https://github.com/login/oauth/authorize?state=test-state')
 
-    // CRITICAL ASSERTION: In a real browser environment, window.location.href would be set to the authorization URL
-    // NOTE: This test runs in JSDOM which prevents window.location.href assignment, but in production the following line executes:
-    // window.location.href = data.authorization_url  (see line 90 in app/login/page.tsx)
-    // The test above verifies that the authorization_url from the response is correct, confirming the URL that gets assigned to window.location.href
+    // Wait for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Verify that window.location.href was actually set to the authorization URL
+    expect(global.mockLocationHrefSetter).toHaveBeenCalledWith('https://github.com/login/oauth/authorize?state=test-state')
   })
 
   it('handles OAuth login error', async () => {
