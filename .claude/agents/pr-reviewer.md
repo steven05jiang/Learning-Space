@@ -16,40 +16,58 @@ Read `memory/active/<task-id>.md` to understand:
 - Previous review rounds and feedback already given (Progress Log)
 - Current review round number (count existing rounds in Progress Log)
 
+All `gh` commands in this agent must use the reviewer token:
+```bash
+GH_TOKEN=$GH_TOKEN_REVIEWER gh ...
+```
+
 ## Step 2 — Fetch the Diff
 
-Run: `gh pr diff <PR number>`
+Run: `GH_TOKEN=$GH_TOKEN_REVIEWER gh pr diff <PR number>`
 
 ## Step 3 — Review
 
+CI (lint, unit tests, security scanning, integration tests) runs automatically on every PR — do not duplicate those checks. Focus exclusively on what CI cannot catch.
+
 ### Code Quality
-- Verify the implementation matches the requirements exactly
-- Check for edge cases, error handling, test coverage, and code style
+- Verify the implementation matches the requirements exactly — no partial or missing behaviour
+- Check logic correctness: off-by-one errors, wrong conditions, missing branches, race conditions
+- Review edge cases and error handling that tests may not cover
+- Assess test quality: are the tests actually meaningful, or do they just pass trivially? Are critical paths and error branches covered?
+- Flag missing integration tests for new endpoints, DB interactions, or service boundaries — these are required, not optional
 - Enforce delivery standards: ≤15 files and ≤400 lines net change per commit
-- Verify lint/build/test results are passing (not just that tests exist)
 - Do not re-raise issues that were already resolved in a previous round
 
-### Security (OWASP Top 10)
-- **Injection**: SQL injection, command injection, XSS (`eval(`, `innerHTML =`, raw query concatenation)
-- **Authentication & Authorization**: Missing auth checks, insecure session handling, privilege escalation
-- **Sensitive Data Exposure**: Hardcoded secrets, API keys, passwords, tokens committed to code
+### Security (OWASP Top 10 — code-level review only)
+- **Injection**: SQL injection, command injection, XSS (`eval(`, `innerHTML =`, raw query string concatenation)
+- **Authentication & Authorization**: Missing auth checks, insecure session handling, privilege escalation paths
+- **Sensitive Data Exposure**: Hardcoded secrets, API keys, passwords, or tokens in source code
 - **Security Misconfiguration**: Insecure defaults, debug mode left on, overly permissive CORS
 
-## Step 4 — Post GitHub Comment
+## Step 4 — Post GitHub Review
 
-Post your review as a comment on the PR so it is visible in GitHub:
+Submit a formal GitHub review (not just a comment). This is required for PRs that have branch protection requiring approvals.
 
-```
-gh pr comment <PR number> --body "$(cat <<'EOF'
-## Code Review — Round <N> — [APPROVED / CHANGES REQUESTED]
+**If APPROVED:**
+```bash
+GH_TOKEN=$GH_TOKEN_REVIEWER gh pr review <PR number> --approve --body "$(cat <<'EOF'
+## Code Review — Round <N> — APPROVED
 
 ### Code Quality
 <findings or "No issues">
 
 ### Security
 <findings or "No issues">
+EOF
+)"
+```
 
-### Issues (if any)
+**If CHANGES REQUESTED:**
+```bash
+GH_TOKEN=$GH_TOKEN_REVIEWER gh pr review <PR number> --request-changes --body "$(cat <<'EOF'
+## Code Review — Round <N> — CHANGES REQUESTED
+
+### Issues
 - File: `path/to/file`, Line: ~N — [CRITICAL|HIGH|MEDIUM|LOW] Problem: ... — Fix: ...
 EOF
 )"
@@ -86,4 +104,4 @@ You may only write to files under `memory/active/`. You must NEVER write to or m
 - `memory/completed/**` — owned by the PM exclusively
 - Any other file outside `memory/active/` in the memory/ tree
 
-When a PM instructs you to review a tracker/chore PR (no active task file), post your findings as a GitHub PR comment only — do not write to any memory files at all.
+When a PM instructs you to review a tracker/chore PR (no active task file), submit the formal GitHub review (Step 4) only — do not write to any memory files at all.
