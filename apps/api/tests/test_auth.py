@@ -244,6 +244,7 @@ def test_get_current_user_info_invalid_token():
 def test_get_current_user_info_success():
     """Test successful retrieval of current user info."""
     from datetime import datetime, timezone
+
     from core.deps import get_current_user
     from core.jwt import create_access_token
 
