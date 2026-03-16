@@ -52,17 +52,21 @@ async def oauth_login(provider: str, request: Request) -> Dict[str, str]:
     # Create secure redirect URI
     redirect_uri = _get_redirect_uri(request, provider)
 
-    # Get authorization URL
-    auth_url = await oauth_provider.get_authorization_url(redirect_uri)
+    # Generate and store CSRF state parameter
+    state = oauth_service.generate_state()
+    oauth_service.store_state(state, provider)
 
-    return {"authorization_url": auth_url, "provider": provider}
+    # Get authorization URL with state parameter
+    auth_url = await oauth_provider.get_authorization_url(redirect_uri, state)
+
+    return {"authorization_url": auth_url, "provider": provider, "state": state}
 
 
 @router.get("/callback/{provider}")
 async def oauth_callback(
     provider: str,
     code: str = Query(...),
-    state: str = Query(None),
+    state: str = Query(...),  # State is now required for CSRF protection
     request: Request = None,
     db: AsyncSession = Depends(get_db),
 ) -> Dict:
@@ -76,6 +80,10 @@ async def oauth_callback(
         raise ValidationError(
             f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
         )
+
+    # Validate state parameter to prevent CSRF attacks
+    if not oauth_service.validate_and_consume_state(state, provider):
+        raise ValidationError("Invalid or expired state parameter")
 
     # Create redirect URI (same as used in login)
     redirect_uri = _get_redirect_uri(request, provider)
