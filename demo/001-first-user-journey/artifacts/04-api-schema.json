@@ -1,0 +1,31 @@
+{
+  "title": "Learning Space API",
+  "version": "0.1.0",
+  "endpoints": {
+    "/health/": {
+      "get": "Health"
+    },
+    "/health/neo4j": {
+      "get": "Neo4J Health"
+    },
+    "/auth/login/{provider}": {
+      "get": "Oauth Login"
+    },
+    "/auth/callback/{provider}": {
+      "get": "Oauth Callback"
+    },
+    "/auth/logout": {
+      "post": "Logout User"
+    },
+    "/auth/providers": {
+      "get": "Get Supported Providers"
+    },
+    "/resources/": {
+      "post": "Create Resource",
+      "get": "List Resources"
+    },
+    "/db-health": {
+      "get": "Db Health Check"
+    }
+  }
+}
