@@ -124,8 +124,10 @@ def test_oauth_login_github():
     data = response.json()
     assert "authorization_url" in data
     assert "provider" in data
+    assert "state" in data  # CSRF state parameter should be included
     assert data["provider"] == "github"
     assert "github.com/login/oauth/authorize" in data["authorization_url"]
+    assert "state=" in data["authorization_url"]  # State should be in the URL
 
 
 def test_oauth_login_google():
@@ -136,8 +138,10 @@ def test_oauth_login_google():
     data = response.json()
     assert "authorization_url" in data
     assert "provider" in data
+    assert "state" in data  # CSRF state parameter should be included
     assert data["provider"] == "google"
     assert "accounts.google.com/o/oauth2/auth" in data["authorization_url"]
+    assert "state=" in data["authorization_url"]  # State should be in the URL
 
 
 def test_oauth_login_invalid_provider():
@@ -179,8 +183,13 @@ async def test_oauth_callback_success(
     # Mock auth service response
     mock_authenticate.return_value = (mock_user, "mock_jwt_token")
 
-    # Test callback
-    response = client.get("/auth/callback/github?code=test_code")
+    # Set up state in OAuth service for validation
+    from services.oauth import oauth_service
+
+    oauth_service.store_state("test_state", "github")
+
+    # Test callback with state parameter
+    response = client.get("/auth/callback/github?code=test_code&state=test_state")
     assert response.status_code == 200
 
     data = response.json()
@@ -193,13 +202,25 @@ async def test_oauth_callback_success(
 
 def test_oauth_callback_missing_code():
     """Test OAuth callback without code parameter."""
-    response = client.get("/auth/callback/github")
+    response = client.get("/auth/callback/github?state=test_state")
     assert response.status_code == 422  # FastAPI validation error
+
+
+def test_oauth_callback_missing_state():
+    """Test OAuth callback without state parameter."""
+    response = client.get("/auth/callback/github?code=test_code")
+    assert response.status_code == 422  # FastAPI validation error
+
+
+def test_oauth_callback_invalid_state():
+    """Test OAuth callback with invalid state parameter."""
+    response = client.get("/auth/callback/github?code=test_code&state=invalid_state")
+    assert response.status_code == 400
 
 
 def test_oauth_callback_invalid_provider():
     """Test OAuth callback with invalid provider."""
-    response = client.get("/auth/callback/invalid?code=test_code")
+    response = client.get("/auth/callback/invalid?code=test_code&state=test_state")
     assert response.status_code == 400
 
     data = response.json()

@@ -17,25 +17,23 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in - consistent auth check with login page
     const token = localStorage.getItem('auth_token');
     const userInfo = localStorage.getItem('user_info');
 
-    if (!token) {
+    if (!token || !userInfo) {
       router.push('/login');
       return;
     }
 
-    if (userInfo) {
-      try {
-        setUser(JSON.parse(userInfo));
-      } catch (e) {
-        console.error('Failed to parse user info:', e);
-        localStorage.removeItem('user_info');
-        localStorage.removeItem('auth_token');
-        router.push('/login');
-        return;
-      }
+    try {
+      setUser(JSON.parse(userInfo));
+    } catch (e) {
+      console.error('Failed to parse user info:', e);
+      localStorage.removeItem('user_info');
+      localStorage.removeItem('auth_token');
+      router.push('/login');
+      return;
     }
 
     setIsLoading(false);
@@ -50,7 +48,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" role="status" aria-label="Loading dashboard"></div>
       </div>
     );
   }

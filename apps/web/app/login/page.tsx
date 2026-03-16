@@ -42,9 +42,11 @@ function LoginPageContent() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Check if user is already logged in - consistent auth check
     const token = localStorage.getItem('auth_token');
-    if (token) {
+    const userInfo = localStorage.getItem('user_info');
+
+    if (token && userInfo) {
       // Redirect to dashboard or home based on search params
       const returnTo = searchParams.get('returnTo') || '/';
       router.push(returnTo);
@@ -67,6 +69,23 @@ function LoginPageContent() {
       const data = await response.json();
 
       if (data.authorization_url) {
+        // Store state parameter for validation
+        if (data.state) {
+          try {
+            localStorage.setItem(`oauth_state_${provider}`, data.state);
+          } catch (storageError) {
+            // Handle localStorage quota exceeded error
+            console.warn('localStorage full, clearing auth data and retrying');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_info');
+            try {
+              localStorage.setItem(`oauth_state_${provider}`, data.state);
+            } catch (secondError) {
+              throw new Error('Unable to store authentication state. Please try again.');
+            }
+          }
+        }
+
         // Redirect to the OAuth provider
         window.location.href = data.authorization_url;
       } else {
@@ -96,7 +115,7 @@ function LoginPageContent() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md" role="alert" aria-label="Error message">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
@@ -121,6 +140,8 @@ function LoginPageContent() {
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
+                      role="status"
+                      aria-label="Loading"
                     >
                       <circle
                         className="opacity-25"
@@ -167,7 +188,7 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" role="status" aria-label="Loading page"></div>
       </div>
     }>
       <LoginPageContent />

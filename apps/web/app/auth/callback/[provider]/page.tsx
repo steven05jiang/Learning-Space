@@ -36,13 +36,24 @@ function OAuthCallbackContent({
           throw new Error('Authorization code not received');
         }
 
+        if (!state) {
+          throw new Error('State parameter missing');
+        }
+
+        // Validate state parameter against stored value
+        const storedState = localStorage.getItem(`oauth_state_${params.provider}`);
+        if (!storedState || storedState !== state) {
+          throw new Error('Invalid state parameter - possible CSRF attack');
+        }
+
+        // Clean up stored state
+        localStorage.removeItem(`oauth_state_${params.provider}`);
+
         // Call the backend callback endpoint
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
         const url = new URL(`${apiBaseUrl}/auth/callback/${params.provider}`);
         url.searchParams.set('code', code);
-        if (state) {
-          url.searchParams.set('state', state);
-        }
+        url.searchParams.set('state', state);
 
         const response = await fetch(url.toString());
 
@@ -54,9 +65,21 @@ function OAuthCallbackContent({
         const data: CallbackResponse = await response.json();
 
         if (data.access_token && data.user) {
-          // Store the JWT token and user info
-          localStorage.setItem('auth_token', data.access_token);
-          localStorage.setItem('user_info', JSON.stringify(data.user));
+          // Store the JWT token and user info with error handling
+          try {
+            localStorage.setItem('auth_token', data.access_token);
+            localStorage.setItem('user_info', JSON.stringify(data.user));
+          } catch (storageError) {
+            // Handle localStorage quota exceeded error
+            console.warn('localStorage full, clearing old data and retrying');
+            localStorage.clear();
+            try {
+              localStorage.setItem('auth_token', data.access_token);
+              localStorage.setItem('user_info', JSON.stringify(data.user));
+            } catch (secondError) {
+              throw new Error('Unable to save login session. Please try again.');
+            }
+          }
 
           setStatus('success');
 
@@ -71,6 +94,9 @@ function OAuthCallbackContent({
         console.error('OAuth callback error:', err);
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setStatus('error');
+
+        // Clean up any stored state on error
+        localStorage.removeItem(`oauth_state_${params.provider}`);
 
         // Redirect to login page after showing error
         setTimeout(() => {
@@ -96,6 +122,8 @@ function OAuthCallbackContent({
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
+                  role="status"
+                  aria-label="Processing login"
                 >
                   <circle
                     className="opacity-25"
@@ -152,7 +180,7 @@ function OAuthCallbackContent({
           {status === 'error' && (
             <div className="text-center">
               <div className="flex justify-center">
-                <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center" role="alert" aria-label="Error occurred">
                   <svg
                     className="h-6 w-6 text-red-600"
                     fill="none"
@@ -191,7 +219,7 @@ export default function OAuthCallbackPage({
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" role="status" aria-label="Loading callback"></div>
       </div>
     }>
       <OAuthCallbackContent params={params} />
