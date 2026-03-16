@@ -84,7 +84,7 @@ When usage ≥ 95%, execute these steps **before exiting**:
 
 ## Phase 2 — Initialize or Sync Trackers
 
-This project uses four tracker files. Each covers a different task domain:
+This project uses five tracker files. Each covers a different task domain:
 
 | Tracker | File | Prefix | Tasks sourced from |
 |---------|------|--------|--------------------|
@@ -92,8 +92,9 @@ This project uses four tracker files. Each covers a different task domain:
 | Bugs | `memory/bugs-tracker.md` | `BUG-` | User-reported or discovered during work |
 | DevOps | `memory/ops-tracker.md` | `OPS-` | Infrastructure and deployment work |
 | Build/CI | `memory/build-tracker.md` | `BUILD-` | CI, test frameworks, tooling |
+| Tech debt | `memory/tech-debt-tracker.md` | `TD-` | Refactors, cleanups, architectural improvements |
 
-**For `/pm-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers (`bugs`, `ops`, `build`) are updated by the PM when relevant tasks are added or completed, but `/pm-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003" or "run ops tasks").
+**For `/pm-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers (`bugs`, `ops`, `build`, `tech-debt`) are updated by the PM when relevant tasks are added or completed, but `/pm-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003", "run ops tasks", or "address tech debt TD-001").
 
 ### Sync dev-tracker.md (always):
 
@@ -145,15 +146,16 @@ Update `Last Updated` to today's date.
 
 ### Also sync other trackers (quick pass):
 
-For `bugs-tracker.md`, `ops-tracker.md`, `build-tracker.md`: check `memory/active/` and `memory/completed/` for any `BUG-`, `OPS-`, or `BUILD-` prefixed files that don't match the tracker state, and update counts/status accordingly.
+For `bugs-tracker.md`, `ops-tracker.md`, `build-tracker.md`, `tech-debt-tracker.md`: check `memory/active/` and `memory/completed/` for any `BUG-`, `OPS-`, `BUILD-`, or `TD-` prefixed files that don't match the tracker state, and update counts/status accordingly.
 
 Log the sync result:
 ```
 📊 Trackers synced
-   dev-tracker:   ✅ Completed: 2  |  🔄 Active: 1  |  ⏳ Pending: 5  |  ⚠️ Stuck: 0
-   bugs-tracker:  ✅ Fixed: 0      |  🔄 Active: 0  |  ⏳ Pending: 0
-   build-tracker: ✅ Completed: 1  |  🔄 Active: 0  |  ⏳ Pending: 0
-   ops-tracker:   ✅ Completed: 0  |  🔄 Active: 0  |  ⏳ Pending: 0
+   dev-tracker:       ✅ Completed: 2  |  🔄 Active: 1  |  ⏳ Pending: 5  |  ⚠️ Stuck: 0
+   bugs-tracker:      ✅ Fixed: 0      |  🔄 Active: 0  |  ⏳ Pending: 0
+   build-tracker:     ✅ Completed: 1  |  🔄 Active: 0  |  ⏳ Pending: 0
+   ops-tracker:       ✅ Completed: 0  |  🔄 Active: 0  |  ⏳ Pending: 0
+   tech-debt-tracker: ✅ Completed: 0  |  🔄 Active: 0  |  ⏳ Pending: 2
 ```
 
 ---
@@ -375,7 +377,7 @@ N rounds before approval
 <full log carried over>
 ```
 
-3. Update the appropriate tracker (`memory/dev-tracker.md` for DEV tasks, `memory/bugs-tracker.md` for BUG tasks, `memory/ops-tracker.md` for OPS tasks, `memory/build-tracker.md` for BUILD tasks):
+3. Update the appropriate tracker (`memory/dev-tracker.md` for DEV tasks, `memory/bugs-tracker.md` for BUG tasks, `memory/ops-tracker.md` for OPS tasks, `memory/build-tracker.md` for BUILD tasks, `memory/tech-debt-tracker.md` for TD tasks):
    - Change `- [~] TASK-001: ...` → `- [x] TASK-001: ... (PR #12 ✅)`
    - Update Progress Summary counts
    - Update `Last Updated`
@@ -402,7 +404,7 @@ N rounds before approval
    - Append to Progress Log: `YYYY-MM-DD HH:MM — ⚠️ STUCK: <reason>`
    - Change `**Status:**` to `⚠️ Stuck`
 
-2. Update the appropriate tracker for this task type:
+2. Update the appropriate tracker for this task type (`memory/dev-tracker.md` for DEV, `memory/bugs-tracker.md` for BUG, `memory/ops-tracker.md` for OPS, `memory/build-tracker.md` for BUILD, `memory/tech-debt-tracker.md` for TD):
    - Change `- [~] TASK-001: ...` → `- [!] TASK-001: ... (⚠️ STUCK)`
    - Update Progress Summary counts
 
