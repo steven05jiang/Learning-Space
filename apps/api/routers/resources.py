@@ -1,7 +1,6 @@
 """Resource management endpoints."""
 
 import logging
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
@@ -61,8 +60,6 @@ async def create_resource(
         original_content=resource_data.original_content,
         prefer_provider=resource_data.prefer_provider,
         status=ResourceStatus.PENDING,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
     )
 
     db.add(resource)

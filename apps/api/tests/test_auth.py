@@ -226,3 +226,63 @@ def test_oauth_callback_invalid_provider():
     data = response.json()
     assert "detail" in data
     assert "Unsupported OAuth provider" in data["detail"]
+
+
+def test_get_current_user_info_requires_authentication():
+    """Test that /auth/me requires authentication."""
+    response = client.get("/auth/me")
+    assert response.status_code == 401
+
+
+def test_get_current_user_info_invalid_token():
+    """Test /auth/me with invalid token."""
+    headers = {"Authorization": "Bearer invalid_token"}
+    response = client.get("/auth/me", headers=headers)
+    assert response.status_code == 401
+
+
+def test_get_current_user_info_success():
+    """Test successful retrieval of current user info."""
+    from datetime import datetime, timezone
+    from core.deps import get_current_user
+    from core.jwt import create_access_token
+
+    # Create test user
+    test_user = User(
+        id=123,
+        email="test@example.com",
+        display_name="Test User",
+        avatar_url="https://example.com/avatar.jpg",
+        created_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
+    )
+    test_user.accounts = []
+
+    # Override the get_current_user dependency
+    def get_test_user():
+        return test_user
+
+    app.dependency_overrides[get_current_user] = get_test_user
+
+    try:
+        # Create valid JWT token
+        token_data = {
+            "sub": str(test_user.id),
+            "email": test_user.email,
+            "display_name": test_user.display_name,
+        }
+        token = create_access_token(token_data)
+
+        # Make /auth/me request
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get("/auth/me", headers=headers)
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == 123
+        assert data["email"] == "test@example.com"
+        assert data["display_name"] == "Test User"
+        assert data["avatar_url"] == "https://example.com/avatar.jpg"
+
+    finally:
+        app.dependency_overrides.clear()

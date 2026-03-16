@@ -159,6 +159,17 @@ async def logout_user(current_user: User = Depends(get_current_user)) -> Respons
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.get("/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)) -> Dict:
+    """Return the currently authenticated user's profile."""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "avatar_url": current_user.avatar_url,
+    }
+
+
 @router.get("/providers")
 async def get_supported_providers() -> Dict[str, list]:
     """Get list of supported OAuth providers."""
