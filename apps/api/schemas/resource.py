@@ -72,3 +72,26 @@ class ResourceResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ResourceListItem(BaseModel):
+    """Response schema for resource list items (reduced fields for listing)."""
+
+    id: str
+    url: Optional[str] = None  # Populated from original_content if content_type is URL
+    title: Optional[str] = None
+    summary: Optional[str] = None
+    tags: list[str] = []
+    status: ResourceStatus
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ResourceListResponse(BaseModel):
+    """Response schema for paginated resource list."""
+
+    items: list[ResourceListItem]
+    total: int
+    limit: int
+    offset: int
