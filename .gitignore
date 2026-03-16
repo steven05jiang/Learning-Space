@@ -11,6 +11,9 @@ dist/
 node_modules/
 .next/
 out/
+# Prevent accidental root-level npm installs in this monorepo
+/package.json
+/package-lock.json
 
 # Env
 .env

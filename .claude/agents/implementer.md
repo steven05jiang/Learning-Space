@@ -20,21 +20,96 @@ Read `memory/active/<task-id>.md` to understand:
 **If this is the initial implementation** (no branch yet):
 - Create a branch: `git checkout -b feature/<task-id-lowercase>-<short-slug>`
 - Implement the feature fully, including tests
-- Run lint/build/test and confirm all pass
 - Verify the commit stays within batch limits: ≤15 files, ≤400 lines net change
-- Commit all changes with a clear message
+- Do **not** commit yet — proceed to Step 3 first
 
 **If this is a fix round** (branch and PR already exist):
 - Check out the existing branch: `git checkout <branch>`
 - Address every piece of review feedback listed in the Progress Log of the task context file
-- Run lint/build/test and confirm all pass
-- Commit: `git commit -m "fix: review feedback round <N>"`
+- Do **not** commit yet — proceed to Step 3 first
 
-## Step 3 — Push & Report
+## Step 3 — Verify New Code Runs (targeted, before full CI)
+
+Run targeted checks against **only what you just wrote**. Fix every failure before moving on — do not proceed to Step 4 with any red output.
+
+### 3a — Syntax check every new or modified Python file
+
+```bash
+cd apps/api && uv run python -m py_compile path/to/changed_file.py
+```
+
+A non-zero exit or any output means a syntax error — fix it.
+
+### 3b — Import check every new module or router
+
+```bash
+cd apps/api && uv run python -c "from <module.path> import <NewClass>"
+```
+
+This catches `ImportError`, `NameError`, and any module-level crash that linting cannot catch. Run one line per new public symbol you added.
+
+### 3c — Run the specific test file for this feature
+
+```bash
+cd apps/api && uv run pytest tests/test_<feature>.py -v 2>&1 | tee /tmp/targeted-test.txt
+echo "Exit: $?"
+```
+
+Read every line of output. For each `FAILED` or `ERROR` entry, fix the code and re-run. Repeat until the file shows all `PASSED`. If you cannot make a test pass after three focused attempts, output `STUCK` — do not paper over it.
+
+### 3d — For web changes: type-check
+
+If you modified anything under `apps/web/`:
+
+```bash
+cd apps/web && npx tsc --noEmit 2>&1
+```
+
+Fix all type errors before proceeding.
+
+### 3e — Commit once all targeted checks pass
+
+```bash
+# Initial implementation
+git commit -m "<task-id>: <description>"
+
+# Fix round
+git commit -m "fix: review feedback round <N>"
+```
+
+## Step 4 — Full CI Check
+
+Run the full local CI suite from the repo root and read the output:
+
+```bash
+make ci-check 2>&1 | tee /tmp/ci-output.txt
+echo "Exit code: $?"
+```
+
+Confirm every stage passes:
+- `api-lint` — ruff check and format check ✅
+- `api-test` — all unit tests green ✅
+- `api-security` — pip-audit and bandit clean ✅
+- `web-lint` + `web-build` — if web files were touched ✅
+
+If any stage fails, fix the issue, re-run Step 3c for the relevant test file, then re-run `make ci-check`. Do not push with a failing CI.
+
+## Step 5 — Push & Report
 
 - Push the branch: `git push origin <branch>`
-- If no PR exists yet, create one:
-  `gh pr create --title "<task-id>: <description>" --body "<requirements summary>"`
+- If no PR exists yet, create one. Include the CI result summary in the PR body:
+  ```
+  GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create \
+    --title "<task-id>: <description>" \
+    --body "<requirements summary>
+
+  ## CI Check (local)
+  - api-lint: ✅ PASS
+  - api-test: ✅ PASS  (N passed)
+  - api-security: ✅ PASS
+  - web-lint: ✅ / ⚠️ SKIP
+  - web-build: ✅ / ⚠️ SKIP"
+  ```
 - Post a GitHub comment on the PR summarising what was implemented or fixed:
   `gh pr comment <PR number> --body "<summary of implementation or fixes applied>"`
 - Output a structured result in this exact format:
@@ -55,7 +130,7 @@ TASK: TASK-001
 REASON: <specific reason>
 ```
 
-## Step 4 — Merge (when instructed by PM)
+## Step 6 — Merge (when instructed by PM)
 
 When the PM instructs you to merge after reviewer approval:
 
@@ -93,3 +168,12 @@ When the PM instructs you to merge after reviewer approval:
   TASK: <task-id>
   REASON: <specific reason>
   ```
+
+## Memory File Boundaries (STRICT)
+
+You may only write to files under `memory/active/`. You must NEVER write to or stage:
+- `memory/dev-tracker.md` — owned by the PM exclusively
+- `memory/completed/**` — owned by the PM exclusively
+- Any other file outside `memory/active/` in the memory/ tree
+
+When committing, always stage files explicitly by name. Never use `git add memory/` or `git add .` — doing so risks capturing tracker or completed files. If `git status` shows `memory/dev-tracker.md` or any `memory/completed/` file as modified, leave them unstaged.
