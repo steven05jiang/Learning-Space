@@ -157,7 +157,6 @@ export default function ResourcesPage() {
       return undefined;
     }
   };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -395,6 +394,7 @@ export default function ResourcesPage() {
                 </>
               )}
             </>
+          )}
           )}
         </div>
       </main>
