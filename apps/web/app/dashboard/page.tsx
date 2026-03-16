@@ -174,6 +174,8 @@ export default function DashboardPage() {
               <div className="flex-shrink-0">
                 <svg
                   className="h-5 w-5 text-green-400"
+                  width="20"
+                  height="20"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
