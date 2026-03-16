@@ -16,7 +16,7 @@ class OAuthProvider:
         self.client_id = client_id
         self.client_secret = client_secret
 
-    async def get_authorization_url(self, redirect_uri: str) -> str:
+    async def get_authorization_url(self, redirect_uri: str, state: str = None) -> str:
         """Get the OAuth authorization URL."""
         raise NotImplementedError
 
@@ -38,7 +38,7 @@ class GitHubOAuthProvider(OAuthProvider):
         self.token_url = "https://github.com/login/oauth/access_token"
         self.user_info_url = "https://api.github.com/user"
 
-    async def get_authorization_url(self, redirect_uri: str) -> str:
+    async def get_authorization_url(self, redirect_uri: str, state: str = None) -> str:
         """Get GitHub OAuth authorization URL."""
         params = {
             "client_id": self.client_id,
@@ -46,6 +46,8 @@ class GitHubOAuthProvider(OAuthProvider):
             "scope": "user:email",
             "response_type": "code",
         }
+        if state:
+            params["state"] = state
         return f"{self.auth_url}?{urlencode(params)}"
 
     async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
@@ -92,7 +94,7 @@ class GoogleOAuthProvider(OAuthProvider):
         self.token_url = "https://oauth2.googleapis.com/token"
         self.user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-    async def get_authorization_url(self, redirect_uri: str) -> str:
+    async def get_authorization_url(self, redirect_uri: str, state: str = None) -> str:
         """Get Google OAuth authorization URL."""
         params = {
             "client_id": self.client_id,
@@ -101,6 +103,8 @@ class GoogleOAuthProvider(OAuthProvider):
             "response_type": "code",
             "access_type": "offline",
         }
+        if state:
+            params["state"] = state
         return f"{self.auth_url}?{urlencode(params)}"
 
     async def exchange_code(self, code: str, redirect_uri: str) -> Optional[str]:
@@ -149,12 +153,15 @@ class TwitterOAuthProvider(OAuthProvider):
         # Store PKCE values temporarily - in production use session/cache
         self._code_verifier_store = {}
 
-    async def get_authorization_url(self, redirect_uri: str) -> str:
+    async def get_authorization_url(self, redirect_uri: str, state: str = None) -> str:
         """Get Twitter OAuth authorization URL."""
         # Generate PKCE values
         code_verifier = self._generate_code_verifier()
         code_challenge = self._generate_code_challenge(code_verifier)
-        state = self._generate_state()
+
+        # Use provided state or generate one for PKCE
+        if not state:
+            state = self._generate_state()
 
         # Store code_verifier for later use in token exchange
         self._code_verifier_store[state] = code_verifier
@@ -251,6 +258,8 @@ class OAuthService:
             "google": GoogleOAuthProvider(),
             "twitter": TwitterOAuthProvider(),
         }
+        # Store state values temporarily - in production use session/cache/redis
+        self._state_store = {}
 
     def get_provider(self, provider_name: str) -> Optional[OAuthProvider]:
         """Get OAuth provider by name."""
@@ -259,6 +268,28 @@ class OAuthService:
     def get_supported_providers(self) -> list[str]:
         """Get list of supported OAuth providers."""
         return list(self.providers.keys())
+
+    def generate_state(self) -> str:
+        """Generate cryptographically secure random state for CSRF protection."""
+        return secrets.token_urlsafe(32)
+
+    def store_state(self, state: str, provider: str) -> None:
+        """Store state for later validation."""
+        self._state_store[state] = {
+            "provider": provider,
+            "created_at": secrets.randbits(64),  # Simple timestamp substitute
+        }
+
+    def validate_and_consume_state(self, state: str, provider: str) -> bool:
+        """Validate state and consume it (one-time use)."""
+        if not state:
+            return False
+
+        stored = self._state_store.pop(state, None)
+        if not stored:
+            return False
+
+        return stored["provider"] == provider
 
 
 oauth_service = OAuthService()
