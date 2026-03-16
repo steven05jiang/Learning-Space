@@ -42,12 +42,7 @@ app.include_router(resources.router)
 async def db_health_check(db: AsyncSession = Depends(get_db)):
     """Database health check endpoint."""
     try:
-        # Simple query to test database connection
         await db.execute(text("SELECT 1"))
         return {"status": "database healthy"}
     except Exception as e:
-        # For health checks, we might want to return 503 Service Unavailable
-        # but keep consistent with the error format
-        from core.errors import InternalServerError
-
-        raise InternalServerError(f"Database connection failed: {str(e)}")
+        return {"status": "database error", "detail": str(e)}
