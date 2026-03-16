@@ -61,7 +61,7 @@ export default function ResourcesPage() {
   }, [router]);
 
   // Fetch resources from API
-  const fetchResources = useCallback(async () => {
+  const fetchResources = useCallback(async (customPagination?: { limit: number; offset: number }) => {
     if (!user) return;
 
     const token = localStorage.getItem('auth_token');
@@ -70,9 +70,15 @@ export default function ResourcesPage() {
     setIsLoadingResources(true);
     setError(null);
 
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+
+    // Use custom pagination or default values
+    const currentLimit = customPagination?.limit ?? 20;
+    const currentOffset = customPagination?.offset ?? 0;
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/resources?limit=${pagination.limit}&offset=${pagination.offset}`,
+        `${apiBase}/resources?limit=${currentLimit}&offset=${currentOffset}`,
         {
           method: 'GET',
           headers: {
@@ -102,14 +108,14 @@ export default function ResourcesPage() {
     } finally {
       setIsLoadingResources(false);
     }
-  }, [user, pagination.limit, pagination.offset, router]);
+  }, [user, router]);
 
   // Load resources when user is set
   useEffect(() => {
     if (user) {
-      fetchResources();
+      fetchResources(pagination);
     }
-  }, [user, fetchResources]);
+  }, [user, fetchResources, pagination]);
 
   // Polling for status updates - every 10 seconds
   useEffect(() => {
@@ -140,6 +146,15 @@ export default function ResourcesPage() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getSafeUrl = (url: string): string | undefined => {
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:'].includes(parsed.protocol) ? url : undefined;
+    } catch {
+      return undefined;
     }
   };
 
@@ -296,7 +311,18 @@ export default function ResourcesPage() {
                                 <div className="flex-1">
                                   <div className="flex items-center">
                                     <p className="text-sm font-medium text-gray-900 truncate">
-                                      {resource.title || resource.url || 'Untitled Resource'}
+                                      {resource.url && getSafeUrl(resource.url) ? (
+                                        <a
+                                          href={getSafeUrl(resource.url)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-gray-900 hover:text-blue-600"
+                                        >
+                                          {resource.title || resource.url || 'Untitled Resource'}
+                                        </a>
+                                      ) : (
+                                        resource.title || resource.url || 'Untitled Resource'
+                                      )}
                                     </p>
                                     <span
                                       className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(
@@ -308,7 +334,18 @@ export default function ResourcesPage() {
                                   </div>
                                   {resource.url && resource.title && (
                                     <p className="mt-1 text-sm text-gray-500 truncate">
-                                      {resource.url}
+                                      {getSafeUrl(resource.url) ? (
+                                        <a
+                                          href={getSafeUrl(resource.url)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800"
+                                        >
+                                          {resource.url}
+                                        </a>
+                                      ) : (
+                                        resource.url
+                                      )}
                                     </p>
                                   )}
                                   {resource.status === 'READY' && resource.summary && (
