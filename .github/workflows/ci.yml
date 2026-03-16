@@ -84,10 +84,13 @@ jobs:
       - name: Run integration tests
         run: |
           cd apps/api
+          set +e
           uv run pytest -m integration -v
           exit_code=$?
+          set -e
           # Exit code 5 = no tests collected; treat as pass until integration tests are written
-          [ $exit_code -eq 5 ] && exit 0 || exit $exit_code
+          [ $exit_code -eq 5 ] && echo "No integration tests found — skipping" && exit 0
+          exit $exit_code
         env:
           DATABASE_URL: postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test
           NEO4J_URI: bolt://localhost:7687
