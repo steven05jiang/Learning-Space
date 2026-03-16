@@ -2,15 +2,24 @@
 
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
 from models.database import get_db
-from models.resource import Resource
+from models.resource import Resource, ResourceStatus as ModelResourceStatus
 from models.user import User
-from schemas.resource import ResourceCreate, ResourceResponse, ResourceStatus
+from schemas.resource import (
+    ContentType,
+    ResourceCreate,
+    ResourceListItem,
+    ResourceListResponse,
+    ResourceResponse,
+    ResourceStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,4 +89,76 @@ async def create_resource(
         status=ResourceStatus(resource.status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
+    )
+
+
+@router.get("/", response_model=ResourceListResponse)
+async def list_resources(
+    status_filter: Optional[ResourceStatus] = Query(None, alias="status", description="Filter by resource status"),
+    limit: int = Query(20, ge=1, le=100, description="Number of items to return"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ResourceListResponse:
+    """
+    List resources owned by the authenticated user.
+
+    - **status**: Optional filter by resource status (PENDING, PROCESSING, READY, FAILED)
+    - **limit**: Maximum number of items to return (1-100, default 20)
+    - **offset**: Number of items to skip for pagination (default 0)
+
+    Returns a paginated list of resources with basic information.
+    """
+    # Build the base query
+    query = select(Resource).where(Resource.owner_id == current_user.id)
+
+    # Apply status filter if provided
+    if status_filter:
+        query = query.where(Resource.status == ModelResourceStatus(status_filter.value))
+
+    # Add ordering by created_at descending (newest first)
+    query = query.order_by(Resource.created_at.desc())
+
+    # Get total count for pagination
+    count_query = select(func.count(Resource.id)).where(Resource.owner_id == current_user.id)
+    if status_filter:
+        count_query = count_query.where(Resource.status == ModelResourceStatus(status_filter.value))
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Apply pagination
+    paginated_query = query.offset(offset).limit(limit)
+
+    # Execute the query
+    result = await db.execute(paginated_query)
+    resources = result.scalars().all()
+
+    # Convert to response items
+    items = []
+    for resource in resources:
+        # Set url field if content_type is URL
+        url = resource.original_content if resource.content_type == ContentType.URL.value else None
+
+        item = ResourceListItem(
+            id=str(resource.id),
+            url=url,
+            title=resource.title,
+            summary=resource.summary,
+            tags=resource.tags or [],
+            status=ResourceStatus(resource.status.value),
+            created_at=resource.created_at,
+        )
+        items.append(item)
+
+    logger.info(
+        f"Listed {len(items)} resources for user {current_user.id} "
+        f"(total: {total}, offset: {offset}, limit: {limit}, status_filter: {status_filter})"
+    )
+
+    return ResourceListResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
     )
