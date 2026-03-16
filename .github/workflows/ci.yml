@@ -31,6 +31,8 @@ jobs:
           python-version: "3.12"
       - run: cd apps/api && uv sync --frozen --extra dev
       - run: cd apps/api && uv run pytest -m "not integration" -v
+        env:
+          JWT_SECRET_KEY: ci-test-secret-key-32-chars-minimum
 
   api-security:
     name: "API · Security Scan"
@@ -44,6 +46,8 @@ jobs:
       - name: Dependency vulnerability scan (pip-audit)
         # CVE-2024-23342: ecdsa transitive dep of python-jose; unused (using [cryptography] backend). BUG-001 tracks migration to authlib JWT.
         run: cd apps/api && uv run pip-audit --ignore-vuln CVE-2024-23342
+        env:
+          JWT_SECRET_KEY: ci-test-secret-key-32-chars-minimum
       - name: Static security analysis (bandit)
         run: cd apps/api && uv run bandit -r . -c pyproject.toml
 
@@ -78,13 +82,21 @@ jobs:
           python-version: "3.12"
       - run: cd apps/api && uv sync --frozen --extra dev
       - name: Run integration tests
-        run: cd apps/api && uv run pytest -m integration -v
+        run: |
+          cd apps/api
+          set +e
+          uv run pytest -m integration -v
+          exit_code=$?
+          set -e
+          # Exit code 5 = no tests collected; treat as pass until integration tests are written
+          [ $exit_code -eq 5 ] && echo "No integration tests found — skipping" && exit 0
+          exit $exit_code
         env:
           DATABASE_URL: postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USER: neo4j
           NEO4J_PASSWORD: changeme
-          SECRET_KEY: ci-test-secret-key-not-for-production
+          JWT_SECRET_KEY: ci-test-secret-key-32-chars-minimum
           ENVIRONMENT: test
 
   # ── Web ──────────────────────────────────────────────────────────────────
