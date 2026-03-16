@@ -1,64 +1,47 @@
 import { chromium } from 'playwright';
-import fs from 'fs';
 
 const TOKEN = process.argv[2];
-if (!TOKEN) {
-  console.error('Usage: node screenshot.mjs <JWT_TOKEN>');
+const OUT   = process.argv[3];
+if (!TOKEN || !OUT) {
+  console.error('Usage: node screenshot.mjs <token> <artifacts-dir>');
   process.exit(1);
 }
 
-(async () => {
-  const browser = await chromium.launch();
-  const context = await browser.newContext();
+const browser = await chromium.launch();
+const base = 'http://localhost:3001';
 
-  // Inject auth token
-  await context.addInitScript((token) => {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('user_info', JSON.stringify({
-      id: 1, email: 'demo@learningspace.dev', display_name: 'Demo User'
-    }));
-  }, TOKEN);
+// Login page (unauthenticated context)
+const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const anonPage = await anonCtx.newPage();
+await anonPage.goto(`${base}/login`);
+await anonPage.waitForLoadState('networkidle');
+await anonPage.screenshot({ path: `${OUT}/09-frontend-login.png`, fullPage: true });
+await anonCtx.close();
+console.log('Saved 09-frontend-login.png');
 
-  const page = await context.newPage();
+// Authenticated context — seed localStorage
+const authCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+await authCtx.addInitScript((token) => {
+  localStorage.setItem('auth_token', token);
+  localStorage.setItem('user_info', JSON.stringify({
+    id: 1, email: 'demo@learningspace.dev', display_name: 'Demo User', avatar_url: null
+  }));
+}, TOKEN);
 
-  // Create artifacts directory if it doesn't exist
-  const artifactsDir = 'demo/001-first-user-journey/artifacts';
-  if (!fs.existsSync(artifactsDir)) {
-    fs.mkdirSync(artifactsDir, { recursive: true });
-  }
+const page = await authCtx.newPage();
 
-  try {
-    console.log('Taking screenshot of dashboard...');
-    // Dashboard
-    await page.goto('http://localhost:3001/dashboard');
-    await page.waitForLoadState('networkidle');
-    await page.screenshot({
-      path: `${artifactsDir}/09-frontend-dashboard-fixed.png`,
-      fullPage: true
-    });
+const pages = [
+  { url: '/dashboard',      file: '10-frontend-dashboard.png' },
+  { url: '/resources/new',  file: '11-frontend-resources-new.png' },
+  { url: '/resources',      file: '12-frontend-resources-list.png' },
+];
 
-    console.log('Taking screenshot of resources new page...');
-    // Resources new
-    await page.goto('http://localhost:3001/resources/new');
-    await page.waitForLoadState('networkidle');
-    await page.screenshot({
-      path: `${artifactsDir}/10-frontend-resources-new-fixed.png`,
-      fullPage: true
-    });
+for (const { url, file } of pages) {
+  await page.goto(`${base}${url}`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: `${OUT}/${file}`, fullPage: true });
+  console.log(`Saved ${file}`);
+}
 
-    console.log('Taking screenshot of resources list page...');
-    // Resources list
-    await page.goto('http://localhost:3001/resources');
-    await page.waitForLoadState('networkidle');
-    await page.screenshot({
-      path: `${artifactsDir}/11-frontend-resources-list-fixed.png`,
-      fullPage: true
-    });
-
-    console.log('Screenshots saved successfully');
-  } catch (error) {
-    console.error('Error taking screenshots:', error);
-  } finally {
-    await browser.close();
-  }
-})();
+await browser.close();
+console.log('All screenshots saved.');
