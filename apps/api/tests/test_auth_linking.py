@@ -240,7 +240,7 @@ class TestOAuthService:
         assert oauth_service.get_link_user_id(state) == user_id
 
         # Validate and consume state
-        assert oauth_service.validate_and_consume_state(state, provider)
+        assert oauth_service.validate_and_consume_state(state, provider) is not None
 
         # State should be consumed (one-time use)
         assert not oauth_service.is_link_state(state)

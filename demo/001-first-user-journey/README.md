@@ -18,28 +18,28 @@ full stack from the Next.js UI through the FastAPI backend to PostgreSQL.
 
 ## New Since Last Demo
 
-| Type | Item | Description |
-|------|------|-------------|
-| Feature | DEV-039 | OAuth login UI (GitHub / Google / Twitter) |
-| Feature | DEV-014 | GET /resources paginated list |
-| Feature | DEV-041 | Submit URL form |
-| Feature | DEV-042 | Resource list view |
-| Bug fix | BUG-001 | JWT migrated to authlib (CVE-2024-23342) |
-| Bug fix | BUG-002 | POST /resources datetime timezone mismatch |
-| Bug fix | BUG-003 | GET /auth/me endpoint added |
-| Bug fix | BUG-dashboard-svg | SVG icons proper width/height |
+| Type    | Item              | Description                                |
+| ------- | ----------------- | ------------------------------------------ |
+| Feature | DEV-039           | OAuth login UI (GitHub / Google / Twitter) |
+| Feature | DEV-014           | GET /resources paginated list              |
+| Feature | DEV-041           | Submit URL form                            |
+| Feature | DEV-042           | Resource list view                         |
+| Bug fix | BUG-001           | JWT migrated to authlib (CVE-2024-23342)   |
+| Bug fix | BUG-002           | POST /resources datetime timezone mismatch |
+| Bug fix | BUG-003           | GET /auth/me endpoint added                |
+| Bug fix | BUG-dashboard-svg | SVG icons proper width/height              |
 
 ---
 
 ## Prerequisites
 
-| Requirement | Notes |
-|-------------|-------|
-| Docker running | For PostgreSQL, Neo4j, Redis via `docker compose` |
-| `uv` installed | Python dependency manager |
-| `npm` installed | Node package manager |
-| `.env` in `apps/api/` | Already present with test credentials |
-| `NEXT_PUBLIC_API_BASE_URL` | Set to `http://localhost:8000` |
+| Requirement                | Notes                                             |
+| -------------------------- | ------------------------------------------------- |
+| Docker running             | For PostgreSQL, Neo4j, Redis via `docker compose` |
+| `uv` installed             | Python dependency manager                         |
+| `npm` installed            | Node package manager                              |
+| `.env` in `apps/api/`      | Already present with test credentials             |
+| `NEXT_PUBLIC_API_BASE_URL` | Set to `http://localhost:8000`                    |
 
 ---
 
@@ -101,11 +101,17 @@ print(token)
 Then open the browser console at `http://localhost:3001` and paste:
 
 ```javascript
-localStorage.setItem('auth_token', '<paste token here>')
-localStorage.setItem('user_info', JSON.stringify({
-  id: 1, email: 'demo@learningspace.dev', display_name: 'Demo User', avatar_url: null
-}))
-location.href = '/dashboard'
+localStorage.setItem("auth_token", "<paste token here>");
+localStorage.setItem(
+  "user_info",
+  JSON.stringify({
+    id: 1,
+    email: "demo@learningspace.dev",
+    display_name: "Demo User",
+    avatar_url: null,
+  }),
+);
+location.href = "/dashboard";
 ```
 
 You will land directly on the dashboard as the demo user.
@@ -167,45 +173,45 @@ Pages to capture: `/login`, `/dashboard`, `/resources/new`, `/resources`.
 
 ## Expected Outcome
 
-| Step | Expected |
-|------|----------|
-| infra-up | All 3 containers healthy |
-| migrations | All tables created |
-| GET /health | `{"status": "healthy"}` |
-| GET /db-health | `{"status": "database healthy"}` |
-| GET /auth/me | 200 with user profile |
-| POST /resources | 202 with PENDING resource |
-| GET /resources | 200 paginated list |
-| Frontend /login | Login page with provider buttons |
-| Frontend /dashboard | Dashboard with nav and action cards |
-| Frontend /resources/new | URL submission form |
-| Frontend /resources | Resource list with PENDING badge |
+| Step                    | Expected                            |
+| ----------------------- | ----------------------------------- |
+| infra-up                | All 3 containers healthy            |
+| migrations              | All tables created                  |
+| GET /health             | `{"status": "healthy"}`             |
+| GET /db-health          | `{"status": "database healthy"}`    |
+| GET /auth/me            | 200 with user profile               |
+| POST /resources         | 202 with PENDING resource           |
+| GET /resources          | 200 paginated list                  |
+| Frontend /login         | Login page with provider buttons    |
+| Frontend /dashboard     | Dashboard with nav and action cards |
+| Frontend /resources/new | URL submission form                 |
+| Frontend /resources     | Resource list with PENDING badge    |
 
 ---
 
 ## Run History
 
-| Run | Date | Status | Artifacts |
-|-----|------|--------|-----------|
-| run-2 | 2026-03-16 22:13 | ✅ | [artifacts/run-2/](./artifacts/run-2/) |
+| Run   | Date             | Status | Artifacts                              |
+| ----- | ---------------- | ------ | -------------------------------------- |
+| run-2 | 2026-03-16 22:13 | ✅     | [artifacts/run-2/](./artifacts/run-2/) |
 
 ---
 
 ### Run 2 — 2026-03-16
 
-| Step | Result | Artifact |
-|------|--------|----------|
-| infra-up | ✅ All 3 containers healthy | [01-infra-start.txt](./artifacts/run-2/01-infra-start.txt) |
-| migrations | ✅ Applied cleanly (up to date) | [02-migrations.txt](./artifacts/run-2/02-migrations.txt) |
-| GET /health + /db-health | ✅ 200 both | [03-health.json](./artifacts/run-2/03-health.json) |
-| JWT generation | ✅ Token minted for demo user | [05-jwt-token.txt](./artifacts/run-2/05-jwt-token.txt) |
-| GET /auth/me | ✅ 200 `{"id":1,"email":"demo@learningspace.dev","display_name":"Demo User","avatar_url":null}` | [06-auth-me.json](./artifacts/run-2/06-auth-me.json) |
-| POST /resources | ✅ 202 with PENDING resource (id=4) | [07-create-resource.json](./artifacts/run-2/07-create-resource.json) |
-| GET /resources | ✅ 200 — 4 resources listed | [08-list-resources.json](./artifacts/run-2/08-list-resources.json) |
-| Frontend /login | ✅ Login page with OAuth provider buttons | [09-frontend-login.png](./artifacts/run-2/09-frontend-login.png) |
-| Frontend /dashboard | ✅ Dashboard with nav and action cards | [10-frontend-dashboard.png](./artifacts/run-2/10-frontend-dashboard.png) |
-| Frontend /resources/new | ✅ URL submission form | [11-frontend-resources-new.png](./artifacts/run-2/11-frontend-resources-new.png) |
-| Frontend /resources | ✅ Resource list with PENDING badges | [12-frontend-resources-list.png](./artifacts/run-2/12-frontend-resources-list.png) |
+| Step                     | Result                                                                                          | Artifact                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| infra-up                 | ✅ All 3 containers healthy                                                                     | [01-infra-start.txt](./artifacts/run-2/01-infra-start.txt)                         |
+| migrations               | ✅ Applied cleanly (up to date)                                                                 | [02-migrations.txt](./artifacts/run-2/02-migrations.txt)                           |
+| GET /health + /db-health | ✅ 200 both                                                                                     | [03-health.json](./artifacts/run-2/03-health.json)                                 |
+| JWT generation           | ✅ Token minted for demo user                                                                   | [05-jwt-token.txt](./artifacts/run-2/05-jwt-token.txt)                             |
+| GET /auth/me             | ✅ 200 `{"id":1,"email":"demo@learningspace.dev","display_name":"Demo User","avatar_url":null}` | [06-auth-me.json](./artifacts/run-2/06-auth-me.json)                               |
+| POST /resources          | ✅ 202 with PENDING resource (id=4)                                                             | [07-create-resource.json](./artifacts/run-2/07-create-resource.json)               |
+| GET /resources           | ✅ 200 — 4 resources listed                                                                     | [08-list-resources.json](./artifacts/run-2/08-list-resources.json)                 |
+| Frontend /login          | ✅ Login page with OAuth provider buttons                                                       | [09-frontend-login.png](./artifacts/run-2/09-frontend-login.png)                   |
+| Frontend /dashboard      | ✅ Dashboard with nav and action cards                                                          | [10-frontend-dashboard.png](./artifacts/run-2/10-frontend-dashboard.png)           |
+| Frontend /resources/new  | ✅ URL submission form                                                                          | [11-frontend-resources-new.png](./artifacts/run-2/11-frontend-resources-new.png)   |
+| Frontend /resources      | ✅ Resource list with PENDING badges                                                            | [12-frontend-resources-list.png](./artifacts/run-2/12-frontend-resources-list.png) |
 
 **11 of 11 steps passed. 0 bugs found.**
 

@@ -5,11 +5,13 @@ FastAPI application for Learning Space with PostgreSQL support.
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    uv sync --extra dev
    ```
 
 2. Copy the environment file:
+
    ```bash
    cp .env.example .env
    ```

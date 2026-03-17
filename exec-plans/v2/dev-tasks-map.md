@@ -1,7 +1,9 @@
 # Dev Tasks Dependency Map — Learning Space
+
 _Version: v2 | Generated: 2026-03-17_
 
 > **v2 Changes:**
+>
 > - DEV-044, DEV-045, DEV-046 are complete (UI shell, mock data) — their downstream wiring
 >   tasks are now DEV-052 and DEV-053
 > - DEV-052 added: Wire graph UI → depends on DEV-028, DEV-029, DEV-030
@@ -136,25 +138,30 @@ Both chains can proceed in parallel after their respective prerequisites.
 ## Parallel Work Streams
 
 ### Stream A — Already complete ✅
+
 DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006, DEV-009, DEV-010,
 DEV-012, DEV-013, DEV-014, DEV-037, DEV-038, DEV-039, DEV-041, DEV-042,
 DEV-044, DEV-045, DEV-046
 
 ### Stream B — Auth remaining (can start now, parallel)
+
 DEV-007 → DEV-008 (account linking/unlinking)
 DEV-011 (unit tests, after DEV-007 + DEV-008)
 
 ### Stream C — Resource API remaining (can start now, parallel within stream)
+
 DEV-015, DEV-016, DEV-017 (parallel) → DEV-018 (unit tests)
 DEV-043 (frontend, after DEV-015 + DEV-016 + DEV-017)
 
 ### Stream D — Worker Pipeline (after DEV-004 ✅ — can start now)
+
 DEV-019, DEV-020, DEV-022 (parallel) →
 DEV-021 (after DEV-020 + DEV-002 ✅) →
 DEV-023 (after DEV-019 + DEV-020 + DEV-021 + DEV-022) →
 DEV-024 (unit tests)
 
 ### Stream E — Graph Backend (after DEV-003 ✅ — can start now)
+
 DEV-025 →
 DEV-026 (after DEV-025 + DEV-023), DEV-027 (after DEV-025 + DEV-019),
 DEV-028, DEV-029 (after DEV-025 + DEV-006 ✅) →
@@ -163,6 +170,7 @@ DEV-031 (unit tests, after DEV-028 + DEV-029 + DEV-030) →
 DEV-052 (graph UI wiring, after DEV-028 + DEV-029 + DEV-030)
 
 ### Stream F — Chat Backend (after DEV-014 ✅ + DEV-025)
+
 DEV-035 (after DEV-002 ✅) →
 DEV-032 (after DEV-035 + DEV-014 ✅ + DEV-025 + DEV-004 ✅) →
 DEV-033 →
@@ -171,23 +179,26 @@ DEV-036 (unit tests) +
 DEV-053 (chat UI wiring, after DEV-033 + DEV-034)
 
 ### Stream G — Frontend Settings (after DEV-039 ✅ + DEV-007)
+
 DEV-040 (Settings UI, after DEV-007 + DEV-009 ✅)
 
 ### Stream H — Deployment (parallel with all feature work)
+
 DEV-047 → DEV-048 → DEV-049
 
 ### Stream I — Integration Tests (after unit tests)
+
 DEV-050 (after DEV-011) + DEV-051 (after DEV-024 + DEV-031)
 
 ---
 
 ## Milestone Gates
 
-| Milestone | Blocked Tasks Unlocked | Required DEV Tasks |
-|-----------|------------------------|-------------------|
-| **M1: Foundation** ✅ | All backend modules | DEV-001, DEV-002, DEV-003, DEV-004, DEV-012, DEV-037, DEV-038 |
-| **M2: Auth + First Resource** ✅ | Resource UI, Settings, Graph API, Chat | DEV-005, DEV-006, DEV-009, DEV-010, DEV-013, DEV-014, DEV-039, DEV-041, DEV-042 |
-| **M3: Processing Pipeline** | Graph updates, FAILED status UI | DEV-007, DEV-008, DEV-015, DEV-019, DEV-020, DEV-021, DEV-022, DEV-023, DEV-025, DEV-026, DEV-027 |
-| **M4: Graph + Chat Backend** | Graph UI wiring, Chat UI wiring | DEV-028, DEV-029, DEV-030, DEV-032, DEV-033, DEV-034, DEV-035 |
-| **M5: Full Frontend** | Integration tests | DEV-040, DEV-043, DEV-052, DEV-053 |
-| **M6: Tested & Deployed** | Production readiness | DEV-011, DEV-016, DEV-017, DEV-018, DEV-024, DEV-031, DEV-036, DEV-047, DEV-048, DEV-049, DEV-050, DEV-051 |
+| Milestone                        | Blocked Tasks Unlocked                 | Required DEV Tasks                                                                                         |
+| -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **M1: Foundation** ✅            | All backend modules                    | DEV-001, DEV-002, DEV-003, DEV-004, DEV-012, DEV-037, DEV-038                                              |
+| **M2: Auth + First Resource** ✅ | Resource UI, Settings, Graph API, Chat | DEV-005, DEV-006, DEV-009, DEV-010, DEV-013, DEV-014, DEV-039, DEV-041, DEV-042                            |
+| **M3: Processing Pipeline**      | Graph updates, FAILED status UI        | DEV-007, DEV-008, DEV-015, DEV-019, DEV-020, DEV-021, DEV-022, DEV-023, DEV-025, DEV-026, DEV-027          |
+| **M4: Graph + Chat Backend**     | Graph UI wiring, Chat UI wiring        | DEV-028, DEV-029, DEV-030, DEV-032, DEV-033, DEV-034, DEV-035                                              |
+| **M5: Full Frontend**            | Integration tests                      | DEV-040, DEV-043, DEV-052, DEV-053                                                                         |
+| **M6: Tested & Deployed**        | Production readiness                   | DEV-011, DEV-016, DEV-017, DEV-018, DEV-024, DEV-031, DEV-036, DEV-047, DEV-048, DEV-049, DEV-050, DEV-051 |

@@ -22,6 +22,8 @@
         "LS",
         "TodoWrite"
       ],
-      "deny": []
+      "deny": [
+        // Don't add any deny here because it will be handled on the root-level config
+      ]
     }
 }

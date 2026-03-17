@@ -1,23 +1,26 @@
-'use client'
+"use client";
 
-import dynamic from 'next/dynamic'
-import { Skeleton } from '@/components/ui/skeleton'
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Dynamically import with SSR disabled — react-force-graph-2d requires window/canvas
 const KnowledgeGraph = dynamic(
-  () => import('@/components/knowledge-graph').then((mod) => mod.KnowledgeGraph),
+  () =>
+    import("@/components/knowledge-graph").then((mod) => mod.KnowledgeGraph),
   {
     ssr: false,
     loading: () => (
       <div className="flex h-full w-full items-center justify-center">
         <div className="space-y-4 text-center">
           <Skeleton className="mx-auto h-64 w-64 rounded-full" />
-          <p className="text-sm text-muted-foreground">Loading knowledge graph...</p>
+          <p className="text-sm text-muted-foreground">
+            Loading knowledge graph...
+          </p>
         </div>
       </div>
     ),
-  }
-)
+  },
+);
 
 export default function KnowledgeGraphPage() {
   return (
@@ -34,5 +37,5 @@ export default function KnowledgeGraphPage() {
         <KnowledgeGraph />
       </div>
     </div>
-  )
+  );
 }

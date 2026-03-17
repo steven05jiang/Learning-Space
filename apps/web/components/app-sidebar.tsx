@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   BookOpen,
@@ -10,7 +10,7 @@ import {
   Settings,
   Sparkles,
   LogOut,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -23,35 +23,35 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-} from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
-import { useMock } from '@/lib/mock/hooks'
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { useMock } from "@/lib/mock/hooks";
 
 const navItems = [
-  { title: 'Dashboard',       href: '/dashboard',       icon: LayoutDashboard },
-  { title: 'Resources',       href: '/resources',       icon: BookOpen },
-  { title: 'Knowledge Graph', href: '/knowledge-graph', icon: Network },
-  { title: 'Search',          href: '/search',          icon: Search },
-  { title: 'Settings',        href: '/settings',        icon: Settings },
-]
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Resources", href: "/resources", icon: BookOpen },
+  { title: "Knowledge Graph", href: "/knowledge-graph", icon: Network },
+  { title: "Search", href: "/search", icon: Search },
+  { title: "Settings", href: "/settings", icon: Settings },
+];
 
 interface AppSidebarProps {
-  onToggleChat: () => void
-  isChatOpen: boolean
+  onToggleChat: () => void;
+  isChatOpen: boolean;
 }
 
 export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const isMock = useMock()
+  const pathname = usePathname();
+  const router = useRouter();
+  const isMock = useMock();
 
   const handleSignOut = () => {
     if (!isMock) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user_info')
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_info");
     }
-    router.push('/login')
-  }
+    router.push("/login");
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -90,7 +90,10 @@ export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                    isActive={
+                      pathname === item.href ||
+                      pathname.startsWith(item.href + "/")
+                    }
                     tooltip={item.title}
                   >
                     <Link href={item.href}>
@@ -113,8 +116,8 @@ export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
           onClick={onToggleChat}
           className={`h-10 w-full rounded-xl transition-all flex items-center justify-center group-data-[collapsible=icon]:w-10 ${
             isChatOpen
-              ? 'bg-primary/20 text-primary ring-2 ring-primary/50'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+              ? "bg-primary/20 text-primary ring-2 ring-primary/50"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
           }`}
           aria-label="Toggle AI Chat"
         >
@@ -137,5 +140,5 @@ export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

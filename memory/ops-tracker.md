@@ -8,6 +8,7 @@
 ---
 
 ## Progress Summary
+
 - Total: 0 tasks
 - ✅ Completed: 0
 - 🔄 Active: 0

@@ -23,6 +23,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
+def _get_frontend_base_url(request: Request) -> Optional[str]:
+    """
+    Try to infer the frontend base URL (scheme+host) from request headers.
+
+    This is used so the OAuth provider redirects back to the web app callback page,
+    which then calls the API callback endpoint and routes the user client-side.
+    """
+    origin = request.headers.get("origin")
+    if not origin:
+        return None
+
+    origin = origin.rstrip("/")
+    if origin.startswith(("http://localhost", "http://127.0.0.1", "https://")):
+        return origin
+
+    return None
+
+
 def _get_redirect_uri(request: Request, provider: str) -> str:
     """Get secure redirect URI for OAuth callback."""
     # Use configured base URL if available, otherwise use request URL
@@ -31,13 +49,17 @@ def _get_redirect_uri(request: Request, provider: str) -> str:
     if oauth_base:
         base_url = oauth_base.rstrip("/")
     else:
-        # Validate HTTPS in production
-        base_url = str(request.base_url).rstrip("/")
-        if not base_url.startswith(
-            ("http://localhost", "http://127.0.0.1", "https://")
-        ):
-            # In production, require HTTPS
-            base_url = base_url.replace("http://", "https://", 1)
+        inferred = _get_frontend_base_url(request)
+        if inferred:
+            base_url = inferred
+        else:
+            # Validate HTTPS in production
+            base_url = str(request.base_url).rstrip("/")
+            if not base_url.startswith(
+                ("http://localhost", "http://127.0.0.1", "https://")
+            ):
+                # In production, require HTTPS
+                base_url = base_url.replace("http://", "https://", 1)
 
     return f"{base_url}/auth/callback/{provider}"
 
@@ -60,7 +82,7 @@ async def oauth_login(provider: str, request: Request) -> Dict[str, str]:
 
     # Generate and store CSRF state parameter
     state = oauth_service.generate_state()
-    oauth_service.store_state(state, provider)
+    oauth_service.store_state(state, provider, redirect_uri=redirect_uri)
 
     # Get authorization URL with state parameter
     auth_url = await oauth_provider.get_authorization_url(redirect_uri, state)
@@ -93,11 +115,12 @@ async def oauth_callback(
     link_user_id = oauth_service.get_link_user_id(state) if is_link_flow else None
 
     # Validate state parameter to prevent CSRF attacks
-    if not oauth_service.validate_and_consume_state(state, provider):
+    consumed = oauth_service.validate_and_consume_state(state, provider)
+    if not consumed:
         raise ValidationError("Invalid or expired state parameter")
 
-    # Create redirect URI (same as used in login)
-    redirect_uri = _get_redirect_uri(request, provider)
+    # Create redirect URI (must match what was used in /login)
+    redirect_uri = consumed.get("redirect_uri") or _get_redirect_uri(request, provider)
 
     # Exchange code for access token (pass state for PKCE providers)
     if provider == "twitter":
@@ -256,7 +279,9 @@ async def oauth_link(
 
     # Generate link state with user ID encoded
     state = oauth_service.generate_link_state(current_user.id)
-    oauth_service.store_link_state(state, provider, current_user.id)
+    oauth_service.store_link_state(
+        state, provider, current_user.id, redirect_uri=redirect_uri
+    )
 
     # Get authorization URL with link state parameter
     auth_url = await oauth_provider.get_authorization_url(redirect_uri, state)

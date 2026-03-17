@@ -12,10 +12,10 @@ description: >
 
 Two modes:
 
-| Mode | Usage | What it does |
-|------|-------|-------------|
-| `--new` | `/demo --new` | Reads dev-tracker.md to propose a new demo scenario. User approves goal. Writes the demo README. Does NOT execute. |
-| `--execute <NNN>` | `/demo --execute 001` | Executes a demo that already has a README. Saves artifacts under a versioned run subfolder. |
+| Mode              | Usage                 | What it does                                                                                                       |
+| ----------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `--new`           | `/demo --new`         | Reads dev-tracker.md to propose a new demo scenario. User approves goal. Writes the demo README. Does NOT execute. |
+| `--execute <NNN>` | `/demo --execute 001` | Executes a demo that already has a README. Saves artifacts under a versioned run subfolder.                        |
 
 If the user says "create and run a demo" or similar — run `--new` first, get approval, then
 automatically proceed to `--execute` for the new demo number.
@@ -106,22 +106,22 @@ Write `demo/<NNN>-<slug>/README.md`:
 
 ## New Since Last Demo
 
-| Type | Item | Description |
-|------|------|-------------|
-| Feature | DEV-XXX | <title> |
-| Bug fix | BUG-XXX | <title> |
+| Type    | Item    | Description |
+| ------- | ------- | ----------- |
+| Feature | DEV-XXX | <title>     |
+| Bug fix | BUG-XXX | <title>     |
 
 ---
 
 ## Prerequisites
 
-| Requirement | Notes |
-|-------------|-------|
-| Docker running | For PostgreSQL, Neo4j, Redis via `docker compose` |
-| `uv` installed | Python dependency manager |
-| `npm` installed | Node package manager |
-| `.env` in `apps/api/` | API secrets |
-| `NEXT_PUBLIC_API_BASE_URL` | Set to `http://localhost:8000` |
+| Requirement                | Notes                                             |
+| -------------------------- | ------------------------------------------------- |
+| Docker running             | For PostgreSQL, Neo4j, Redis via `docker compose` |
+| `uv` installed             | Python dependency manager                         |
+| `npm` installed            | Node package manager                              |
+| `.env` in `apps/api/`      | API secrets                                       |
+| `NEXT_PUBLIC_API_BASE_URL` | Set to `http://localhost:8000`                    |
 
 ---
 
@@ -133,19 +133,19 @@ Write `demo/<NNN>-<slug>/README.md`:
 
 ## Expected Outcome
 
-| Step | Expected |
-|------|----------|
-| infra-up | All containers healthy |
-| API health | 200 {"status": "healthy"} |
-| <scenario-specific rows> | ... |
+| Step                     | Expected                  |
+| ------------------------ | ------------------------- |
+| infra-up                 | All containers healthy    |
+| API health               | 200 {"status": "healthy"} |
+| <scenario-specific rows> | ...                       |
 
 ---
 
 ## Run History
 
-| Run | Date | Status | Artifacts |
-|-----|------|--------|-----------|
-| (none yet) | | | |
+| Run        | Date | Status | Artifacts |
+| ---------- | ---- | ------ | --------- |
+| (none yet) |      |        |           |
 
 ---
 
@@ -167,10 +167,10 @@ Update `demo/README.md`:
 ```markdown
 # Demo Library
 
-| # | Slug | Date | Status | Summary |
-|---|------|------|--------|---------|
-| 001 | first-user-journey | 2026-03-16 | ✅ | Login → submit URL → view resource list |
-| <NNN> | <slug> | <date> | 📝 Defined | <one-line summary> |
+| #     | Slug               | Date       | Status     | Summary                                 |
+| ----- | ------------------ | ---------- | ---------- | --------------------------------------- |
+| 001   | first-user-journey | 2026-03-16 | ✅         | Login → submit URL → view resource list |
+| <NNN> | <slug>             | <date>     | 📝 Defined | <one-line summary>                      |
 ```
 
 ### A6 — Output
@@ -191,6 +191,7 @@ Run it with: /demo --execute <NNN>
 ### B1 — Load the demo definition
 
 Read `demo/<NNN>-<slug>/README.md`. Extract:
+
 - The scenario / goal
 - The procedure steps
 - The expected outcome table
@@ -249,6 +250,7 @@ cd apps/api && uv run alembic upgrade head 2>&1 | tee ../../$ARTIFACTS/02-migrat
 ### B6 — Start the API server
 
 Kill any existing process on port 8000 first:
+
 ```bash
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 cd apps/api && uv run uvicorn main:app --host 0.0.0.0 --port 8000 &
@@ -265,6 +267,7 @@ curl -s http://localhost:8000/db-health >> $ARTIFACTS/03-health.json
 ### B8 — Start the web server
 
 Kill any existing process on port 3001 first:
+
 ```bash
 lsof -ti:3001 | xargs kill -9 2>/dev/null || true
 cd apps/web && npm run dev -- --port 3001 &
@@ -320,62 +323,77 @@ Then add scenario-specific calls per the Procedure in the README.
 Write `demo/<NNN>-<slug>/screenshot.mjs` (overwrite each run — it's a script, not an artifact):
 
 ```javascript
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 
 const TOKEN = process.argv[2];
-const OUT   = process.argv[3];   // artifact dir passed in from shell
+const OUT = process.argv[3]; // artifact dir passed in from shell
 if (!TOKEN || !OUT) {
-  console.error('Usage: node screenshot.mjs <token> <artifacts-dir>');
+  console.error("Usage: node screenshot.mjs <token> <artifacts-dir>");
   process.exit(1);
 }
 
 const browser = await chromium.launch();
-const base = 'http://localhost:3001';
+const base = "http://localhost:3001";
 
 // Login page (unauthenticated context)
-const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const anonCtx = await browser.newContext({
+  viewport: { width: 1280, height: 800 },
+});
 const anonPage = await anonCtx.newPage();
 await anonPage.goto(`${base}/login`);
-await anonPage.waitForLoadState('networkidle');
-await anonPage.screenshot({ path: `${OUT}/08-frontend-login.png`, fullPage: true });
+await anonPage.waitForLoadState("networkidle");
+await anonPage.screenshot({
+  path: `${OUT}/08-frontend-login.png`,
+  fullPage: true,
+});
 await anonCtx.close();
-console.log('Saved 08-frontend-login.png');
+console.log("Saved 08-frontend-login.png");
 
 // Authenticated context — seed localStorage
-const authCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const authCtx = await browser.newContext({
+  viewport: { width: 1280, height: 800 },
+});
 await authCtx.addInitScript((token) => {
-  localStorage.setItem('auth_token', token);
-  localStorage.setItem('user_info', JSON.stringify({
-    id: 1, email: 'demo@learningspace.dev', display_name: 'Demo User', avatar_url: null
-  }));
+  localStorage.setItem("auth_token", token);
+  localStorage.setItem(
+    "user_info",
+    JSON.stringify({
+      id: 1,
+      email: "demo@learningspace.dev",
+      display_name: "Demo User",
+      avatar_url: null,
+    }),
+  );
 }, TOKEN);
 
 const page = await authCtx.newPage();
 
 // Standard pages — extend this list per demo scenario
 const pages = [
-  { url: '/dashboard',      file: '09-frontend-dashboard.png' },
-  { url: '/resources/new',  file: '10-frontend-resources-new.png' },
-  { url: '/resources',      file: '11-frontend-resources-list.png' },
+  { url: "/dashboard", file: "09-frontend-dashboard.png" },
+  { url: "/resources/new", file: "10-frontend-resources-new.png" },
+  { url: "/resources", file: "11-frontend-resources-list.png" },
 ];
 
 for (const { url, file } of pages) {
   await page.goto(`${base}${url}`);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState("networkidle");
   await page.screenshot({ path: `${OUT}/${file}`, fullPage: true });
   console.log(`Saved ${file}`);
 }
 
 await browser.close();
-console.log('All screenshots saved.');
+console.log("All screenshots saved.");
 ```
 
 If Playwright is not installed:
+
 ```bash
 cd apps/web && npx playwright install chromium && cd ../..
 ```
 
 Run:
+
 ```bash
 node demo/<NNN>-<slug>/screenshot.mjs "$TOKEN" "$ARTIFACTS"
 ```
@@ -393,17 +411,18 @@ Also append an **Actual Outcome** subsection titled `### Run <N> — YYYY-MM-DD`
 ```markdown
 ### Run <N> — YYYY-MM-DD
 
-| Step | Result | Artifact |
-|------|--------|----------|
-| infra-up | ✅ All containers healthy | — |
-| GET /health | ✅ 200 | [03-health.json](./artifacts[/run-N]/03-health.json) |
-| GET /auth/me | ✅ 200 + user profile | [06-auth-me.json](...) |
-| POST /resources | ✅ 202 ACCEPTED | [07-create-resource.json](...) |
-| Frontend /dashboard | ✅ Loads correctly | [09-frontend-dashboard.png](...) |
-| ... | | |
+| Step                | Result                    | Artifact                                             |
+| ------------------- | ------------------------- | ---------------------------------------------------- |
+| infra-up            | ✅ All containers healthy | —                                                    |
+| GET /health         | ✅ 200                    | [03-health.json](./artifacts[/run-N]/03-health.json) |
+| GET /auth/me        | ✅ 200 + user profile     | [06-auth-me.json](...)                               |
+| POST /resources     | ✅ 202 ACCEPTED           | [07-create-resource.json](...)                       |
+| Frontend /dashboard | ✅ Loads correctly        | [09-frontend-dashboard.png](...)                     |
+| ...                 |                           |                                                      |
 ```
 
 Update the top-level header status:
+
 - All steps passed → `**Status:** ✅ Executed`
 - Some failed → `**Status:** ⚠️ Partial`
 

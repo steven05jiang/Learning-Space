@@ -1,186 +1,219 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import LoginPage from '../app/login/page'
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import LoginPage from "../app/login/page";
 
-jest.mock('next/navigation', () => ({
+jest.mock("next/navigation", () => ({
   useRouter: jest.fn(),
   useSearchParams: jest.fn(),
-}))
+}));
 
-process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:8000'
+process.env.NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000";
 
-const mockPush = jest.fn()
-const mockGet = jest.fn()
+const mockPush = jest.fn();
+const mockGet = jest.fn();
 
 declare global {
-  var mockLocationHrefSetter: jest.Mock
+  var mockLocationHrefSetter: jest.Mock;
 }
 
 beforeEach(() => {
-  ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
-  ;(useSearchParams as jest.Mock).mockReturnValue({ get: mockGet })
-  jest.spyOn(console, 'error').mockImplementation((error) => {
-    if (!(error?.message === 'Not implemented: navigation (except hash changes)')) {
-      console.warn(error)
+  (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+  (useSearchParams as jest.Mock).mockReturnValue({ get: mockGet });
+  jest.spyOn(console, "error").mockImplementation((error) => {
+    if (
+      !(error?.message === "Not implemented: navigation (except hash changes)")
+    ) {
+      console.warn(error);
     }
-  })
-})
+  });
+});
 
-describe('LoginPage', () => {
+describe("LoginPage", () => {
   beforeEach(() => {
-    localStorage.clear()
-    ;(fetch as jest.MockedFunction<typeof fetch>).mockClear()
-    mockPush.mockClear()
-    mockGet.mockClear()
-    global.mockLocationHrefSetter?.mockClear()
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {})
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null)
-    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {})
-  })
+    localStorage.clear();
+    (fetch as jest.MockedFunction<typeof fetch>).mockClear();
+    mockPush.mockClear();
+    mockGet.mockClear();
+    global.mockLocationHrefSetter?.mockClear();
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {});
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => null);
+    jest.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {});
+  });
 
   afterEach(() => {
-    jest.restoreAllMocks()
-  })
+    jest.restoreAllMocks();
+  });
 
-  it('renders login page with app name and social OAuth buttons', () => {
-    render(<LoginPage />)
+  it("renders login page with app name and social OAuth buttons", () => {
+    render(<LoginPage />);
 
-    expect(screen.getByText('Learning Space')).toBeInTheDocument()
-    expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument()
-    expect(screen.getByText('Google')).toBeInTheDocument()
-    expect(screen.getByText('X')).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toBeInTheDocument()
-    expect(screen.getByLabelText('Password')).toBeInTheDocument()
-  })
+    expect(screen.getByText("Learning Space")).toBeInTheDocument();
+    expect(
+      screen.getByText("Sign in to your account to continue"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Google")).toBeInTheDocument();
+    expect(screen.getByText("X")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+  });
 
-  it('renders forgot password link', () => {
-    render(<LoginPage />)
-    expect(screen.getByText('Forgot password?')).toBeInTheDocument()
-  })
+  it("renders forgot password link", () => {
+    render(<LoginPage />);
+    expect(screen.getByText("Forgot password?")).toBeInTheDocument();
+  });
 
-  it('renders sign up link', () => {
-    render(<LoginPage />)
-    expect(screen.getByText('Sign up')).toBeInTheDocument()
-  })
+  it("renders sign up link", () => {
+    render(<LoginPage />);
+    expect(screen.getByText("Sign up")).toBeInTheDocument();
+  });
 
-  it('initiates X OAuth login when button is clicked', async () => {
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {})
-
-    const mockResponse = {
-      ok: true,
-      json: jest.fn(() =>
-        Promise.resolve({
-          authorization_url: 'https://twitter.com/authorize?state=test-state',
-          provider: 'x',
-          state: 'test-state',
-        })
-      ),
-    }
-    ;(fetch as jest.Mock).mockResolvedValue(mockResponse)
-
-    render(<LoginPage />)
-
-    fireEvent.click(screen.getByText('X'))
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8000/auth/login/x')
-    })
-
-    expect(localStorage.setItem).toHaveBeenCalledWith('oauth_state_x', 'test-state')
-  })
-
-  it('initiates Google OAuth login when button is clicked', async () => {
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {})
+  it("initiates X OAuth login when button is clicked", async () => {
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {});
 
     const mockResponse = {
       ok: true,
       json: jest.fn(() =>
         Promise.resolve({
-          authorization_url: 'https://accounts.google.com/authorize?state=test-state',
-          provider: 'google',
-          state: 'test-state',
-        })
-      ),
-    }
-    ;(fetch as jest.Mock).mockResolvedValue(mockResponse)
-
-    render(<LoginPage />)
-
-    const googleButton = screen.getByText('Google')
-    fireEvent.click(googleButton)
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8000/auth/login/google')
-    })
-
-    expect(localStorage.setItem).toHaveBeenCalledWith('oauth_state_google', 'test-state')
-  })
-
-  it('shows error when Google OAuth initiation fails', async () => {
-    ;(fetch as jest.Mock).mockResolvedValue({ ok: false, status: 400 })
-
-    render(<LoginPage />)
-
-    fireEvent.click(screen.getByText('Google'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to initiate Google login')).toBeInTheDocument()
-    })
-  })
-
-  it('shows loading state during Google OAuth initiation', async () => {
-    ;(fetch as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => Promise.resolve({ authorization_url: 'https://google.com', state: 'x' }) }), 100))
-    )
-
-    render(<LoginPage />)
-
-    const googleButton = screen.getByText('Google')
-    fireEvent.click(googleButton)
-
-    // Button should be disabled while loading (spinner replaces it)
-    expect(googleButton.closest('button')).toBeDisabled()
-  })
-
-  it('submits email/password form and navigates to dashboard on success', async () => {
-    ;(fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          access_token: 'token-123',
-          user: { id: '1', email: 'test@example.com', display_name: 'Test' },
+          authorization_url: "https://twitter.com/authorize?state=test-state",
+          provider: "x",
+          state: "test-state",
         }),
-    })
+      ),
+    };
+    (fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-    render(<LoginPage />)
+    render(<LoginPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'test@example.com' },
-    })
-    fireEvent.change(screen.getByLabelText('Password'), {
-      target: { value: 'password' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    fireEvent.click(screen.getByText("X"));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith("http://localhost:8000/auth/login/x");
+    });
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      "oauth_state_x",
+      "test-state",
+    );
+  });
+
+  it("initiates Google OAuth login when button is clicked", async () => {
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {});
+
+    const mockResponse = {
+      ok: true,
+      json: jest.fn(() =>
+        Promise.resolve({
+          authorization_url:
+            "https://accounts.google.com/authorize?state=test-state",
+          provider: "google",
+          state: "test-state",
+        }),
+      ),
+    };
+    (fetch as jest.Mock).mockResolvedValue(mockResponse);
+
+    render(<LoginPage />);
+
+    const googleButton = screen.getByText("Google");
+    fireEvent.click(googleButton);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/auth/login',
-        expect.objectContaining({ method: 'POST' })
-      )
-    })
-  })
+        "http://localhost:8000/auth/login/google",
+      );
+    });
 
-  it('shows error when email/password login fails', async () => {
-    ;(fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401 })
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      "oauth_state_google",
+      "test-state",
+    );
+  });
 
-    render(<LoginPage />)
+  it("shows error when Google OAuth initiation fails", async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 400 });
 
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'bad@example.com' } })
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByText("Google"));
 
     await waitFor(() => {
-      expect(screen.getByText('Invalid credentials')).toBeInTheDocument()
-    })
-  })
-})
+      expect(
+        screen.getByText("Failed to initiate Google login"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("shows loading state during Google OAuth initiation", async () => {
+    (fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                json: () =>
+                  Promise.resolve({
+                    authorization_url: "https://google.com",
+                    state: "x",
+                  }),
+              }),
+            100,
+          ),
+        ),
+    );
+
+    render(<LoginPage />);
+
+    const googleButton = screen.getByText("Google");
+    fireEvent.click(googleButton);
+
+    // Button should be disabled while loading (spinner replaces it)
+    expect(googleButton.closest("button")).toBeDisabled();
+  });
+
+  it("submits email/password form and navigates to dashboard on success", async () => {
+    (fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          access_token: "token-123",
+          user: { id: "1", email: "test@example.com", display_name: "Test" },
+        }),
+    });
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "password" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "http://localhost:8000/auth/login",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
+  it("shows error when email/password login fails", async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401 });
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "bad@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "wrong" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+    });
+  });
+});

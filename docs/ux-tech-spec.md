@@ -14,40 +14,40 @@ The UI must use the following stack:
 
 Framework
 
-* Next.js 16.1.6 (App Router) with Turbopack
+- Next.js 16.1.6 (App Router) with Turbopack
 
 Language
 
-* TypeScript
+- TypeScript
 
 UI Framework
 
-* React 19.2.4
+- React 19.2.4
 
 Styling
 
-* TailwindCSS v4 — uses `@import 'tailwindcss'` syntax, plugin: `@tailwindcss/postcss`
-* No `tailwind.config.js` — config is inline in `globals.css` via `@theme`
+- TailwindCSS v4 — uses `@import 'tailwindcss'` syntax, plugin: `@tailwindcss/postcss`
+- No `tailwind.config.js` — config is inline in `globals.css` via `@theme`
 
 Component Library
 
-* shadcn/ui — New York style, `components.json` style: `new-york`
+- shadcn/ui — New York style, `components.json` style: `new-york`
 
 Icons
 
-* lucide-react
+- lucide-react
 
 Graph Visualization
 
-* react-force-graph-2d (Knowledge Graph page)
+- react-force-graph-2d (Knowledge Graph page)
 
 State management
 
-* React state/hooks (no global state required yet)
+- React state/hooks (no global state required yet)
 
 Dark mode
 
-* Must support **system dark/light mode automatically** using `prefers-color-scheme`.
+- Must support **system dark/light mode automatically** using `prefers-color-scheme`.
 
 ---
 
@@ -101,24 +101,24 @@ The values below are approximate hex equivalents for reference only.
 
 ## Light Mode
 
-| Token | Approx Hex |
-|-------|------------|
-| `--background` | `#f8fafc` |
-| `--card` | `#ffffff` |
-| `--primary` | `oklch(0.25 0 0)` (near-black) |
-| `--border` | `#e5e7eb` |
-| `--foreground` | `#111827` |
-| `--muted-foreground` | `#6b7280` |
+| Token                | Approx Hex                     |
+| -------------------- | ------------------------------ |
+| `--background`       | `#f8fafc`                      |
+| `--card`             | `#ffffff`                      |
+| `--primary`          | `oklch(0.25 0 0)` (near-black) |
+| `--border`           | `#e5e7eb`                      |
+| `--foreground`       | `#111827`                      |
+| `--muted-foreground` | `#6b7280`                      |
 
 ## Dark Mode
 
-| Token | Approx Hex |
-|-------|------------|
-| `--background` | `#0f172a` |
-| `--card` | `#1e293b` |
-| `--border` | `#334155` |
-| `--foreground` | `#e5e7eb` |
-| `--muted-foreground` | `#94a3b8` |
+| Token                | Approx Hex |
+| -------------------- | ---------- |
+| `--background`       | `#0f172a`  |
+| `--card`             | `#1e293b`  |
+| `--border`           | `#334155`  |
+| `--foreground`       | `#e5e7eb`  |
+| `--muted-foreground` | `#94a3b8`  |
 
 ---
 
@@ -199,8 +199,8 @@ Forgot Password link
 
 Social login — 2-column grid:
 
-* Google OAuth button
-* X (Twitter) OAuth button
+- Google OAuth button
+- X (Twitter) OAuth button
 
 ---
 

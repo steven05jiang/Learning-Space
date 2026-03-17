@@ -280,36 +280,45 @@ class OAuthService:
         base_state = secrets.token_urlsafe(24)
         return f"link:{user_id}:{base_state}"
 
-    def store_state(self, state: str, provider: str) -> None:
+    def store_state(
+        self, state: str, provider: str, redirect_uri: str | None = None
+    ) -> None:
         """Store state for later validation."""
         self._state_store[state] = {
             "provider": provider,
             "created_at": time.time(),
+            "redirect_uri": redirect_uri,
         }
 
-    def store_link_state(self, state: str, provider: str, user_id: int) -> None:
+    def store_link_state(
+        self, state: str, provider: str, user_id: int, redirect_uri: str | None = None
+    ) -> None:
         """Store link state for later validation."""
         self._state_store[state] = {
             "provider": provider,
             "user_id": user_id,
             "is_link": True,
             "created_at": time.time(),
+            "redirect_uri": redirect_uri,
         }
 
-    def validate_and_consume_state(self, state: str, provider: str) -> bool:
+    def validate_and_consume_state(self, state: str, provider: str) -> Optional[Dict]:
         """Validate state and consume it (one-time use)."""
         if not state:
-            return False
+            return None
 
         stored = self._state_store.pop(state, None)
         if not stored:
-            return False
+            return None
 
         # Check if state has expired (10 minutes = 600 seconds)
         if time.time() - stored["created_at"] > 600:
-            return False
+            return None
 
-        return stored["provider"] == provider
+        if stored["provider"] != provider:
+            return None
+
+        return stored
 
     def is_link_state(self, state: str) -> bool:
         """Check if state represents a link flow."""

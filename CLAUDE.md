@@ -40,15 +40,15 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 - Act as advisor, devil's advocate, mirror — proactively point out blind spots, never be a yes-man
 - **Auto-execute**: P0/P1 bugs, bug fixes, ≤100 line refactors
 - **Auto-intercept**:
-  * **New project/service** → Ask first: "Can a platform service (Vercel/Supabase/Cloudflare) replace self-hosting?"
-  * **Tech stack choices** → Prefer low-scaffolding solutions. Target: single feature ≤200 lines, single service ≤3000 lines
+  - **New project/service** → Ask first: "Can a platform service (Vercel/Supabase/Cloudflare) replace self-hosting?"
+  - **Tech stack choices** → Prefer low-scaffolding solutions. Target: single feature ≤200 lines, single service ≤3000 lines
 - **Require confirmation (Critical decision points — Stop and check in)**:
-  * Tech stack choices (framework/library/architecture pattern)
-  * Data model changes (schema/API contract)
-  * Account/wallet/fund flow changes
-  * Features outside roadmap
-  * >100 line refactors
-  * Trade-offs (performance vs maintainability / speed vs quality)
+  - Tech stack choices (framework/library/architecture pattern)
+  - Data model changes (schema/API contract)
+  - Account/wallet/fund flow changes
+  - Features outside roadmap
+  - > 100 line refactors
+  - Trade-offs (performance vs maintainability / speed vs quality)
 - **Never self-decide**: Delete projects, production deploys, fund operations
 - **Banned**: "Is this OK?" / "Should I pick A or B?" / "Should I continue?"
 - **No filler intros**: Don't say "OK let me help" / "Let me take a look" / "Sure!" — go straight to the answer or start working
@@ -58,6 +58,7 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 ## Experience Recall & Evolution
 
 **Mandatory triggers (check every conversation turn)**:
+
 - 🔍 **Encountering Bug/Error/Stuck** → First step: `memory_search "<problem keywords>"`
 - 📝 **Corrected by user** → Immediately: `memory_add` to record lesson
 - 🆕 **Starting new task** → Check: patterns.md for related pitfalls
@@ -96,13 +97,13 @@ Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `mak
 
 ## Task Tracker Files
 
-| Tracker | File | Prefix | Scope |
-|---------|------|--------|-------|
-| Feature development | `memory/dev-tracker.md` | `DEV-` | Product features per exec-plan |
-| Bug fixes | `memory/bugs-tracker.md` | `BUG-` | Defects and regressions |
-| DevOps / Infrastructure | `memory/ops-tracker.md` | `OPS-` | Deploy, k8s, ArgoCD, monitoring |
-| Build / CI / Tooling | `memory/build-tracker.md` | `BUILD-` | CI pipelines, test frameworks, tooling |
-| Tech debt | `memory/tech-debt-tracker.md` | `TD-` | Refactors, cleanups, architectural improvements |
+| Tracker                 | File                          | Prefix   | Scope                                           |
+| ----------------------- | ----------------------------- | -------- | ----------------------------------------------- |
+| Feature development     | `memory/dev-tracker.md`       | `DEV-`   | Product features per exec-plan                  |
+| Bug fixes               | `memory/bugs-tracker.md`      | `BUG-`   | Defects and regressions                         |
+| DevOps / Infrastructure | `memory/ops-tracker.md`       | `OPS-`   | Deploy, k8s, ArgoCD, monitoring                 |
+| Build / CI / Tooling    | `memory/build-tracker.md`     | `BUILD-` | CI pipelines, test frameworks, tooling          |
+| Tech debt               | `memory/tech-debt-tracker.md` | `TD-`    | Refactors, cleanups, architectural improvements |
 
 All task files (regardless of tracker) live in `memory/active/` and `memory/completed/`.
 Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
@@ -111,33 +112,33 @@ Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
 
 ## SSOT Ownership (Single Source of Truth — modify SSOT first, never create duplicates)
 
-| Info Type | SSOT File | Do NOT write to |
-|-----------|-----------|-----------------|
-| Infrastructure/Servers/Cron | `memory/infra.md` | Code comments |
-| Project strategic status | Each project's `PROJECT_CONTEXT.md` | dev-tracker.md, projects.md |
-| Cross-project overview | `memory/projects.md` | (summary + pointers only) |
-| Technical pitfalls | Each project's `MEMORY.md` | dev-tracker.md |
-| Feature progress | `memory/dev-tracker.md` | track the progress |
-| Bug progress | `memory/bugs-tracker.md` | track bug fixes |
-| Ops progress | `memory/ops-tracker.md` | track ops work |
-| Build/CI progress | `memory/build-tracker.md` | track build work |
-| Tech debt progress | `memory/tech-debt-tracker.md` | track refactors and cleanups |
-| In-flight task registry | `memory/active/` | (cross-session task status) |
+| Info Type                   | SSOT File                           | Do NOT write to              |
+| --------------------------- | ----------------------------------- | ---------------------------- |
+| Infrastructure/Servers/Cron | `memory/infra.md`                   | Code comments                |
+| Project strategic status    | Each project's `PROJECT_CONTEXT.md` | dev-tracker.md, projects.md  |
+| Cross-project overview      | `memory/projects.md`                | (summary + pointers only)    |
+| Technical pitfalls          | Each project's `MEMORY.md`          | dev-tracker.md               |
+| Feature progress            | `memory/dev-tracker.md`             | track the progress           |
+| Bug progress                | `memory/bugs-tracker.md`            | track bug fixes              |
+| Ops progress                | `memory/ops-tracker.md`             | track ops work               |
+| Build/CI progress           | `memory/build-tracker.md`           | track build work             |
+| Tech debt progress          | `memory/tech-debt-tracker.md`       | track refactors and cleanups |
+| In-flight task registry     | `memory/active/`                    | (cross-session task status)  |
 
 ---
 
 ## Memory Write Routing
 
-| Layer | File | What to write |
-|-------|------|---------------|
-| Auto Memory | Project `memory/MEMORY.md` | Technical pitfalls, API details |
-| Pattern library | `patterns.md` | Cross-project reusable patterns |
-| Feature tracker | `memory/dev-tracker.md` | DEV task progress |
-| Bug tracker | `memory/bugs-tracker.md` | BUG task progress |
-| Ops tracker | `memory/ops-tracker.md` | OPS task progress |
-| Build tracker | `memory/build-tracker.md` | BUILD task progress |
-| Tech debt tracker | `memory/tech-debt-tracker.md` | TD task progress |
-| Task registry | `memory/active/ + memory/completed/` | Cross-session in-flight tasks |
+| Layer             | File                                 | What to write                   |
+| ----------------- | ------------------------------------ | ------------------------------- |
+| Auto Memory       | Project `memory/MEMORY.md`           | Technical pitfalls, API details |
+| Pattern library   | `patterns.md`                        | Cross-project reusable patterns |
+| Feature tracker   | `memory/dev-tracker.md`              | DEV task progress               |
+| Bug tracker       | `memory/bugs-tracker.md`             | BUG task progress               |
+| Ops tracker       | `memory/ops-tracker.md`              | OPS task progress               |
+| Build tracker     | `memory/build-tracker.md`            | BUILD task progress             |
+| Tech debt tracker | `memory/tech-debt-tracker.md`        | TD task progress                |
+| Task registry     | `memory/active/ + memory/completed/` | Cross-session in-flight tasks   |
 
 ### Sub-project Memory Routes (read before operating on a project)
 
@@ -147,15 +148,15 @@ Routes determine write targets. Unlisted projects share the main MEMORY.md.
 
 ## On-demand Loading Index
 
-| Scenario | Load file |
-|----------|-----------|
-| Technical design | `Read docs/technical-design.md` |
-| Requirements | `Read docs/requirements.md` |
-| Feature goals/todos | `Read memory/dev-tracker.md` |
-| Bug status | `Read memory/bugs-tracker.md` |
-| Ops status | `Read memory/ops-tracker.md` |
-| Build/CI status | `Read memory/build-tracker.md` |
-| Tech debt status | `Read memory/tech-debt-tracker.md` |
-| Project overview | `Read memory/projects.md` |
+| Scenario            | Load file                          |
+| ------------------- | ---------------------------------- |
+| Technical design    | `Read docs/technical-design.md`    |
+| Requirements        | `Read docs/requirements.md`        |
+| Feature goals/todos | `Read memory/dev-tracker.md`       |
+| Bug status          | `Read memory/bugs-tracker.md`      |
+| Ops status          | `Read memory/ops-tracker.md`       |
+| Build/CI status     | `Read memory/build-tracker.md`     |
+| Tech debt status    | `Read memory/tech-debt-tracker.md` |
+| Project overview    | `Read memory/projects.md`          |
 
 ---

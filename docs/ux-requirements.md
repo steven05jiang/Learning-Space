@@ -8,13 +8,13 @@
 
 Use the following stack:
 
-* **Framework:** Next.js 16.1.6 (App Router) with Turbopack
-* **Language:** TypeScript
-* **UI:** React 19.2.4
-* **Styling:** TailwindCSS v4 (`@import 'tailwindcss'`, `@tailwindcss/postcss`)
-* **Component Library:** shadcn/ui (New York style)
-* **Icons:** lucide-react
-* **Graph Visualization:** react-force-graph-2d (knowledge graph)
+- **Framework:** Next.js 16.1.6 (App Router) with Turbopack
+- **Language:** TypeScript
+- **UI:** React 19.2.4
+- **Styling:** TailwindCSS v4 (`@import 'tailwindcss'`, `@tailwindcss/postcss`)
+- **Component Library:** shadcn/ui (New York style)
+- **Icons:** lucide-react
+- **Graph Visualization:** react-force-graph-2d (knowledge graph)
 
 The UI must support **system dark/light mode automatically** using `prefers-color-scheme`.
 
@@ -24,13 +24,13 @@ The UI must support **system dark/light mode automatically** using `prefers-colo
 
 Follow these UI principles:
 
-* Minimal and modern
-* Generous whitespace
-* Soft shadows
-* Rounded corners (12–16px)
-* Consistent spacing scale (4 / 8 / 16 / 24 / 32 px)
-* Accessible components
-* Responsive layout
+- Minimal and modern
+- Generous whitespace
+- Soft shadows
+- Rounded corners (12–16px)
+- Consistent spacing scale (4 / 8 / 16 / 24 / 32 px)
+- Accessible components
+- Responsive layout
 
 Use **two different UI styles**:
 
@@ -49,22 +49,22 @@ Reference values (approximate hex equivalents):
 
 ### Light Mode
 
-| Token | Value |
-|-------|-------|
-| Background | `#f8fafc` |
-| Card | `#ffffff` |
-| Primary | `#111827` (near-black, OKLch-based) |
-| Border | `#e5e7eb` |
-| Text primary | `#111827` |
-| Text secondary | `#6b7280` |
+| Token          | Value                               |
+| -------------- | ----------------------------------- |
+| Background     | `#f8fafc`                           |
+| Card           | `#ffffff`                           |
+| Primary        | `#111827` (near-black, OKLch-based) |
+| Border         | `#e5e7eb`                           |
+| Text primary   | `#111827`                           |
+| Text secondary | `#6b7280`                           |
 
 ### Dark Mode
 
-| Token | Value |
-|-------|-------|
+| Token      | Value     |
+| ---------- | --------- |
 | Background | `#0f172a` |
-| Card | `#1e293b` |
-| Text | `#e5e7eb` |
+| Card       | `#1e293b` |
+| Text       | `#e5e7eb` |
 
 ---
 
@@ -118,11 +118,11 @@ The login form appears in a card with glass-like styling.
 
 Properties:
 
-* rounded corners (16px)
-* soft shadow
-* backdrop blur
-* centered on screen
-* padding: 32px
+- rounded corners (16px)
+- soft shadow
+- backdrop blur
+- centered on screen
+- padding: 32px
 
 Example style concept:
 
@@ -140,17 +140,17 @@ Dark mode version should use a darker translucent card.
 
 Required components:
 
-* App logo or name
-* Email input
-* Password input
-* Sign In button
-* Forgot Password link
-* "Don't have an account? Sign up" link
+- App logo or name
+- Email input
+- Password input
+- Sign In button
+- Forgot Password link
+- "Don't have an account? Sign up" link
 
 Social login (2-column grid layout):
 
-* Login with Google
-* Login with X (Twitter)
+- Login with Google
+- Login with X (Twitter)
 
 ---
 
@@ -189,15 +189,15 @@ Clean layout with sidebar navigation and large content area.
 
 The top bar should include:
 
-* App name or logo
-* Page title
-* Optional user avatar / account menu
+- App name or logo
+- Page title
+- Optional user avatar / account menu
 
 Design:
 
-* height: ~56px
-* subtle bottom border
-* minimal styling
+- height: ~56px
+- subtle bottom border
+- minimal styling
 
 ---
 
@@ -228,11 +228,11 @@ AI Agent
 
 ### Sidebar Design
 
-* width: ~240px
-* vertical navigation
-* icons + labels
-* highlight active item
-* collapsible on smaller screens
+- width: ~240px
+- vertical navigation
+- icons + labels
+- highlight active item
+- collapsible on smaller screens
 
 ---
 
@@ -240,11 +240,11 @@ AI Agent
 
 At the **bottom of the sidebar**, include an icon-only toggle button:
 
-* Icon: `Sparkles` (lucide-react)
-* No text label — icon only
-* **Toggles** the chat panel open/closed (not just open)
-* Active state: `bg-primary/20 text-primary ring-2 ring-primary/50`
-* Inactive state: `bg-primary text-primary-foreground`
+- Icon: `Sparkles` (lucide-react)
+- No text label — icon only
+- **Toggles** the chat panel open/closed (not just open)
+- Active state: `bg-primary/20 text-primary ring-2 ring-primary/50`
+- Inactive state: `bg-primary text-primary-foreground`
 
 > **Decision:** Changed from labeled "Ask AI Agent" button to icon-only Sparkles toggle per prototype PR #2.
 
@@ -269,10 +269,10 @@ Layout:
 
 Panel properties:
 
-* width: ~380px
-* fixed to right side
-* slide-in animation
-* can be closed
+- width: ~380px
+- fixed to right side
+- slide-in animation
+- can be closed
 
 ---
 
@@ -280,15 +280,15 @@ Panel properties:
 
 The panel contains:
 
-* Chat header (AI Agent title)
-* Message history
-* User input box
-* Send button
+- Chat header (AI Agent title)
+- Message history
+- User input box
+- Send button
 
 Optional:
 
-* conversation reset
-* suggested prompts
+- conversation reset
+- suggested prompts
 
 ---
 
@@ -318,10 +318,10 @@ Cards Grid
 
 Cards should follow minimal SaaS style:
 
-* white (or dark card in dark mode)
-* rounded corners
-* soft shadow
-* comfortable padding
+- white (or dark card in dark mode)
+- rounded corners
+- soft shadow
+- comfortable padding
 
 ---
 
@@ -329,9 +329,9 @@ Cards should follow minimal SaaS style:
 
 Requirements:
 
-* Sidebar collapses on small screens
-* Chat panel becomes full-screen on mobile
-* Cards stack vertically on narrow screens
+- Sidebar collapses on small screens
+- Chat panel becomes full-screen on mobile
+- Cards stack vertically on narrow screens
 
 ---
 
@@ -361,10 +361,10 @@ Suggested structure:
 
 The UI should include:
 
-* hover states for buttons and cards
-* smooth transitions
-* consistent spacing
-* keyboard accessibility
+- hover states for buttons and cards
+- smooth transitions
+- consistent spacing
+- keyboard accessibility
 
 ---
 
@@ -372,22 +372,22 @@ The UI should include:
 
 Login Page:
 
-* gradient background
-* centered login card
-* minimal UI
+- gradient background
+- centered login card
+- minimal UI
 
 Application Page:
 
-* light neutral background
-* sidebar navigation
-* card-based content
-* AI assistant panel
+- light neutral background
+- sidebar navigation
+- card-based content
+- AI assistant panel
 
 The design should resemble modern SaaS products like:
 
-* Notion
-* Linear
-* Vercel Dashboard
-* modern AI applications
+- Notion
+- Linear
+- Vercel Dashboard
+- modern AI applications
 
 ---
