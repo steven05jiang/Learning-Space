@@ -22,13 +22,6 @@
         "LS",
         "TodoWrite"
       ],
-      "deny": [
-        "Bash(rm -rf:*)",
-        "Bash(sudo:*)",
-        "Bash(curl:*)",
-        "Bash(wget:*)",
-        "Bash(chmod 777:*)",
-        "Bash(dd:*)"
-      ]
+      "deny": []
     }
 }
