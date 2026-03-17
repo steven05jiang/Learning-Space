@@ -10,8 +10,8 @@
 
 ## Progress Summary
 - Total: 53 tasks
-- ✅ Completed: 19
-- 🔄 Active: 2
+- ✅ Completed: 20
+- 🔄 Active: 1
 - ⏳ Pending: 32
 - ⚠️ Stuck: 0
 
@@ -41,7 +41,7 @@
 
 ## 🟡 Tier 3 — Feature Complete
 
-- [~] DEV-007: Implement account linking flow — Unlocks multi-account + authenticated URL fetching
+- [x] DEV-007: Implement account linking flow — Unlocks multi-account + authenticated URL fetching (PR #45 ✅)
 - [~] DEV-008: Implement account unlinking — Completes account management
 - [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
 - [ ] DEV-019: Implement task queue infrastructure — Async resource processing
