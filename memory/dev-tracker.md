@@ -1,18 +1,18 @@
 # Dev Tracker
 
-**Plan:** exec-plans/v1/dev-plan.md
+**Plan:** exec-plans/v2/dev-plan.md
 **Sprint:** Tier 2 — MVP Core
 **Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-03-17
 
 ---
 
 ## Progress Summary
-- Total: 51 tasks
-- ✅ Completed: 16
+- Total: 53 tasks
+- ✅ Completed: 19
 - 🔄 Active: 0
-- ⏳ Pending: 35
+- ⏳ Pending: 34
 - ⚠️ Stuck: 0
 
 ---
@@ -65,9 +65,11 @@
 - [ ] DEV-034: Implement GET /chat/conversations and messages — Chat history
 - [ ] DEV-040: Implement Settings — Account Management UI — Manage linked accounts UI
 - [ ] DEV-043: Implement resource detail / edit / delete — Full resource management UI
-- [ ] DEV-044: Implement graph visualization component — Core graph UI
-- [ ] DEV-045: Implement resource panel on node click — Discover resources from graph
-- [ ] DEV-046: Implement chat UI — Chat interface
+- [x] DEV-044: Implement graph visualization component — react-force-graph-2d UI shell (PR #40, #41 ✅)
+- [x] DEV-045: Implement resource panel on node click — node detail dialog UI shell (PR #40 ✅)
+- [x] DEV-046: Implement chat UI — chat panel UI shell with scroll fixes (PR #40, #41 ✅)
+- [ ] DEV-052: Wire graph visualization to real API — connect existing UI to GET /graph, POST /graph/expand, GET /graph/nodes/{id}/resources
+- [ ] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations
 - [ ] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline
 - [ ] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints
 - [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
