@@ -10,10 +10,10 @@
 
 ## Progress Summary
 
-- Total: 53 tasks
-- ✅ Completed: 24
-- 🔄 Active: 0
-- ⏳ Pending: 29
+- Total: 58 tasks (53 DEV + 5 DEMO)
+- ✅ Completed: 26
+- 🔄 Active: 1
+- ⏳ Pending: 31
 - ⚠️ Stuck: 0
 
 ---
@@ -45,8 +45,8 @@
 - [x] DEV-007: Implement account linking flow — Unlocks multi-account + authenticated URL fetching (PR #45 ✅)
 - [x] DEV-008: Implement account unlinking — Completes account management (PR #47 ✅)
 - [x] DEV-015: Implement GET /resources/{id} (single) — Resource detail view (PR #50 ✅)
-- [ ] DEV-019: Implement task queue infrastructure — Async resource processing
-- [ ] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
+- [x] DEV-019: Implement task queue infrastructure — Async resource processing (PR #52 ✅)
+- [~] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
 - [ ] DEV-022: Implement LLM processing (title, summary, tags) — Core value: auto-summarize and tag
 - [x] DEV-016: Implement PATCH /resources/{id} (update) — Users edit resources (PR #50 ✅)
 - [x] DEV-017: Implement DELETE /resources/{id} — Users delete resources (PR #50 ✅)
@@ -74,6 +74,14 @@
 - [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
 - [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
+
+## 🎬 Demos
+
+- [x] DEMO-001: First User Journey — login → submit resource → see list (run-2 ✅)
+- [ ] DEMO-002: Account Management & Resource CRUD — settings, detail, edit, delete (blocked: DEV-040, DEV-043 pending)
+- [ ] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (blocked: DEV-019, DEV-020, DEV-022, DEV-023 pending)
+- [ ] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (blocked: DEV-025, DEV-026, DEV-028, DEV-029, DEV-030, DEV-052 pending)
+- [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: DEV-032, DEV-033, DEV-034, DEV-035, DEV-053 pending)
 
 ## 🟢 Tier 4 — Hardening
 
