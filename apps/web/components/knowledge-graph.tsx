@@ -173,20 +173,23 @@ export function KnowledgeGraph() {
   const [highlightNodes, setHighlightNodes] = useState<Set<string>>(new Set())
   const [highlightLinks, setHighlightLinks] = useState<Set<string>>(new Set())
 
-  // Handle window resize
+  // Handle container resize (including when chat panel opens/closes)
   useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        })
-      }
-    }
+    if (!containerRef.current) return
 
-    updateDimensions()
-    window.addEventListener("resize", updateDimensions)
-    return () => window.removeEventListener("resize", updateDimensions)
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        })
+        graphRef.current?.centerAt(0, 0, 300)
+      }
+    })
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
   }, [])
 
   const handleNodeClick = useCallback((node: NodeObject) => {
@@ -247,7 +250,7 @@ export function KnowledgeGraph() {
 
       // Determine if this node is highlighted
       const isHighlighted = highlightNodes.has(knowledgeNode.id)
-      const baseOpacity = highlightNodes.size === 0 || isHighlighted ? 0.75 : 0.15
+      const baseOpacity = highlightNodes.size === 0 || isHighlighted ? 0.45 : 0.08
 
       // Draw outer glow effect for highlighted nodes
       if (isHighlighted && highlightNodes.size > 0) {
@@ -285,19 +288,34 @@ export function KnowledgeGraph() {
     [highlightNodes]
   )
 
-  const linkColor = useCallback(
-    (link: LinkObject) => {
-      const linkKey = `${(link.source as NodeObject).id || link.source}-${(link.target as NodeObject).id || link.target}`
-      if (highlightLinks.size === 0) return "rgba(100, 120, 180, 0.25)"
-      return highlightLinks.has(linkKey) ? "rgba(200, 220, 255, 0.9)" : "rgba(100, 120, 180, 0.08)"
-    },
-    [highlightLinks]
-  )
+  const linkCanvasObject = useCallback(
+    (link: LinkObject, ctx: CanvasRenderingContext2D) => {
+      const source = link.source as NodeObject & KnowledgeNode
+      const target = link.target as NodeObject & KnowledgeNode
+      if (source.x == null || source.y == null || target.x == null || target.y == null) return
 
-  const linkWidth = useCallback(
-    (link: LinkObject) => {
-      const linkKey = `${(link.source as NodeObject).id || link.source}-${(link.target as NodeObject).id || link.target}`
-      return highlightLinks.has(linkKey) ? 2 : 1
+      const sourceRadius = Math.sqrt((source as KnowledgeNode).val || 10) * 2
+      const targetRadius = Math.sqrt((target as KnowledgeNode).val || 10) * 2
+
+      const dx = target.x - source.x
+      const dy = target.y - source.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist === 0) return
+
+      const ux = dx / dist
+      const uy = dy / dist
+
+      const linkKey = `${source.id}-${target.id}`
+      const isHighlighted = highlightLinks.has(linkKey)
+
+      ctx.beginPath()
+      ctx.moveTo(source.x + ux * sourceRadius, source.y + uy * sourceRadius)
+      ctx.lineTo(target.x - ux * targetRadius, target.y - uy * targetRadius)
+      ctx.strokeStyle = highlightLinks.size === 0
+        ? "rgba(100, 120, 180, 0.25)"
+        : isHighlighted ? "rgba(200, 220, 255, 0.9)" : "rgba(100, 120, 180, 0.08)"
+      ctx.lineWidth = isHighlighted ? 2 : 1
+      ctx.stroke()
     },
     [highlightLinks]
   )
@@ -346,8 +364,8 @@ export function KnowledgeGraph() {
           ctx.fill()
         }}
         onNodeClick={handleNodeClick}
-        linkColor={linkColor}
-        linkWidth={linkWidth}
+        linkCanvasObject={linkCanvasObject}
+        linkCanvasObjectMode={() => 'replace'}
         linkDirectionalParticles={2}
         linkDirectionalParticleWidth={(link) => {
           const linkKey = `${(link.source as NodeObject).id || link.source}-${(link.target as NodeObject).id || link.target}`
