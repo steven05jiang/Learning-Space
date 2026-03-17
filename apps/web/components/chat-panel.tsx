@@ -43,7 +43,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const mockResponseIndex = useRef(0)
 
@@ -54,9 +54,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   }, [isOpen])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,7 +161,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
       </div>
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
+      <ScrollArea className="min-h-0 flex-1 p-4">
         <div className="flex flex-col gap-4">
           {messages.map((message) => (
             <div
@@ -208,6 +206,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
