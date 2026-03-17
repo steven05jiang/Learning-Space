@@ -4,14 +4,14 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-03-17
 
 ---
 
 ## Progress Summary
 - Total: 53 tasks
-- ✅ Completed: 20
-- 🔄 Active: 1
+- ✅ Completed: 21
+- 🔄 Active: 0
 - ⏳ Pending: 32
 - ⚠️ Stuck: 0
 
@@ -42,7 +42,7 @@
 ## 🟡 Tier 3 — Feature Complete
 
 - [x] DEV-007: Implement account linking flow — Unlocks multi-account + authenticated URL fetching (PR #45 ✅)
-- [~] DEV-008: Implement account unlinking — Completes account management
+- [x] DEV-008: Implement account unlinking — Completes account management (PR #47 ✅)
 - [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
 - [ ] DEV-019: Implement task queue infrastructure — Async resource processing
 - [ ] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
