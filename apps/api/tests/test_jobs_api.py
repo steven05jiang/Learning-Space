@@ -88,7 +88,9 @@ class TestJobsAPI:
             mock_enqueue.return_value = "job789"
 
             response = await client.post(
-                "/jobs/sync-graph", json={"entity_id": "entity123"}, headers=auth_headers
+                "/jobs/sync-graph",
+                json={"entity_id": "entity123"},
+                headers=auth_headers,
             )
 
             assert response.status_code == 200
@@ -113,7 +115,9 @@ class TestJobsAPI:
             assert "operation must be one of" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_get_job_status_success(self, client: AsyncClient, auth_headers: dict):
+    async def test_get_job_status_success(
+        self, client: AsyncClient, auth_headers: dict
+    ):
         """Test successful job status retrieval."""
         mock_status = {
             "id": "job123",
@@ -143,13 +147,17 @@ class TestJobsAPI:
         with patch("routers.jobs.queue_service.get_job_status") as mock_get_status:
             mock_get_status.return_value = None
 
-            response = await client.get("/jobs/status/nonexistent", headers=auth_headers)
+            response = await client.get(
+                "/jobs/status/nonexistent", headers=auth_headers
+            )
 
             assert response.status_code == 404
             assert "Job not found" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_enqueue_internal_error(self, client: AsyncClient, auth_headers: dict):
+    async def test_enqueue_internal_error(
+        self, client: AsyncClient, auth_headers: dict
+    ):
         """Test handling of internal errors during job enqueueing."""
         with patch(
             "routers.jobs.queue_service.enqueue_resource_processing"
