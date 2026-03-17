@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Dict, Optional, Tuple
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -130,6 +131,67 @@ class AuthService:
         # Generate JWT token
         jwt_token = self.generate_jwt_token(user)
         return user, jwt_token
+
+    async def link_oauth_account(
+        self,
+        db: AsyncSession,
+        current_user: User,
+        provider: str,
+        provider_account_id: str,
+        access_token: str,
+        user_info: Dict,
+        refresh_token: Optional[str] = None,
+    ) -> User:
+        """
+        Link OAuth account to existing user.
+
+        Args:
+            db: Database session
+            current_user: Current authenticated user
+            provider: OAuth provider name
+            provider_account_id: Provider's user ID
+            access_token: OAuth access token
+            user_info: User info from provider
+            refresh_token: Optional refresh token
+
+        Returns:
+            Updated user object
+
+        Raises:
+            HTTPException: 409 if account already belongs to another user
+        """
+        # Check if this provider account already exists for any user
+        existing_user = await self.find_user_by_provider_account(
+            db, provider, provider_account_id
+        )
+
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"This {provider} account is already linked to another user",
+            )
+
+        if existing_user and existing_user.id == current_user.id:
+            # Account already linked to this user, just update tokens
+            await self.update_account_tokens(
+                db, current_user, provider, access_token, refresh_token
+            )
+        else:
+            # Create new account link for current user
+            account = Account(
+                user_id=current_user.id,
+                provider=provider,
+                provider_account_id=provider_account_id,
+                access_token=access_token,
+                refresh_token=refresh_token,
+                last_login_at=datetime.now(timezone.utc),
+            )
+            db.add(account)
+            await db.commit()
+
+        # Refresh user to get updated accounts
+        await db.refresh(current_user, ["accounts"])
+        return current_user
 
 
 auth_service = AuthService()
