@@ -1,6 +1,6 @@
 .PHONY: ci ci-check ci-lint ci-test ci-security ci-integration \
         api-lint api-test api-security api-integration \
-        web-lint web-build web-security \
+        web-lint web-build web-security web-dev web-dev-mock \
         infra-up infra-down
 
 # ── Full CI (requires `make infra-up` first for integration tests) ────────
@@ -60,6 +60,14 @@ web-security:
 	@echo "── Web: security scan ─────────────────────────────────"
 	# Remaining high-severity issues (GHSA-9g9p, GHSA-h25m) require Next.js 16 to fix. OPS-001 tracks the upgrade.
 	cd apps/web && npm audit --audit-level=critical
+
+web-dev:
+	@echo "── Web: dev server ────────────────────────────────────"
+	cd apps/web && npm run dev
+
+web-dev-mock:
+	@echo "── Web: dev server (mock data, no backend needed) ─────"
+	cd apps/web && npm run dev:mock
 
 # ── Infrastructure ─────────────────────────────────────────────────────────
 

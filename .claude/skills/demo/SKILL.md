@@ -294,7 +294,8 @@ from core.jwt import create_access_token
 token = create_access_token({'sub': '$USER_ID', 'email': 'demo@learningspace.dev'})
 print(token)
 ")
-echo "$TOKEN" | tee ../../$ARTIFACTS/05-jwt-token.txt
+# Token is kept in memory only — never written to disk
+echo "[JWT minted for demo user — not saved to disk]" | tee ../../$ARTIFACTS/05-jwt-minted.txt
 ```
 
 ### B11 — Run scenario-specific API calls
@@ -429,7 +430,7 @@ Update `demo/README.md` — change the demo's status from `📝 Defined` to `✅
 ================================
 Artifacts: demo/<NNN>-<slug>/artifacts[/run-N]/
   01-...   02-...   03-health.json
-  05-jwt-token.txt
+  05-jwt-minted.txt
   06-auth-me.json   07-create-resource.json
   08-frontend-login.png
   09-frontend-dashboard.png
@@ -465,7 +466,7 @@ demo/
       01-infra-start.txt
       02-migrations.txt
       03-health.json
-      05-jwt-token.txt
+      05-jwt-minted.txt
       06-auth-me.json
       08-frontend-login.png
       ...
