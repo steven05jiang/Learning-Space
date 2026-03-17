@@ -14,7 +14,7 @@ The UI must use the following stack:
 
 Framework
 
-* Next.js (App Router)
+* Next.js 16.1.6 (App Router) with Turbopack
 
 Language
 
@@ -22,19 +22,24 @@ Language
 
 UI Framework
 
-* React
+* React 19.2.4
 
 Styling
 
-* TailwindCSS
+* TailwindCSS v4 — uses `@import 'tailwindcss'` syntax, plugin: `@tailwindcss/postcss`
+* No `tailwind.config.js` — config is inline in `globals.css` via `@theme`
 
 Component Library
 
-* shadcn/ui
+* shadcn/ui — New York style, `components.json` style: `new-york`
 
 Icons
 
 * lucide-react
+
+Graph Visualization
+
+* react-force-graph-2d (Knowledge Graph page)
 
 State management
 
@@ -90,59 +95,30 @@ Avoid heavy shadows.
 
 # 3. Color System
 
+Colors are defined as **OKLch CSS variables** in `app/globals.css`. Do not hardcode hex values — use CSS variable tokens (`bg-background`, `text-foreground`, `bg-primary`, etc.).
+
+The values below are approximate hex equivalents for reference only.
+
 ## Light Mode
 
-Background
-
-#f8fafc
-
-Card Background
-
-#ffffff
-
-Primary
-
-#6366f1
-
-Accent
-
-#22c55e
-
-Border
-
-#e5e7eb
-
-Text Primary
-
-#111827
-
-Text Secondary
-
-#6b7280
-
----
+| Token | Approx Hex |
+|-------|------------|
+| `--background` | `#f8fafc` |
+| `--card` | `#ffffff` |
+| `--primary` | `oklch(0.25 0 0)` (near-black) |
+| `--border` | `#e5e7eb` |
+| `--foreground` | `#111827` |
+| `--muted-foreground` | `#6b7280` |
 
 ## Dark Mode
 
-Background
-
-#0f172a
-
-Card
-
-#1e293b
-
-Border
-
-#334155
-
-Text Primary
-
-#e5e7eb
-
-Text Secondary
-
-#94a3b8
+| Token | Approx Hex |
+|-------|------------|
+| `--background` | `#0f172a` |
+| `--card` | `#1e293b` |
+| `--border` | `#334155` |
+| `--foreground` | `#e5e7eb` |
+| `--muted-foreground` | `#94a3b8` |
 
 ---
 
@@ -167,13 +143,9 @@ The page must remain **extremely minimal and visually appealing**.
 
 ## Background
 
-Use a full screen gradient.
+**Blur orbs** — three layered `blur-3xl` radial gradient blobs over a neutral `bg-background`. No full-screen gradient.
 
-Example:
-
-linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)
-
-Dark mode should use a darker gradient variation.
+> **Decision:** Prototype's blur orbs chosen over the original full-screen gradient spec.
 
 ---
 
@@ -223,9 +195,12 @@ Sign In button
 
 Forgot Password link
 
-Optional:
+"Don't have an account? Sign up" link
 
-Login with Google button
+Social login — 2-column grid:
+
+* Google OAuth button
+* X (Twitter) OAuth button
 
 ---
 
@@ -296,15 +271,17 @@ label
 
 ## Sidebar Footer
 
-At the **bottom of the sidebar**, include an AI assistant button.
+At the **bottom of the sidebar**, include an icon-only AI assistant toggle button.
 
-Button label:
+Icon: `Sparkles` (lucide-react) — no text label.
 
-Ask AI Agent
+Behavior: **toggles** the chat panel open/closed.
 
-Icon:
+Active state (panel open): `bg-primary/20 text-primary ring-2 ring-primary/50`
 
-robot or sparkles icon.
+Inactive state: `bg-primary text-primary-foreground hover:bg-primary/90`
+
+> **Decision:** Changed from labeled "Ask AI Agent" button to icon-only Sparkles toggle per prototype PR #2.
 
 ---
 

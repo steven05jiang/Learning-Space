@@ -1,228 +1,145 @@
-'use client';
+'use client'
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 interface User {
-  id: string;
-  email: string;
-  display_name: string;
-  avatar_url?: string;
+  id: string
+  email: string
+  display_name: string
+  avatar_url?: string
 }
 
 interface CallbackResponse {
-  access_token: string;
-  token_type: string;
-  user: User;
+  access_token: string
+  token_type: string
+  user: User
 }
 
-function OAuthCallbackContent({
-  params,
-}: {
-  params: { provider: string };
-}) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [error, setError] = useState<string>('');
+function OAuthCallbackContent({ params }: { params: { provider: string } }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [error, setError] = useState<string>('')
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
+        const code = searchParams.get('code')
+        const state = searchParams.get('state')
 
-        if (!code) {
-          throw new Error('Authorization code not received');
-        }
+        if (!code) throw new Error('Authorization code not received')
+        if (!state) throw new Error('State parameter missing')
 
-        if (!state) {
-          throw new Error('State parameter missing');
-        }
-
-        // Validate state parameter against stored value
-        const storedState = localStorage.getItem(`oauth_state_${params.provider}`);
+        const storedState = localStorage.getItem(`oauth_state_${params.provider}`)
         if (!storedState || storedState !== state) {
-          throw new Error('Invalid state parameter - possible CSRF attack');
+          throw new Error('Invalid state parameter - possible CSRF attack')
         }
 
-        // Clean up stored state
-        localStorage.removeItem(`oauth_state_${params.provider}`);
+        localStorage.removeItem(`oauth_state_${params.provider}`)
 
-        // Call the backend callback endpoint
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-        const url = new URL(`${apiBaseUrl}/auth/callback/${params.provider}`);
-        url.searchParams.set('code', code);
-        url.searchParams.set('state', state);
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000'
+        const url = new URL(`${apiBase}/auth/callback/${params.provider}`)
+        url.searchParams.set('code', code)
+        url.searchParams.set('state', state)
 
-        const response = await fetch(url.toString());
+        const response = await fetch(url.toString())
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.detail || 'Authentication failed');
+          const errorData = await response.json().catch(() => null)
+          throw new Error(errorData?.detail ?? 'Authentication failed')
         }
 
-        const data: CallbackResponse = await response.json();
+        const data: CallbackResponse = await response.json()
 
         if (data.access_token && data.user) {
-          // Store the JWT token and user info with error handling
           try {
-            localStorage.setItem('auth_token', data.access_token);
-            localStorage.setItem('user_info', JSON.stringify(data.user));
-          } catch (storageError) {
-            // Handle localStorage quota exceeded error
-            console.warn('localStorage full, clearing old data and retrying');
-            localStorage.clear();
+            localStorage.setItem('auth_token', data.access_token)
+            localStorage.setItem('user_info', JSON.stringify(data.user))
+          } catch {
+            localStorage.clear()
             try {
-              localStorage.setItem('auth_token', data.access_token);
-              localStorage.setItem('user_info', JSON.stringify(data.user));
-            } catch (secondError) {
-              throw new Error('Unable to save login session. Please try again.');
+              localStorage.setItem('auth_token', data.access_token)
+              localStorage.setItem('user_info', JSON.stringify(data.user))
+            } catch {
+              throw new Error('Unable to save login session. Please try again.')
             }
           }
 
-          setStatus('success');
-
-          // Redirect to dashboard or home after a brief success message
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 1500);
+          setStatus('success')
+          setTimeout(() => router.push('/dashboard'), 1500)
         } else {
-          throw new Error('Invalid response from authentication server');
+          throw new Error('Invalid response from authentication server')
         }
       } catch (err) {
-        console.error('OAuth callback error:', err);
-        setError(err instanceof Error ? err.message : 'Authentication failed');
-        setStatus('error');
-
-        // Clean up any stored state on error
-        localStorage.removeItem(`oauth_state_${params.provider}`);
-
-        // Redirect to login page after showing error
-        setTimeout(() => {
-          router.push('/login?error=auth_failed');
-        }, 3000);
+        setError(err instanceof Error ? err.message : 'Authentication failed')
+        setStatus('error')
+        localStorage.removeItem(`oauth_state_${params.provider}`)
+        setTimeout(() => router.push('/login?error=auth_failed'), 3000)
       }
-    };
+    }
 
-    handleCallback();
-  }, [params.provider, searchParams, router]);
+    handleCallback()
+  }, [params.provider, searchParams, router])
 
-  const providerDisplayName = params.provider.charAt(0).toUpperCase() + params.provider.slice(1);
+  const providerName =
+    params.provider.charAt(0).toUpperCase() + params.provider.slice(1)
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {status === 'loading' && (
-            <div className="text-center">
-              <div className="flex justify-center">
-                <svg
-                  className="animate-spin h-12 w-12 text-blue-600"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  role="status"
-                  aria-label="Processing login"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </div>
-              <h2 className="mt-4 text-lg font-semibold text-gray-900">
-                Completing {providerDisplayName} login...
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Please wait while we authenticate your account.
-              </p>
-            </div>
-          )}
+    <div className="flex min-h-svh items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm text-center">
+        {status === 'loading' && (
+          <>
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
+            <h2 className="mt-4 text-lg font-semibold text-foreground">
+              Completing {providerName} login…
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please wait while we authenticate your account.
+            </p>
+          </>
+        )}
 
-          {status === 'success' && (
-            <div className="text-center">
-              <div className="flex justify-center">
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="h-6 w-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h2 className="mt-4 text-lg font-semibold text-gray-900">
-                Login successful!
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Redirecting you to your dashboard...
-              </p>
-            </div>
-          )}
+        {status === 'success' && (
+          <>
+            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <h2 className="mt-4 text-lg font-semibold text-foreground">Login successful!</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Redirecting you to your dashboard…
+            </p>
+          </>
+        )}
 
-          {status === 'error' && (
-            <div className="text-center">
-              <div className="flex justify-center">
-                <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center" role="alert" aria-label="Error occurred">
-                  <svg
-                    className="h-6 w-6 text-red-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h2 className="mt-4 text-lg font-semibold text-gray-900">
-                Authentication failed
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">{error}</p>
-              <p className="mt-2 text-xs text-gray-500">
-                Redirecting to login page...
-              </p>
-            </div>
-          )}
-        </div>
+        {status === 'error' && (
+          <>
+            <XCircle className="mx-auto h-12 w-12 text-destructive" />
+            <h2 className="mt-4 text-lg font-semibold text-foreground">
+              Authentication failed
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Redirecting to login page…</p>
+          </>
+        )}
       </div>
     </div>
-  );
+  )
 }
 
 export default function OAuthCallbackPage({
   params,
 }: {
-  params: { provider: string };
+  params: { provider: string }
 }) {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" role="status" aria-label="Loading callback"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
       <OAuthCallbackContent params={params} />
     </Suspense>
-  );
+  )
 }
