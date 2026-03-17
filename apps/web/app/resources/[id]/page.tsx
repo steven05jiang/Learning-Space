@@ -139,7 +139,11 @@ export default function ResourceDetailPage() {
     }
 
     try {
-      setUser(JSON.parse(userInfo));
+      const parsedUser = JSON.parse(userInfo);
+      if (!parsedUser.id || !parsedUser.email) {
+        throw new Error("Invalid user data");
+      }
+      setUser(parsedUser);
     } catch {
       localStorage.removeItem("user_info");
       localStorage.removeItem("auth_token");
@@ -221,6 +225,7 @@ export default function ResourceDetailPage() {
   }, [user, id, isMock, router]);
 
   const handleEdit = () => {
+    setError(null);
     setIsEditing(true);
     setEditTitle(resource?.title || "");
   };
@@ -491,12 +496,17 @@ export default function ResourceDetailPage() {
                       placeholder="Enter resource title"
                       disabled={isUpdating}
                     />
+                    {editTitle.trim() === "" && (
+                      <div className="text-sm text-destructive">
+                        Title cannot be empty
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
                       onClick={handleSaveEdit}
-                      disabled={isUpdating}
+                      disabled={isUpdating || editTitle.trim() === ""}
                       className="gap-2"
                     >
                       {isUpdating ? (
