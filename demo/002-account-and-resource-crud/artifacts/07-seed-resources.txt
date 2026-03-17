@@ -1,0 +1,4 @@
+=== POST /resources (URL) ===
+{"id":"5","owner_id":"1","content_type":"url","original_content":"https://github.com/anthropics/anthropic-sdk-python","prefer_provider":null,"title":null,"summary":null,"tags":[],"status":"PENDING","created_at":"2026-03-17T23:48:06.924527","updated_at":"2026-03-17T23:48:06.924530"}
+=== POST /resources (text) ===
+{"id":"6","owner_id":"1","content_type":"text","original_content":"LangGraph is a stateful, orchestration framework for building multi-step AI agents.","prefer_provider":null,"title":null,"summary":null,"tags":[],"status":"PENDING","created_at":"2026-03-17T23:48:06.951740","updated_at":"2026-03-17T23:48:06.951742"}
