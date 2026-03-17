@@ -2,11 +2,10 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import anthropic
 from anthropic import Anthropic
-from anthropic.types import MessageParam
 
 from core.config import settings
 
@@ -26,9 +25,13 @@ class LLMResult:
 
 
 class LLMProcessorService:
-    """Service for processing content using Anthropic Claude to extract structured data."""
+    """Service for processing content using Anthropic Claude to extract data."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-5-sonnet-20241022"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "claude-3-5-sonnet-20241022",
+    ):
         """Initialize the LLM processor service.
 
         Args:
@@ -69,7 +72,9 @@ class LLMProcessorService:
                 error_message="Anthropic API key not configured or invalid",
             )
 
-        logger.info(f"Processing content of type {content_type} ({len(content)} characters)")
+        logger.info(
+            f"Processing content of type {content_type} ({len(content)} characters)"
+        )
 
         try:
             # Prepare the content processing prompt
@@ -85,20 +90,26 @@ class LLMProcessorService:
                     "properties": {
                         "title": {
                             "type": "string",
-                            "description": "A clear, concise title for the content (max 200 characters)"
+                            "description": (
+                                "A clear, concise title for the content (max 200 chars)"
+                            ),
                         },
                         "summary": {
                             "type": "string",
-                            "description": "A comprehensive summary of the main points (100-500 words)"
+                            "description": (
+                                "A comprehensive summary of main points (100-500 words)"
+                            ),
                         },
                         "tags": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Relevant tags/keywords (3-8 tags, lowercase, no spaces)"
-                        }
+                            "description": (
+                                "Relevant tags/keywords (3-8 tags, lowercase)"
+                            ),
+                        },
                     },
-                    "required": ["title", "summary", "tags"]
-                }
+                    "required": ["title", "summary", "tags"],
+                },
             }
 
             # Make the API call
@@ -108,7 +119,7 @@ class LLMProcessorService:
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
                 tools=[process_content_tool],
-                tool_choice={"type": "tool", "name": "extract_content_data"}
+                tool_choice={"type": "tool", "name": "extract_content_data"},
             )
 
             # Extract the tool use result
@@ -122,7 +133,7 @@ class LLMProcessorService:
             # Find tool use in response
             tool_use = None
             for content_block in response.content:
-                if hasattr(content_block, 'type') and content_block.type == 'tool_use':
+                if hasattr(content_block, "type") and content_block.type == "tool_use":
                     tool_use = content_block
                     break
 
@@ -167,8 +178,10 @@ class LLMProcessorService:
             else:
                 tags = []
 
-            logger.info(f"Successfully processed content: title='{title[:50]}...', "
-                       f"summary_len={len(summary)}, tags_count={len(tags)}")
+            logger.info(
+                f"Successfully processed content: title='{title[:50]}...', "
+                f"summary_len={len(summary)}, tags_count={len(tags)}"
+            )
 
             return LLMResult(
                 success=True,
@@ -215,7 +228,9 @@ class LLMProcessorService:
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            logger.error(f"Unexpected error processing content: {error_message}", exc_info=True)
+            logger.error(
+                f"Unexpected error processing content: {error_message}", exc_info=True
+            )
             return LLMResult(
                 success=False,
                 error_type="unknown_error",
@@ -224,32 +239,32 @@ class LLMProcessorService:
 
     def _build_system_prompt(self) -> str:
         """Build the system prompt for content processing."""
-        return """You are a content analysis assistant that extracts structured information from various types of content.
-
-Your task is to analyze the provided content and extract:
-1. A clear, concise title that captures the main topic
-2. A comprehensive summary of the key points and information
-3. Relevant tags/keywords for categorization
-
-Guidelines:
-- Title should be descriptive but concise (max 200 characters)
-- Summary should be comprehensive but readable (100-500 words)
-- Tags should be lowercase, hyphenated if multi-word, and relevant for search/categorization
-- Focus on the main content, ignore navigation, ads, or boilerplate text
-- For HTML content, extract the meaningful text content
-- Be objective and factual in your analysis"""
+        return (
+            "You are a content analysis assistant that extracts structured "
+            "information from various types of content.\n\n"
+            "Your task is to analyze the provided content and extract:\n"
+            "1. A clear, concise title that captures the main topic\n"
+            "2. A comprehensive summary of the key points and information\n"
+            "3. Relevant tags/keywords for categorization\n\n"
+            "Guidelines:\n"
+            "- Title should be descriptive but concise (max 200 characters)\n"
+            "- Summary should be comprehensive but readable (100-500 words)\n"
+            "- Tags should be lowercase, hyphenated if multi-word\n"
+            "- Focus on the main content, ignore navigation, ads, or boilerplate text\n"
+            "- For HTML content, extract the meaningful text content\n"
+            "- Be objective and factual in your analysis"
+        )
 
     def _build_user_message(self, content: str, content_type: str) -> str:
         """Build the user message with content to process."""
         content_preview = content[:3000] + ("..." if len(content) > 3000 else "")
 
-        return f"""Please analyze the following content and extract title, summary, and tags.
-
-Content Type: {content_type}
-Content:
-{content_preview}
-
-Use the extract_content_data tool to provide the structured output."""
+        return (
+            "Please analyze the following content and extract title, summary, tags.\n\n"
+            f"Content Type: {content_type}\n"
+            f"Content:\n{content_preview}\n\n"
+            "Use the extract_content_data tool to provide the structured output."
+        )
 
 
 # Create singleton instance

@@ -2,8 +2,8 @@
 
 from unittest.mock import Mock, patch
 
-import pytest
 import anthropic
+import pytest
 
 from services.llm_processor import LLMProcessorService, LLMResult
 
@@ -56,7 +56,9 @@ class TestLLMProcessorService:
 
     def test_initialization_with_exception(self):
         """Test initialization that fails to create client."""
-        with patch("services.llm_processor.Anthropic", side_effect=Exception("Invalid key")):
+        with patch(
+            "services.llm_processor.Anthropic", side_effect=Exception("Invalid key")
+        ):
             processor = LLMProcessorService(api_key="invalid-key")
 
             assert processor.client is None
@@ -93,7 +95,7 @@ class TestLLMProcessorService:
         mock_tool_use.input = {
             "title": "Test Article Title",
             "summary": "This is a comprehensive summary of the test article content.",
-            "tags": ["test", "article", "content", "sample"]
+            "tags": ["test", "article", "content", "sample"],
         }
 
         mock_response = Mock()
@@ -102,13 +104,14 @@ class TestLLMProcessorService:
         processor_with_client.client.messages.create.return_value = mock_response
 
         result = await processor_with_client.process_content(
-            "This is test article content about various topics.",
-            "text/plain"
+            "This is test article content about various topics.", "text/plain"
         )
 
         assert result.success is True
         assert result.title == "Test Article Title"
-        assert result.summary == "This is a comprehensive summary of the test article content."
+        assert result.summary == (
+            "This is a comprehensive summary of the test article content."
+        )
         assert result.tags == ["test", "article", "content", "sample"]
         assert result.error_message is None
 
@@ -119,7 +122,9 @@ class TestLLMProcessorService:
 
         processor_with_client.client.messages.create.return_value = mock_response
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "api_error"
@@ -135,7 +140,9 @@ class TestLLMProcessorService:
 
         processor_with_client.client.messages.create.return_value = mock_response
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "api_error"
@@ -145,18 +152,16 @@ class TestLLMProcessorService:
         """Test handling missing title in response."""
         mock_tool_use = Mock()
         mock_tool_use.type = "tool_use"
-        mock_tool_use.input = {
-            "title": "",
-            "summary": "Test summary",
-            "tags": ["test"]
-        }
+        mock_tool_use.input = {"title": "", "summary": "Test summary", "tags": ["test"]}
 
         mock_response = Mock()
         mock_response.content = [mock_tool_use]
 
         processor_with_client.client.messages.create.return_value = mock_response
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "extraction_error"
@@ -166,18 +171,16 @@ class TestLLMProcessorService:
         """Test handling missing summary in response."""
         mock_tool_use = Mock()
         mock_tool_use.type = "tool_use"
-        mock_tool_use.input = {
-            "title": "Test Title",
-            "summary": "",
-            "tags": ["test"]
-        }
+        mock_tool_use.input = {"title": "Test Title", "summary": "", "tags": ["test"]}
 
         mock_response = Mock()
         mock_response.content = [mock_tool_use]
 
         processor_with_client.client.messages.create.return_value = mock_response
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "extraction_error"
@@ -200,8 +203,8 @@ class TestLLMProcessorService:
                 "data science",  # Should become "data-science"
                 "technology",
                 "programming",
-                "extra-tag"  # This makes 9 tags, should be limited to 8
-            ]
+                "extra-tag",  # This makes 9 tags, should be limited to 8
+            ],
         }
 
         mock_response = Mock()
@@ -209,7 +212,9 @@ class TestLLMProcessorService:
 
         processor_with_client.client.messages.create.return_value = mock_response
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is True
         assert len(result.tags) == 8  # Limited to 8 tags
@@ -227,7 +232,7 @@ class TestLLMProcessorService:
         mock_tool_use.input = {
             "title": "Test Title",
             "summary": "Test summary",
-            "tags": "not-a-list"  # Invalid format
+            "tags": "not-a-list",  # Invalid format
         }
 
         mock_response = Mock()
@@ -235,7 +240,9 @@ class TestLLMProcessorService:
 
         processor_with_client.client.messages.create.return_value = mock_response
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is True
         assert result.tags == []
@@ -243,14 +250,14 @@ class TestLLMProcessorService:
     async def test_rate_limit_error(self, processor_with_client):
         """Test handling rate limit error."""
         error = anthropic.RateLimitError(
-            message="Rate limit exceeded",
-            response=Mock(),
-            body=None
+            message="Rate limit exceeded", response=Mock(), body=None
         )
 
         processor_with_client.client.messages.create.side_effect = error
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "rate_limit"
@@ -262,7 +269,9 @@ class TestLLMProcessorService:
             anthropic.APITimeoutError("Request timed out")
         )
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "timeout"
@@ -271,15 +280,15 @@ class TestLLMProcessorService:
     async def test_api_status_error(self, processor_with_client):
         """Test handling API status error."""
         error = anthropic.APIStatusError(
-            message="Bad request",
-            response=Mock(),
-            body=None
+            message="Bad request", response=Mock(), body=None
         )
         error.status_code = 400
 
         processor_with_client.client.messages.create.side_effect = error
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "api_error"
@@ -291,7 +300,9 @@ class TestLLMProcessorService:
 
         processor_with_client.client.messages.create.side_effect = error
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "connection_error"
@@ -299,11 +310,13 @@ class TestLLMProcessorService:
 
     async def test_unexpected_error(self, processor_with_client):
         """Test handling unexpected error."""
-        processor_with_client.client.messages.create.side_effect = (
-            RuntimeError("Unexpected error")
+        processor_with_client.client.messages.create.side_effect = RuntimeError(
+            "Unexpected error"
         )
 
-        result = await processor_with_client.process_content("Test content", "text/plain")
+        result = await processor_with_client.process_content(
+            "Test content", "text/plain"
+        )
 
         assert result.success is False
         assert result.error_type == "unknown_error"
@@ -316,7 +329,7 @@ class TestLLMProcessorService:
         mock_tool_use.input = {
             "title": "Test Title",
             "summary": "Test summary",
-            "tags": ["test"]
+            "tags": ["test"],
         }
 
         mock_response = Mock()
@@ -326,15 +339,13 @@ class TestLLMProcessorService:
 
         # Test HTML content
         result = await processor_with_client.process_content(
-            "<html><body><h1>Test</h1><p>Content</p></body></html>",
-            "text/html"
+            "<html><body><h1>Test</h1><p>Content</p></body></html>", "text/html"
         )
         assert result.success is True
 
         # Test URL content
         result = await processor_with_client.process_content(
-            "Article content from a web page",
-            "url"
+            "Article content from a web page", "url"
         )
         assert result.success is True
 
@@ -348,7 +359,7 @@ class TestLLMProcessorService:
         mock_tool_use.input = {
             "title": "Long Content Title",
             "summary": "Summary of long content",
-            "tags": ["long", "content"]
+            "tags": ["long", "content"],
         }
 
         mock_response = Mock()
@@ -410,7 +421,7 @@ class TestLLMProcessorService:
             success=True,
             title="Test Title",
             summary="Test Summary",
-            tags=["tag1", "tag2"]
+            tags=["tag1", "tag2"],
         )
 
         assert success_result.success is True
@@ -422,9 +433,7 @@ class TestLLMProcessorService:
 
         # Test error result
         error_result = LLMResult(
-            success=False,
-            error_type="test_error",
-            error_message="Test error message"
+            success=False, error_type="test_error", error_message="Test error message"
         )
 
         assert error_result.success is False
