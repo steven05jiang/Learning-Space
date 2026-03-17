@@ -308,7 +308,9 @@ class TestUnlinkAccountEndpoint:
             assert response.status_code == 404
 
             data = response.json()
-            assert "Account not found or does not belong to current user" in data["detail"]
+            assert (
+                "Account not found or does not belong to current user" in data["detail"]
+            )
 
         finally:
             app.dependency_overrides.clear()
