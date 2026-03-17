@@ -262,3 +262,35 @@ async def oauth_link(
     auth_url = await oauth_provider.get_authorization_url(redirect_uri, state)
 
     return {"authorization_url": auth_url, "provider": provider, "state": state}
+
+
+@router.delete("/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def unlink_account(
+    account_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """
+    Unlink an OAuth account from the current user.
+
+    Removes the specified account from the user's linked accounts.
+    Returns HTTP 404 if the account doesn't exist or doesn't belong to the user.
+    Returns HTTP 400 if trying to unlink the user's last account.
+
+    Args:
+        account_id: ID of the account to unlink
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        HTTP 204 No Content on success
+    """
+    await auth_service.unlink_oauth_account(
+        db=db, current_user=current_user, account_id=account_id
+    )
+
+    logger.info(
+        f"User {current_user.id} ({current_user.email}) unlinked account {account_id}"
+    )
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

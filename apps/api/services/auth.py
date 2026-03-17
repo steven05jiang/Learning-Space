@@ -193,5 +193,48 @@ class AuthService:
         await db.refresh(current_user, ["accounts"])
         return current_user
 
+    async def unlink_oauth_account(
+        self,
+        db: AsyncSession,
+        current_user: User,
+        account_id: int,
+    ) -> None:
+        """
+        Unlink OAuth account from user.
+
+        Args:
+            db: Database session
+            current_user: Current authenticated user
+            account_id: Account ID to unlink
+
+        Raises:
+            HTTPException: 404 if account not found or doesn't belong to user
+            HTTPException: 400 if trying to unlink the last account
+        """
+        # Find the account and verify it belongs to the user
+        account = None
+        for user_account in current_user.accounts:
+            if user_account.id == account_id:
+                account = user_account
+                break
+
+        if not account:
+            from core.errors import ErrorCode, NotFoundError
+
+            raise NotFoundError(
+                detail="Account not found or does not belong to current user",
+                code=ErrorCode.ACCOUNT_NOT_FOUND,
+            )
+
+        # Check if user has only one account (including the one we're trying to unlink)
+        if len(current_user.accounts) <= 1:
+            from core.errors import cannot_unlink_last_account
+
+            raise cannot_unlink_last_account()
+
+        # Delete the account
+        await db.delete(account)
+        await db.commit()
+
 
 auth_service = AuthService()
