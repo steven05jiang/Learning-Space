@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 30
 
+    # LLM/AI Settings
+    anthropic_api_key: str = ""  # Optional for development
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("jwt_secret_key")
