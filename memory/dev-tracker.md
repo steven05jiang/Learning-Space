@@ -11,9 +11,9 @@
 ## Progress Summary
 
 - Total: 53 tasks
-- ✅ Completed: 21
+- ✅ Completed: 24
 - 🔄 Active: 0
-- ⏳ Pending: 32
+- ⏳ Pending: 29
 - ⚠️ Stuck: 0
 
 ---
@@ -44,12 +44,12 @@
 
 - [x] DEV-007: Implement account linking flow — Unlocks multi-account + authenticated URL fetching (PR #45 ✅)
 - [x] DEV-008: Implement account unlinking — Completes account management (PR #47 ✅)
-- [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
+- [x] DEV-015: Implement GET /resources/{id} (single) — Resource detail view (PR #50 ✅)
 - [ ] DEV-019: Implement task queue infrastructure — Async resource processing
 - [ ] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
 - [ ] DEV-022: Implement LLM processing (title, summary, tags) — Core value: auto-summarize and tag
-- [ ] DEV-016: Implement PATCH /resources/{id} (update) — Users edit resources
-- [ ] DEV-017: Implement DELETE /resources/{id} — Users delete resources
+- [x] DEV-016: Implement PATCH /resources/{id} (update) — Users edit resources (PR #50 ✅)
+- [x] DEV-017: Implement DELETE /resources/{id} — Users delete resources (PR #50 ✅)
 - [ ] DEV-021: Implement authenticated URL fetcher (provider API) — Fetch from login-required sites
 - [ ] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update
 - [ ] DEV-025: Implement graph service (Neo4j operations) — Foundation for all graph features
