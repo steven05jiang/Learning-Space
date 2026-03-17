@@ -1,0 +1,5 @@
+=== GET /auth/accounts ===
+{"detail":"Not Found"}=== GET /auth/providers ===
+{"providers":["github","google","twitter"]}
+=== GET /auth/me (full) ===
+{"id":1,"email":"demo@learningspace.dev","display_name":"Demo User","avatar_url":null}

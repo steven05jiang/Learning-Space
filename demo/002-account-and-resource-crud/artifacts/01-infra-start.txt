@@ -1,0 +1,4 @@
+NAME                        IMAGE            COMMAND                  SERVICE    CREATED      STATUS      PORTS
+learning-space-neo4j-1      neo4j:5          "tini -g -- /startup…"   neo4j      2 days ago   Up 2 days   0.0.0.0:7474->7474/tcp, [::]:7474->7474/tcp, 0.0.0.0:7687->7687/tcp, [::]:7687->7687/tcp
+learning-space-postgres-1   postgres:16      "docker-entrypoint.s…"   postgres   2 days ago   Up 2 days   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+learning-space-redis-1      redis:7-alpine   "docker-entrypoint.s…"   redis      2 days ago   Up 2 days   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp

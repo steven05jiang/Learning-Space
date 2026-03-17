@@ -11,9 +11,9 @@
 ## Progress Summary
 
 - Total: 58 tasks (53 DEV + 5 DEMO)
-- ✅ Completed: 28
+- ✅ Completed: 29
 - 🔄 Active: 0
-- ⏳ Pending: 30
+- ⏳ Pending: 29
 - ⚠️ Stuck: 0
 
 ---
@@ -86,7 +86,7 @@
 ## 🎬 Demos
 
 - [x] DEMO-001: First User Journey — login → submit resource → see list (run-2 ✅)
-- [ ] DEMO-002: Account Management & Resource CRUD — settings, detail, edit, delete (blocked: DEV-040, DEV-043 pending)
+- [x] DEMO-002: Account Management & Resource CRUD — settings, detail, edit, delete (run-1 ✅)
 - [ ] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (blocked: DEV-023 pending)
 - [ ] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (blocked: DEV-025, DEV-026, DEV-028, DEV-029, DEV-030, DEV-052 pending)
 - [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: DEV-032, DEV-033, DEV-034, DEV-035, DEV-053 pending)

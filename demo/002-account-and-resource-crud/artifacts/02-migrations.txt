@@ -1,0 +1,6 @@
+   Building api @ file:///Users/wei/Documents/Workspace/Learning-Space/apps/api
+      Built api @ file:///Users/wei/Documents/Workspace/Learning-Space/apps/api
+Uninstalled 1 package in 0.90ms
+Installed 1 package in 1ms
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
