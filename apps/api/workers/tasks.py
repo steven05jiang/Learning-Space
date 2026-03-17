@@ -6,7 +6,9 @@ from typing import Any, Dict
 logger = logging.getLogger(__name__)
 
 
-async def process_resource(resource_id: str, options: Dict[str, Any] | None = None) -> Dict[str, Any]:
+async def process_resource(
+    resource_id: str, options: Dict[str, Any] | None = None
+) -> Dict[str, Any]:
     """Process a resource through various analysis stages.
 
     This is a stub implementation that will be expanded in later DEV tasks.
@@ -75,7 +77,9 @@ async def sync_graph(entity_id: str, operation: str = "update") -> Dict[str, Any
 
     valid_operations = {"create", "update", "delete"}
     if operation not in valid_operations:
-        raise ValueError(f"operation must be one of {valid_operations}, got: {operation}")
+        raise ValueError(
+            f"operation must be one of {valid_operations}, got: {operation}"
+        )
 
     # TODO: Implement actual graph synchronization logic in future DEV tasks
     # This will include:

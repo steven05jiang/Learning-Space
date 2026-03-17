@@ -1,12 +1,11 @@
 """Tests for task queue functionality."""
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any
+from unittest.mock import Mock, patch
 
-from core.queue import enqueue_job, get_job_status
+import pytest
+
 from services.queue_service import QueueService
-from workers.tasks import process_resource, sync_graph, job_failed
+from workers.tasks import job_failed, process_resource, sync_graph
 
 
 class TestTaskFunctions:
@@ -73,7 +72,7 @@ class TestTaskFunctions:
         mock_ctx = Mock()
         exception = ValueError("Test error")
 
-        with patch('workers.tasks.logger') as mock_logger:
+        with patch("workers.tasks.logger") as mock_logger:
             await job_failed(mock_ctx, "job123", exception)
             mock_logger.error.assert_called_once()
             args = mock_logger.error.call_args[0]
@@ -88,7 +87,7 @@ class TestQueueService:
     @pytest.mark.asyncio
     async def test_enqueue_resource_processing_success(self):
         """Test successful resource processing job enqueueing."""
-        with patch('services.queue_service.enqueue_job') as mock_enqueue:
+        with patch("services.queue_service.enqueue_job") as mock_enqueue:
             mock_enqueue.return_value = "job123"
 
             job_id = await QueueService.enqueue_resource_processing(
@@ -109,7 +108,7 @@ class TestQueueService:
     @pytest.mark.asyncio
     async def test_enqueue_graph_sync_success(self):
         """Test successful graph sync job enqueueing."""
-        with patch('services.queue_service.enqueue_job') as mock_enqueue:
+        with patch("services.queue_service.enqueue_job") as mock_enqueue:
             mock_enqueue.return_value = "job456"
 
             job_id = await QueueService.enqueue_graph_sync("entity123", "create")
@@ -135,7 +134,7 @@ class TestQueueService:
             "finish_time": "2026-03-17T00:02:00Z",
         }
 
-        with patch('services.queue_service.get_job_status') as mock_get_status:
+        with patch("services.queue_service.get_job_status") as mock_get_status:
             mock_get_status.return_value = mock_status
 
             status = await QueueService.get_job_status("job123")
@@ -146,7 +145,7 @@ class TestQueueService:
     @pytest.mark.asyncio
     async def test_get_job_status_not_found(self):
         """Test job status when job not found."""
-        with patch('services.queue_service.get_job_status') as mock_get_status:
+        with patch("services.queue_service.get_job_status") as mock_get_status:
             mock_get_status.return_value = None
 
             status = await QueueService.get_job_status("nonexistent")

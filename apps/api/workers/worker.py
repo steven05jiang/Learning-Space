@@ -1,19 +1,16 @@
 """ARQ worker configuration and startup."""
 
 import logging
-from typing import Dict, Any
 
 from arq import create_pool
-from arq.connections import RedisSettings
 from arq.worker import Worker
 
 from core.queue import redis_settings
-from workers.tasks import process_resource, sync_graph, job_failed
+from workers.tasks import job_failed, process_resource, sync_graph
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -67,4 +64,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

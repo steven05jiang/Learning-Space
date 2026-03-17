@@ -11,7 +11,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from workers.worker import main
+# Import after path modification to avoid import errors
+from workers.worker import main  # noqa: E402
+
 
 # Set up signal handling for graceful shutdown
 def signal_handler(signum, frame):
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)]
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
 
     print("Starting Learning Space task worker...")

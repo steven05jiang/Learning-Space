@@ -59,7 +59,10 @@ class QueueService:
         if operation not in valid_operations:
             raise ValueError(f"operation must be one of {valid_operations}")
 
-        logger.info(f"Enqueueing graph sync job for entity_id={entity_id}, operation={operation}")
+        logger.info(
+            f"Enqueueing graph sync job for entity_id={entity_id}, "
+            f"operation={operation}"
+        )
 
         job_id = await enqueue_job("sync_graph", entity_id, operation)
         logger.info(f"Graph sync job enqueued with ID: {job_id}")
