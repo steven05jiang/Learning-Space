@@ -274,10 +274,25 @@ class OAuthService:
         """Generate cryptographically secure random state for CSRF protection."""
         return secrets.token_urlsafe(32)
 
+    def generate_link_state(self, user_id: int) -> str:
+        """Generate state for account linking flow."""
+        # Encode link info in the state
+        base_state = secrets.token_urlsafe(24)
+        return f"link:{user_id}:{base_state}"
+
     def store_state(self, state: str, provider: str) -> None:
         """Store state for later validation."""
         self._state_store[state] = {
             "provider": provider,
+            "created_at": time.time(),
+        }
+
+    def store_link_state(self, state: str, provider: str, user_id: int) -> None:
+        """Store link state for later validation."""
+        self._state_store[state] = {
+            "provider": provider,
+            "user_id": user_id,
+            "is_link": True,
             "created_at": time.time(),
         }
 
@@ -295,6 +310,18 @@ class OAuthService:
             return False
 
         return stored["provider"] == provider
+
+    def is_link_state(self, state: str) -> bool:
+        """Check if state represents a link flow."""
+        stored = self._state_store.get(state)
+        return stored and stored.get("is_link", False)
+
+    def get_link_user_id(self, state: str) -> Optional[int]:
+        """Extract user ID from link state."""
+        stored = self._state_store.get(state)
+        if stored and stored.get("is_link"):
+            return stored.get("user_id")
+        return None
 
 
 oauth_service = OAuthService()

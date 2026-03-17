@@ -1,12 +1,18 @@
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.deps import get_current_user
-from core.errors import ErrorCode, InternalServerError, ValidationError
+from core.deps import get_current_user, get_current_user_optional
+from core.errors import (
+    ErrorCode,
+    ForbiddenError,
+    InternalServerError,
+    UnauthorizedError,
+    ValidationError,
+)
 from models.database import get_db
 from models.user import User
 from services.auth import auth_service
@@ -69,6 +75,7 @@ async def oauth_callback(
     state: str = Query(...),  # State is now required for CSRF protection
     request: Request = None,
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ) -> Dict:
     """
     Handle OAuth callback and complete authentication.
@@ -80,6 +87,10 @@ async def oauth_callback(
         raise ValidationError(
             f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
         )
+
+    # Check if this is a link flow before validating and consuming state
+    is_link_flow = oauth_service.is_link_state(state)
+    link_user_id = oauth_service.get_link_user_id(state) if is_link_flow else None
 
     # Validate state parameter to prevent CSRF attacks
     if not oauth_service.validate_and_consume_state(state, provider):
@@ -101,28 +112,72 @@ async def oauth_callback(
     if not user_info:
         raise ValidationError("Failed to retrieve user information from OAuth provider")
 
-    # Authenticate or create user
+    # Handle link flow vs regular login flow
     try:
-        user, jwt_token = await auth_service.authenticate_oauth_user(
-            db=db,
-            provider=provider,
-            provider_account_id=user_info["id"],
-            access_token=access_token,
-            user_info=user_info,
-            # Most providers don't provide refresh tokens in basic flow
-            refresh_token=None,
-        )
+        if is_link_flow:
+            # Account linking flow - SECURITY: Verify user matches link state
+            if not link_user_id:
+                raise ValidationError("Invalid link state")
 
-        return {
-            "access_token": jwt_token,
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "display_name": user.display_name,
-                "avatar_url": user.avatar_url,
-            },
-        }
+            if not current_user:
+                raise UnauthorizedError(
+                    "Authentication required for account linking",
+                    ErrorCode.AUTHENTICATION_REQUIRED,
+                )
+
+            if current_user.id != link_user_id:
+                raise ForbiddenError(
+                    "Link state does not match authenticated user", ErrorCode.FORBIDDEN
+                )
+
+            # Use the authenticated user directly (no need to query again)
+            # Note: current_user is already loaded from the database via dependency
+
+            # Link the account to the authenticated user
+            user = await auth_service.link_oauth_account(
+                db=db,
+                current_user=current_user,
+                provider=provider,
+                provider_account_id=user_info["id"],
+                access_token=access_token,
+                user_info=user_info,
+                refresh_token=None,
+            )
+
+            return {
+                "message": f"{provider.title()} account linked successfully",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "display_name": user.display_name,
+                    "avatar_url": user.avatar_url,
+                },
+            }
+        else:
+            # Regular login flow
+            user, jwt_token = await auth_service.authenticate_oauth_user(
+                db=db,
+                provider=provider,
+                provider_account_id=user_info["id"],
+                access_token=access_token,
+                user_info=user_info,
+                # Most providers don't provide refresh tokens in basic flow
+                refresh_token=None,
+            )
+
+            return {
+                "access_token": jwt_token,
+                "token_type": "bearer",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "display_name": user.display_name,
+                    "avatar_url": user.avatar_url,
+                },
+            }
+    except (UnauthorizedError, ForbiddenError, ValidationError) as e:
+        # Re-raise authentication/authorization errors as-is
+        raise e
     except Exception as e:
         # Log the actual error server-side for debugging
         logger.error(
@@ -174,3 +229,36 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)) 
         "display_name": current_user.display_name,
         "avatar_url": current_user.avatar_url,
     }
+
+
+@router.get("/link/{provider}")
+async def oauth_link(
+    provider: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, str]:
+    """
+    Initiate OAuth link flow for the specified provider.
+
+    Links an additional social account to the current authenticated user.
+    Requires authentication.
+
+    Supported providers: github, google, twitter
+    """
+    oauth_provider = oauth_service.get_provider(provider)
+    if not oauth_provider:
+        raise ValidationError(
+            f"Unsupported OAuth provider: {provider}", ErrorCode.PROVIDER_NOT_SUPPORTED
+        )
+
+    # Create secure redirect URI
+    redirect_uri = _get_redirect_uri(request, provider)
+
+    # Generate link state with user ID encoded
+    state = oauth_service.generate_link_state(current_user.id)
+    oauth_service.store_link_state(state, provider, current_user.id)
+
+    # Get authorization URL with link state parameter
+    auth_url = await oauth_provider.get_authorization_url(redirect_uri, state)
+
+    return {"authorization_url": auth_url, "provider": provider, "state": state}
