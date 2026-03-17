@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from main import app
@@ -102,6 +101,8 @@ class TestAccountUnlinking:
         """Test unlinking fails when account doesn't exist or doesn't belong to user."""
         from sqlalchemy.ext.asyncio import AsyncSession
 
+        from core.errors import ErrorCode, NotFoundError
+
         # Create mock database session
         db = Mock(spec=AsyncSession)
 
@@ -128,7 +129,7 @@ class TestAccountUnlinking:
         )
 
         # Try to unlink account ID 999 which doesn't exist
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError) as exc_info:
             await auth_service.unlink_oauth_account(
                 db=db,
                 current_user=current_user,
@@ -136,6 +137,7 @@ class TestAccountUnlinking:
             )
 
         assert exc_info.value.status_code == 404
+        assert exc_info.value.code == ErrorCode.ACCOUNT_NOT_FOUND
         assert "Account not found or does not belong to current user" in str(
             exc_info.value.detail
         )
@@ -148,6 +150,8 @@ class TestAccountUnlinking:
         """Test unlinking fails when user has no accounts (edge case)."""
         from sqlalchemy.ext.asyncio import AsyncSession
 
+        from core.errors import ErrorCode, NotFoundError
+
         # Create mock database session
         db = Mock(spec=AsyncSession)
 
@@ -159,8 +163,8 @@ class TestAccountUnlinking:
             accounts=[],
         )
 
-        # Should raise HTTPException with 404 since account doesn't exist
-        with pytest.raises(HTTPException) as exc_info:
+        # Should raise NotFoundError with 404 since account doesn't exist
+        with pytest.raises(NotFoundError) as exc_info:
             await auth_service.unlink_oauth_account(
                 db=db,
                 current_user=current_user,
@@ -168,6 +172,7 @@ class TestAccountUnlinking:
             )
 
         assert exc_info.value.status_code == 404
+        assert exc_info.value.code == ErrorCode.ACCOUNT_NOT_FOUND
         assert "Account not found or does not belong to current user" in str(
             exc_info.value.detail
         )
@@ -262,6 +267,7 @@ class TestUnlinkAccountEndpoint:
 
             data = response.json()
             assert data["code"] == "CANNOT_UNLINK_LAST_ACCOUNT"
+            assert data["status"] == 400
             assert "Cannot unlink the last account" in data["detail"]
 
         finally:
@@ -308,6 +314,8 @@ class TestUnlinkAccountEndpoint:
             assert response.status_code == 404
 
             data = response.json()
+            assert data["code"] == "ACCOUNT_NOT_FOUND"
+            assert data["status"] == 404
             assert (
                 "Account not found or does not belong to current user" in data["detail"]
             )

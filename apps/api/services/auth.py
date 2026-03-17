@@ -219,9 +219,11 @@ class AuthService:
                 break
 
         if not account:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            from core.errors import ErrorCode, NotFoundError
+
+            raise NotFoundError(
                 detail="Account not found or does not belong to current user",
+                code=ErrorCode.ACCOUNT_NOT_FOUND,
             )
 
         # Check if user has only one account (including the one we're trying to unlink)
