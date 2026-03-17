@@ -1,10 +1,10 @@
 # Dev Tracker
 
 **Plan:** exec-plans/v2/dev-plan.md
-**Sprint:** Tier 2 — MVP Core
-**Goal:** Stand up the walking skeleton: monorepo structure, PostgreSQL + Neo4j schemas, health endpoint, error handling, and Pydantic models
+**Sprint:** Tier 3 — Feature Complete
+**Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-16
 
 ---
 
@@ -35,24 +35,22 @@
 - [x] DEV-010: Implement POST /auth/logout — Complete auth lifecycle (PR #18 ✅)
 - [x] DEV-013: Implement POST /resources (create) — Core first user journey: submit a resource (PR #20 ✅)
 - [x] DEV-014: Implement GET /resources (list) with filters — View resources after submitting (PR #26 ✅)
-- [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
-- [ ] DEV-019: Implement task queue infrastructure — Async resource processing
-- [ ] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
-- [ ] DEV-022: Implement LLM processing (title, summary, tags) — Core value: auto-summarize and tag
-- [ ] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update
 - [x] DEV-039: Implement OAuth login UI (multi-provider) — User-facing login page (PR #25 ✅)
 - [x] DEV-041: Implement resource submission form — User-facing resource submit UI (PR #28 ✅)
 - [x] DEV-042: Implement resource list view — View resources and processing status (PR #29 ✅)
-- [ ] DEV-011: Unit tests — Authentication — Verify auth works before building on it
-- [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD works
 
 ## 🟡 Tier 3 — Feature Complete
 
 - [ ] DEV-007: Implement account linking flow — Unlocks multi-account + authenticated URL fetching
 - [ ] DEV-008: Implement account unlinking — Completes account management
-- [ ] DEV-021: Implement authenticated URL fetcher (provider API) — Fetch from login-required sites
+- [ ] DEV-015: Implement GET /resources/{id} (single) — Resource detail view
+- [ ] DEV-019: Implement task queue infrastructure — Async resource processing
+- [ ] DEV-020: Implement URL content fetcher (unauthenticated) — Worker fetch URL content
+- [ ] DEV-022: Implement LLM processing (title, summary, tags) — Core value: auto-summarize and tag
 - [ ] DEV-016: Implement PATCH /resources/{id} (update) — Users edit resources
 - [ ] DEV-017: Implement DELETE /resources/{id} — Users delete resources
+- [ ] DEV-021: Implement authenticated URL fetcher (provider API) — Fetch from login-required sites
+- [ ] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update
 - [ ] DEV-025: Implement graph service (Neo4j operations) — Foundation for all graph features
 - [ ] DEV-026: Integrate graph update into worker pipeline — Resources update graph on processing
 - [ ] DEV-027: Implement graph sync job for resource deletion — Graph consistency on deletion
@@ -73,6 +71,8 @@
 - [ ] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline
 - [ ] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints
 - [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
+- [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
+- [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
 
 ## 🟢 Tier 4 — Hardening
 
