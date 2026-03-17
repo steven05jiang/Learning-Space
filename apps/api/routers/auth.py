@@ -1,12 +1,12 @@
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.deps import get_current_user
-from core.errors import ErrorCode, InternalServerError, ValidationError
+from core.deps import get_current_user, get_current_user_optional
+from core.errors import ErrorCode, ForbiddenError, InternalServerError, UnauthorizedError, ValidationError
 from models.database import get_db
 from models.user import User
 from services.auth import auth_service
@@ -69,6 +69,7 @@ async def oauth_callback(
     state: str = Query(...),  # State is now required for CSRF protection
     request: Request = None,
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ) -> Dict:
     """
     Handle OAuth callback and complete authentication.
@@ -108,21 +109,20 @@ async def oauth_callback(
     # Handle link flow vs regular login flow
     try:
         if is_link_flow:
-            # Account linking flow
+            # Account linking flow - SECURITY: Verify authenticated user matches link state
             if not link_user_id:
                 raise ValidationError("Invalid link state")
 
-            # Get the user who initiated the link
-            from sqlalchemy import select
-
-            stmt = select(User).where(User.id == link_user_id)
-            result = await db.execute(stmt)
-            current_user = result.scalar_one_or_none()
-
             if not current_user:
-                raise ValidationError("User not found for link operation")
+                raise UnauthorizedError("Authentication required for account linking", ErrorCode.AUTHENTICATION_REQUIRED)
 
-            # Link the account to the current user
+            if current_user.id != link_user_id:
+                raise ForbiddenError("Link state does not match authenticated user", ErrorCode.FORBIDDEN)
+
+            # Use the authenticated user directly (no need to query again)
+            # Note: current_user is already loaded from the database via dependency
+
+            # Link the account to the authenticated user
             user = await auth_service.link_oauth_account(
                 db=db,
                 current_user=current_user,
@@ -164,6 +164,9 @@ async def oauth_callback(
                     "avatar_url": user.avatar_url,
                 },
             }
+    except (UnauthorizedError, ForbiddenError, ValidationError) as e:
+        # Re-raise authentication/authorization errors as-is
+        raise e
     except Exception as e:
         # Log the actual error server-side for debugging
         logger.error(

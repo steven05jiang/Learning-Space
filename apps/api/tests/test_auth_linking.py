@@ -18,8 +18,9 @@ class TestAccountLinking:
 
     async def test_link_oauth_account_success(self):
         """Test successful account linking."""
-        from sqlalchemy.ext.asyncio import AsyncSession
         from unittest.mock import Mock
+
+        from sqlalchemy.ext.asyncio import AsyncSession
 
         # Create mock database session
         db = Mock(spec=AsyncSession)
@@ -64,8 +65,9 @@ class TestAccountLinking:
 
     async def test_link_oauth_account_already_linked_to_other_user(self):
         """Test linking account that belongs to another user returns 409."""
-        from sqlalchemy.ext.asyncio import AsyncSession
         from unittest.mock import Mock
+
+        from sqlalchemy.ext.asyncio import AsyncSession
 
         # Create mock database session
         db = Mock(spec=AsyncSession)
@@ -99,8 +101,9 @@ class TestAccountLinking:
 
     async def test_link_oauth_account_already_linked_to_same_user(self):
         """Test linking account that already belongs to current user updates tokens."""
-        from sqlalchemy.ext.asyncio import AsyncSession
         from unittest.mock import Mock
+
+        from sqlalchemy.ext.asyncio import AsyncSession
 
         # Create mock database session
         db = Mock(spec=AsyncSession)
@@ -115,7 +118,9 @@ class TestAccountLinking:
         )
 
         # Mock find_user_by_provider_account to return current user
-        auth_service.find_user_by_provider_account = AsyncMock(return_value=current_user)
+        auth_service.find_user_by_provider_account = AsyncMock(
+            return_value=current_user
+        )
         auth_service.update_account_tokens = AsyncMock()
 
         user_info = {
@@ -263,9 +268,12 @@ async def test_oauth_callback_link_flow(
     mock_link_account: AsyncMock,
 ):
     """Test OAuth callback with link flow."""
-    from models.database import get_db
     from unittest.mock import Mock
+
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from core.deps import get_current_user_optional
+    from models.database import get_db
 
     # Mock user for return value
     mock_user = User(
@@ -283,8 +291,13 @@ async def test_oauth_callback_link_flow(
         mock_db.execute = AsyncMock(return_value=mock_result)
         return mock_db
 
-    # Override dependency
+    # Mock authenticated user for link flow
+    async def mock_get_current_user_optional():
+        return mock_user
+
+    # Override dependencies
     app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_current_user_optional] = mock_get_current_user_optional
 
     try:
         # Mock OAuth provider responses
@@ -304,7 +317,9 @@ async def test_oauth_callback_link_flow(
         oauth_service.store_link_state(link_state, "github", 123)
 
         # Test callback with link state
-        response = client.get(f"/auth/callback/github?code=test_code&state={link_state}")
+        response = client.get(
+            f"/auth/callback/github?code=test_code&state={link_state}"
+        )
         assert response.status_code == 200
 
         data = response.json()
@@ -315,6 +330,140 @@ async def test_oauth_callback_link_flow(
 
         # Should not contain access_token (unlike login flow)
         assert "access_token" not in data
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+@patch("services.oauth.GitHubOAuthProvider.exchange_code")
+@patch("services.oauth.GitHubOAuthProvider.get_user_info")
+@pytest.mark.asyncio
+async def test_oauth_callback_link_flow_unauthenticated_blocked(
+    mock_get_user_info: AsyncMock,
+    mock_exchange_code: AsyncMock,
+):
+    """Test OAuth callback with link flow blocks unauthenticated requests."""
+    from unittest.mock import Mock
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from core.deps import get_current_user_optional
+    from models.database import get_db
+
+    # Mock user for return value
+    mock_user = User(
+        id=123,
+        email="testuser@example.com",
+        display_name="Test User",
+        avatar_url="https://example.com/avatar.jpg",
+    )
+
+    # Mock database session
+    async def mock_get_db():
+        mock_db = Mock(spec=AsyncSession)
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_user
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        return mock_db
+
+    # Mock unauthenticated user for link flow (should be blocked)
+    async def mock_get_current_user_optional():
+        return None  # No authentication
+
+    # Override dependencies
+    app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_current_user_optional] = mock_get_current_user_optional
+
+    try:
+        # Mock OAuth provider responses
+        mock_exchange_code.return_value = "test_access_token"
+        mock_get_user_info.return_value = {
+            "id": "123456",
+            "email": "testuser@github.com",
+            "display_name": "Test User",
+            "avatar_url": "https://example.com/avatar.jpg",
+        }
+
+        # Set up link state in OAuth service
+        link_state = oauth_service.generate_link_state(123)
+        oauth_service.store_link_state(link_state, "github", 123)
+
+        # Test callback with link state but no authentication - should be blocked
+        response = client.get(
+            f"/auth/callback/github?code=test_code&state={link_state}"
+        )
+        assert response.status_code == 401
+
+        data = response.json()
+        assert data["code"] == "AUTHENTICATION_REQUIRED"
+        assert "Authentication required for account linking" in data["detail"]
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+@patch("services.oauth.GitHubOAuthProvider.exchange_code")
+@patch("services.oauth.GitHubOAuthProvider.get_user_info")
+@pytest.mark.asyncio
+async def test_oauth_callback_link_flow_mismatched_user_blocked(
+    mock_get_user_info: AsyncMock,
+    mock_exchange_code: AsyncMock,
+):
+    """Test OAuth callback with link flow blocks when authenticated user doesn't match link state."""
+    from unittest.mock import Mock
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from core.deps import get_current_user_optional
+    from models.database import get_db
+
+    # Mock user for return value - different from the one in link state
+    mock_user = User(
+        id=456,  # Different ID from link state (123)
+        email="different@example.com",
+        display_name="Different User",
+        avatar_url="https://example.com/avatar.jpg",
+    )
+
+    # Mock database session
+    async def mock_get_db():
+        mock_db = Mock(spec=AsyncSession)
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_user
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        return mock_db
+
+    # Mock authenticated user (different from link state user)
+    async def mock_get_current_user_optional():
+        return mock_user
+
+    # Override dependencies
+    app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_current_user_optional] = mock_get_current_user_optional
+
+    try:
+        # Mock OAuth provider responses
+        mock_exchange_code.return_value = "test_access_token"
+        mock_get_user_info.return_value = {
+            "id": "123456",
+            "email": "testuser@github.com",
+            "display_name": "Test User",
+            "avatar_url": "https://example.com/avatar.jpg",
+        }
+
+        # Set up link state for different user (123, not 456)
+        link_state = oauth_service.generate_link_state(123)
+        oauth_service.store_link_state(link_state, "github", 123)
+
+        # Test callback with link state for user 123 but authenticated as user 456
+        response = client.get(
+            f"/auth/callback/github?code=test_code&state={link_state}"
+        )
+        assert response.status_code == 403
+
+        data = response.json()
+        assert data["code"] == "FORBIDDEN"
+        assert "Link state does not match authenticated user" in data["detail"]
 
     finally:
         app.dependency_overrides.clear()

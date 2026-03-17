@@ -2,6 +2,8 @@
 Dependency injection utilities for the API.
 """
 
+from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -12,6 +14,7 @@ from models.database import get_db
 from models.user import User
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
@@ -27,6 +30,77 @@ async def get_current_user(
     Raises:
         HTTPException: 401 if token is missing, invalid, or user not found.
     """
+    # Extract token from credentials
+    token = credentials.credentials
+
+    # Verify the JWT token
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Extract user ID from token payload
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Look up user in database
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        # Handle case where user_id is not a valid integer
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        stmt = select(User).where(User.id == user_id_int)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return user
+
+    except HTTPException:
+        # Re-raise HTTPExceptions (like "User not found")
+        raise
+    except Exception:
+        # Handle any database errors
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """
+    FastAPI dependency to optionally get the current authenticated user.
+
+    Returns None if no valid authentication is provided.
+    Raises HTTPException only if authentication is provided but invalid.
+    """
+    if not credentials:
+        return None
+
     # Extract token from credentials
     token = credentials.credentials
 
