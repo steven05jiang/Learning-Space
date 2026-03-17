@@ -28,19 +28,23 @@ When usage ≥ 95%, execute these steps **before exiting**:
 
 1. **Flush in-flight task states.** For every task currently dispatched but
    not yet finalized, append to its `memory/active/TASK-XXX.md` Progress Log:
+
    ```
    YYYY-MM-DD HH:MM — ⏸️ PAUSED: session context limit reached (≥95%). Resume next session.
    ```
+
    Set `**Status:**` to `⏸️ Paused`.
 
 2. **Sync dev-tracker.md.** Update all in-progress markers to reflect paused
    state. Update `Last Updated`. Add a top-level note:
+
    ```
    > ⚠️ Cycle interrupted at YYYY-MM-DD HH:MM — session usage hit 95%.
    > Resume with /pm-dispatch to continue from paused tasks.
    ```
 
 3. **Output the Emergency Exit Report:**
+
    ```
    ⚠️  SESSION LIMIT REACHED — Emergency State Save
    ================================================
@@ -75,6 +79,7 @@ When usage ≥ 95%, execute these steps **before exiting**:
    Extract all tasks, their priorities, and any groupings/dependencies.
 
 3. Log what you loaded:
+
 ```
    📋 Plan loaded: exec-plans/v2/dev-plan.md (active version: v2)
    🎯 Sprint: Sprint 4 — "Complete authentication and user management features"
@@ -86,13 +91,13 @@ When usage ≥ 95%, execute these steps **before exiting**:
 
 This project uses five tracker files. Each covers a different task domain:
 
-| Tracker | File | Prefix | Tasks sourced from |
-|---------|------|--------|--------------------|
-| Feature dev | `memory/dev-tracker.md` | `DEV-` | `exec-plans/<version>/dev-plan.md` |
-| Bugs | `memory/bugs-tracker.md` | `BUG-` | User-reported or discovered during work |
-| DevOps | `memory/ops-tracker.md` | `OPS-` | Infrastructure and deployment work |
-| Build/CI | `memory/build-tracker.md` | `BUILD-` | CI, test frameworks, tooling |
-| Tech debt | `memory/tech-debt-tracker.md` | `TD-` | Refactors, cleanups, architectural improvements |
+| Tracker     | File                          | Prefix   | Tasks sourced from                              |
+| ----------- | ----------------------------- | -------- | ----------------------------------------------- |
+| Feature dev | `memory/dev-tracker.md`       | `DEV-`   | `exec-plans/<version>/dev-plan.md`              |
+| Bugs        | `memory/bugs-tracker.md`      | `BUG-`   | User-reported or discovered during work         |
+| DevOps      | `memory/ops-tracker.md`       | `OPS-`   | Infrastructure and deployment work              |
+| Build/CI    | `memory/build-tracker.md`     | `BUILD-` | CI, test frameworks, tooling                    |
+| Tech debt   | `memory/tech-debt-tracker.md` | `TD-`    | Refactors, cleanups, architectural improvements |
 
 **For `/pm-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers (`bugs`, `ops`, `build`, `tech-debt`) are updated by the PM when relevant tasks are added or completed, but `/pm-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003", "run ops tasks", or "address tech debt TD-001").
 
@@ -101,6 +106,7 @@ This project uses five tracker files. Each covers a different task domain:
 Check if `memory/dev-tracker.md` exists.
 
 **If it does NOT exist — create it** from the dev plan:
+
 ```markdown
 # Dev Tracker
 
@@ -113,6 +119,7 @@ Check if `memory/dev-tracker.md` exists.
 ---
 
 ## Progress Summary
+
 - Total: N tasks
 - ✅ Completed: 0
 - 🔄 Active: 0
@@ -137,6 +144,7 @@ Check if `memory/dev-tracker.md` exists.
 **If it DOES exist — sync it:**
 
 Read the current tracker. Identify:
+
 - Any `DEV-` tasks in `memory/active/` that aren't marked `🔄` → update them
 - Any `DEV-` tasks in `memory/completed/` that aren't marked `✅` → update them
 - Any new tasks in the dev plan not yet in the tracker → append them
@@ -149,6 +157,7 @@ Update `Last Updated` to today's date.
 For `bugs-tracker.md`, `ops-tracker.md`, `build-tracker.md`, `tech-debt-tracker.md`: check `memory/active/` and `memory/completed/` for any `BUG-`, `OPS-`, `BUILD-`, or `TD-` prefixed files that don't match the tracker state, and update counts/status accordingly.
 
 Log the sync result:
+
 ```
 📊 Trackers synced
    dev-tracker:       ✅ Completed: 2  |  🔄 Active: 1  |  ⏳ Pending: 5  |  ⚠️ Stuck: 0
@@ -205,6 +214,7 @@ Approve this cycle goal? (yes / adjust / skip)
 ```
 
 **Rules:**
+
 - **Never proceed to Phase 4 without explicit user approval.**
 - If the user says "adjust", ask what they'd like to change (different tasks,
   larger/smaller scope, different budget) and re-propose.
@@ -226,6 +236,7 @@ Exclude any that already have an active file in `memory/active/`.
 Respect priority order: dispatch 🔴 High before 🟡 Medium before 🟢 Low.
 
 Take up to `max-agents` tasks. Log your dispatch plan:
+
 ```
 🚀 PM Dispatch Plan
 ===================
@@ -240,6 +251,7 @@ Dispatching 3 tasks (max-agents: 3):
 ## Phase 5 — Create Active Tracking Files
 
 Before dispatching, create one file per task in `memory/active/TASK-XXX.md`:
+
 ```markdown
 # TASK-001: Add rate limiting middleware
 
@@ -250,16 +262,20 @@ Before dispatching, create one file per task in `memory/active/TASK-XXX.md`:
 **PR:** (pending)
 
 ## Requirements
+
 <full requirement text from dev plan>
 
 ## Review Rounds
+
 0
 
 ## Progress Log
+
 - YYYY-MM-DD HH:MM — Dispatched to implementer
 ```
 
 Also update `memory/dev-tracker.md`:
+
 - Change `- [ ] TASK-001` → `- [~] TASK-001` (in-progress marker)
 - Update Progress Summary counts
 - Update `Last Updated`
@@ -274,6 +290,7 @@ Also update `memory/dev-tracker.md`:
 Spawn one `implementer` subagent per selected task **simultaneously**.
 
 Tell each implementer:
+
 - The task ID (e.g. `TASK-001`)
 - The path to its context file: `memory/active/TASK-001.md`
 - The branch naming convention: `feature/<task-id-lowercase>-<short-slug>`
@@ -288,7 +305,9 @@ PR: #12
 BRANCH: feature/task-001-rate-limiting
 SUMMARY: <one paragraph of what was implemented>
 ```
+
 or:
+
 ```
 RESULT: STUCK
 TASK: TASK-001
@@ -297,6 +316,7 @@ REASON: <specific reason>
 
 When each implementer returns `PR_READY`, immediately update
 `memory/active/TASK-XXX.md`:
+
 - Set `**Branch:**` and `**PR:**` fields
 - Append to Progress Log: `YYYY-MM-DD HH:MM — PR #N created, entering review`
 
@@ -313,10 +333,12 @@ or the task is stuck:
 ### Step 7a — Dispatch pr-reviewer
 
 Spawn the `pr-reviewer` subagent. Tell it:
+
 - The task ID and path to its context file: `memory/active/TASK-XXX.md`
 - The PR number
 
 The reviewer will:
+
 - Fetch the diff via `gh pr diff <PR>`
 - Check code quality **and** security (OWASP Top 10) in a single pass
 - Post a GitHub PR comment with its findings
@@ -326,6 +348,7 @@ The reviewer will:
 ### Step 7b — Act on Results
 
 **If the reviewer returns APPROVED:**
+
 - Dispatch the `implementer` subagent with:
   - Task ID and context file path
   - Instruction: "Merge the PR" (implementer mode: merge)
@@ -334,6 +357,7 @@ The reviewer will:
   loop back to Step 7a for a fresh review round
 
 **If the reviewer returns CHANGES REQUESTED:**
+
 - Track how many times this task has had CHANGES REQUESTED (internal counter)
 - If the same feedback has been raised 3+ times with no progress:
   - Mark task as STUCK (see Phase 8 — On STUCK) and stop the loop
@@ -354,6 +378,7 @@ run their review dispatches in parallel where there are no dependencies.
 1. Move `memory/active/TASK-XXX.md` → `memory/completed/TASK-XXX.md`
 
 2. Update the completed file:
+
 ```markdown
 # TASK-001: Add rate limiting middleware
 
@@ -365,15 +390,19 @@ run their review dispatches in parallel where there are no dependencies.
 **PR:** #12 (merged)
 
 ## Requirements
+
 <original requirements>
 
 ## Implementation Summary
+
 <implementer's summary paragraph>
 
 ## Review Rounds
+
 N rounds before approval
 
 ## Progress Log
+
 <full log carried over>
 ```
 
@@ -429,6 +458,7 @@ N rounds before approval
 ## Phase 9 — Final PM Report
 
 Output a summary to the terminal:
+
 ```
 ╔══════════════════════════════════════════════════╗
 ║           PM Dispatch Report                     ║
@@ -452,11 +482,13 @@ Output a summary to the terminal:
 ```
 
 If unchecked tasks remain, ask:
+
 ```
 ▶ 4 tasks still pending. Run next batch? (will dispatch up to N agents)
 ```
 
 If all tasks are complete:
+
 ```
 🎉 All tasks in dev-tracker.md are complete! Sprint done.
 ```

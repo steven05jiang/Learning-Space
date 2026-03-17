@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { Suspense } from 'react'
-import { LoginForm } from '@/components/LoginForm'
+import { Suspense } from "react";
+import { LoginForm } from "@/components/LoginForm";
 
 function LoginPageContent() {
   return (
@@ -17,7 +17,7 @@ function LoginPageContent() {
         <LoginForm />
       </div>
     </div>
-  )
+  );
 }
 
 export default function LoginPage() {
@@ -31,5 +31,5 @@ export default function LoginPage() {
     >
       <LoginPageContent />
     </Suspense>
-  )
+  );
 }

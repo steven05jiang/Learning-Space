@@ -1,61 +1,67 @@
-'use client'
+"use client";
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, ExternalLink, RefreshCw } from 'lucide-react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useMock } from '@/lib/mock/hooks'
-import { mockResources } from '@/lib/mock'
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, ExternalLink, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useMock } from "@/lib/mock/hooks";
+import { mockResources } from "@/lib/mock";
 
 interface User {
-  id: string
-  email: string
-  display_name: string
-  avatar_url?: string
+  id: string;
+  email: string;
+  display_name: string;
+  avatar_url?: string;
 }
 
 interface Resource {
-  id: string
-  url?: string
-  title?: string
-  summary?: string
-  tags: string[]
-  status: 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED'
-  created_at: string
+  id: string;
+  url?: string;
+  title?: string;
+  summary?: string;
+  tags: string[];
+  status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  created_at: string;
 }
 
 interface ResourceListResponse {
-  items: Resource[]
-  total: number
-  limit: number
-  offset: number
+  items: Resource[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
-const STATUS_BADGE: Record<Resource['status'], { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  PENDING:    { label: 'Pending',    variant: 'outline' },
-  PROCESSING: { label: 'Processing', variant: 'secondary' },
-  READY:      { label: 'Ready',      variant: 'default' },
-  FAILED:     { label: 'Failed',     variant: 'destructive' },
-}
+const STATUS_BADGE: Record<
+  Resource["status"],
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
+  PENDING: { label: "Pending", variant: "outline" },
+  PROCESSING: { label: "Processing", variant: "secondary" },
+  READY: { label: "Ready", variant: "default" },
+  FAILED: { label: "Failed", variant: "destructive" },
+};
 
 function getSafeUrl(url: string): string | undefined {
   try {
-    const parsed = new URL(url)
-    return ['http:', 'https:'].includes(parsed.protocol) ? url : undefined
+    const parsed = new URL(url);
+    return ["http:", "https:"].includes(parsed.protocol) ? url : undefined;
   } catch {
-    return undefined
+    return undefined;
   }
 }
 
 function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // Convert mock Resource to API Resource shape
@@ -66,119 +72,137 @@ function toApiResource(r: (typeof mockResources)[0]): Resource {
     title: r.title,
     summary: r.summary,
     tags: r.tags,
-    status: r.status === 'processed' ? 'READY' : r.status === 'pending' ? 'PENDING' : 'FAILED',
+    status:
+      r.status === "processed"
+        ? "READY"
+        : r.status === "pending"
+          ? "PENDING"
+          : "FAILED",
     created_at: r.createdAt,
-  }
+  };
 }
 
 export default function ResourcesPage() {
-  const router = useRouter()
-  const isMock = useMock()
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [resources, setResources] = useState<Resource[]>([])
-  const [isLoadingResources, setIsLoadingResources] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [pagination, setPagination] = useState({ total: 0, limit: 20, offset: 0 })
+  const router = useRouter();
+  const isMock = useMock();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [isLoadingResources, setIsLoadingResources] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    limit: 20,
+    offset: 0,
+  });
 
   // Auth check
   useEffect(() => {
     if (isMock) {
-      setUser({ id: 'mock', email: 'alex@learningspace.dev', display_name: 'Alex Chen' })
-      setIsLoading(false)
-      return
+      setUser({
+        id: "mock",
+        email: "alex@learningspace.dev",
+        display_name: "Alex Chen",
+      });
+      setIsLoading(false);
+      return;
     }
 
-    const token = localStorage.getItem('auth_token')
-    const userInfo = localStorage.getItem('user_info')
+    const token = localStorage.getItem("auth_token");
+    const userInfo = localStorage.getItem("user_info");
 
     if (!token || !userInfo) {
-      router.push('/login')
-      return
+      router.push("/login");
+      return;
     }
 
     try {
-      setUser(JSON.parse(userInfo))
+      setUser(JSON.parse(userInfo));
     } catch {
-      localStorage.removeItem('user_info')
-      localStorage.removeItem('auth_token')
-      router.push('/login')
-      return
+      localStorage.removeItem("user_info");
+      localStorage.removeItem("auth_token");
+      router.push("/login");
+      return;
     }
 
-    setIsLoading(false)
-  }, [router, isMock])
+    setIsLoading(false);
+  }, [router, isMock]);
 
   const fetchResources = useCallback(async () => {
-    if (!user) return
+    if (!user) return;
 
     if (isMock) {
-      setIsLoadingResources(true)
-      await new Promise((r) => setTimeout(r, 400))
-      setResources(mockResources.map(toApiResource))
-      setPagination({ total: mockResources.length, limit: 20, offset: 0 })
-      setIsLoadingResources(false)
-      return
+      setIsLoadingResources(true);
+      await new Promise((r) => setTimeout(r, 400));
+      setResources(mockResources.map(toApiResource));
+      setPagination({ total: mockResources.length, limit: 20, offset: 0 });
+      setIsLoadingResources(false);
+      return;
     }
 
-    const token = localStorage.getItem('auth_token')
-    if (!token) return
+    const token = localStorage.getItem("auth_token");
+    if (!token) return;
 
-    setIsLoadingResources(true)
-    setError(null)
+    setIsLoadingResources(true);
+    setError(null);
 
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000'
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
     try {
       const response = await fetch(
         `${apiBase}/resources?limit=${pagination.limit}&offset=${pagination.offset}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
-      )
+        },
+      );
 
       if (response.status === 401) {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('user_info')
-        router.push('/login')
-        return
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch resources: ${response.statusText}`)
+        throw new Error(`Failed to fetch resources: ${response.statusText}`);
       }
 
-      const data: ResourceListResponse = await response.json()
-      setResources(data.items)
-      setPagination({ total: data.total, limit: data.limit, offset: data.offset })
+      const data: ResourceListResponse = await response.json();
+      setResources(data.items);
+      setPagination({
+        total: data.total,
+        limit: data.limit,
+        offset: data.offset,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load resources')
+      setError(err instanceof Error ? err.message : "Failed to load resources");
     } finally {
-      setIsLoadingResources(false)
+      setIsLoadingResources(false);
     }
-  }, [user, isMock, router, pagination.limit, pagination.offset])
+  }, [user, isMock, router, pagination.limit, pagination.offset]);
 
   useEffect(() => {
-    if (user) fetchResources()
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (user) fetchResources();
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for status updates every 10 seconds (API mode only)
   useEffect(() => {
-    if (!user || isMock) return
-    const interval = setInterval(() => fetchResources(), 10000)
-    return () => clearInterval(interval)
-  }, [user, isMock, fetchResources])
+    if (!user || isMock) return;
+    const interval = setInterval(() => fetchResources(), 10000);
+    return () => clearInterval(interval);
+  }, [user, isMock, fetchResources]);
 
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-56px)] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-foreground" />
       </div>
-    )
+    );
   }
 
   return (
@@ -200,10 +224,12 @@ export default function ResourcesPage() {
             onClick={fetchResources}
             disabled={isLoadingResources}
           >
-            <RefreshCw className={`h-4 w-4 ${isLoadingResources ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoadingResources ? "animate-spin" : ""}`}
+            />
             <span className="sr-only">Refresh</span>
           </Button>
-          <Button onClick={() => router.push('/resources/new')}>
+          <Button onClick={() => router.push("/resources/new")}>
             <Plus className="mr-2 h-4 w-4" />
             Add Resource
           </Button>
@@ -251,7 +277,7 @@ export default function ResourcesPage() {
               Get started by submitting your first learning resource.
             </p>
           </div>
-          <Button onClick={() => router.push('/resources/new')}>
+          <Button onClick={() => router.push("/resources/new")}>
             <Plus className="mr-2 h-4 w-4" />
             Add Resource
           </Button>
@@ -263,8 +289,10 @@ export default function ResourcesPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {resources.map((resource) => {
-              const statusConfig = STATUS_BADGE[resource.status]
-              const safeUrl = resource.url ? getSafeUrl(resource.url) : undefined
+              const statusConfig = STATUS_BADGE[resource.status];
+              const safeUrl = resource.url
+                ? getSafeUrl(resource.url)
+                : undefined;
 
               return (
                 <Card
@@ -274,9 +302,12 @@ export default function ResourcesPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold text-sm text-foreground line-clamp-2 leading-tight">
-                        {resource.title || resource.url || 'Untitled Resource'}
+                        {resource.title || resource.url || "Untitled Resource"}
                       </p>
-                      <Badge variant={statusConfig.variant} className="shrink-0 text-xs">
+                      <Badge
+                        variant={statusConfig.variant}
+                        className="shrink-0 text-xs"
+                      >
                         {statusConfig.label}
                       </Badge>
                     </div>
@@ -319,7 +350,11 @@ export default function ResourcesPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1 text-xs"
+                          >
                             Open
                             <ExternalLink className="h-3 w-3" />
                           </Button>
@@ -328,18 +363,18 @@ export default function ResourcesPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )
+              );
             })}
           </div>
 
           {/* Pagination info */}
           <p className="text-sm text-muted-foreground">
             Showing {pagination.offset + 1}–
-            {Math.min(pagination.offset + pagination.limit, pagination.total)} of{' '}
-            {pagination.total} resources
+            {Math.min(pagination.offset + pagination.limit, pagination.total)}{" "}
+            of {pagination.total} resources
           </p>
         </>
       )}
     </div>
-  )
+  );
 }

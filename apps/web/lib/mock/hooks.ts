@@ -7,5 +7,5 @@
 //   if (useMock()) return { data: mockResources, isLoading: false, error: null };
 
 export function useMock(): boolean {
-  return process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+  return process.env.NEXT_PUBLIC_USE_MOCK === "true";
 }

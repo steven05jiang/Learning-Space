@@ -9,6 +9,7 @@
 ---
 
 ## Progress Summary
+
 - Total: 53 tasks
 - ✅ Completed: 21
 - 🔄 Active: 0

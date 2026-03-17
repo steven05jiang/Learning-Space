@@ -1,23 +1,23 @@
-'use client'
+"use client";
 
-import { useState, useRef, useEffect } from 'react'
-import { Send, X, Bot, User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
-import { useMock } from '@/lib/mock/hooks'
-import { mockMessages } from '@/lib/mock'
+import { useState, useRef, useEffect } from "react";
+import { Send, X, Bot, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { useMock } from "@/lib/mock/hooks";
+import { mockMessages } from "@/lib/mock";
 
 interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
+  id: string;
+  role: "user" | "assistant";
+  content: string;
 }
 
 interface ChatPanelProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 const MOCK_RESPONSES = [
@@ -25,115 +25,124 @@ const MOCK_RESPONSES = [
   "Based on your resources, you have materials covering machine learning, transformers, and knowledge graphs. Would you like a summary of any topic?",
   "Great question! I can help you find connections between your resources or suggest related topics.",
   "I've analyzed your learning collection. You seem to be focused on AI/ML topics. Would you like recommendations?",
-]
+];
 
 export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
-  const isMock = useMock()
+  const isMock = useMock();
 
   const initialMessages: Message[] = isMock
     ? mockMessages.map((m) => ({ id: m.id, role: m.role, content: m.content }))
     : [
         {
-          id: '1',
-          role: 'assistant',
-          content: "Hello! I'm your AI learning assistant. How can I help you today?",
+          id: "1",
+          role: "assistant",
+          content:
+            "Hello! I'm your AI learning assistant. How can I help you today?",
         },
-      ]
+      ];
 
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
-  const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const mockResponseIndex = useRef(0)
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mockResponseIndex = useRef(0);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus()
+      inputRef.current.focus();
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
+      role: "user",
       content: input.trim(),
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput('')
-    setIsLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
 
     if (isMock) {
       // Mock mode: rotate through predefined responses
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      const response = MOCK_RESPONSES[mockResponseIndex.current % MOCK_RESPONSES.length]
-      mockResponseIndex.current++
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const response =
+        MOCK_RESPONSES[mockResponseIndex.current % MOCK_RESPONSES.length];
+      mockResponseIndex.current++;
       setMessages((prev) => [
         ...prev,
-        { id: (Date.now() + 1).toString(), role: 'assistant', content: response },
-      ])
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: response,
+        },
+      ]);
     } else {
       // API mode: call the AI agent endpoint
       try {
-        const token = localStorage.getItem('auth_token')
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000'
+        const token = localStorage.getItem("auth_token");
+        const apiBase =
+          process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
         const res = await fetch(`${apiBase}/chat`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ message: userMessage.content }),
-        })
+        });
 
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           setMessages((prev) => [
             ...prev,
             {
               id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: data.response ?? data.message ?? 'No response.',
+              role: "assistant",
+              content: data.response ?? data.message ?? "No response.",
             },
-          ])
+          ]);
         } else {
           setMessages((prev) => [
             ...prev,
             {
               id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: 'AI chat integration coming soon. Run with `npm run dev:mock` to try mock mode.',
+              role: "assistant",
+              content:
+                "AI chat integration coming soon. Run with `npm run dev:mock` to try mock mode.",
             },
-          ])
+          ]);
         }
       } catch {
         setMessages((prev) => [
           ...prev,
           {
             id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: 'Could not reach the AI service. Run with `npm run dev:mock` to try mock mode.',
+            role: "assistant",
+            content:
+              "Could not reach the AI service. Run with `npm run dev:mock` to try mock mode.",
           },
-        ])
+        ]);
       }
     }
 
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  };
 
   return (
     <div
       className={cn(
-        'fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out',
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+        "fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out",
+        isOpen ? "translate-x-0" : "translate-x-full",
       )}
     >
       {/* Header */}
@@ -145,7 +154,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
           <div>
             <h2 className="font-semibold text-foreground">AI Assistant</h2>
             <p className="text-xs text-muted-foreground">
-              {isMock ? 'Mock mode' : 'Always here to help'}
+              {isMock ? "Mock mode" : "Always here to help"}
             </p>
           </div>
         </div>
@@ -166,17 +175,20 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={cn('flex gap-3', message.role === 'user' && 'flex-row-reverse')}
+              className={cn(
+                "flex gap-3",
+                message.role === "user" && "flex-row-reverse",
+              )}
             >
               <div
                 className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                  message.role === 'assistant'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                  message.role === "assistant"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
-                {message.role === 'assistant' ? (
+                {message.role === "assistant" ? (
                   <Bot className="h-4 w-4" />
                 ) : (
                   <User className="h-4 w-4" />
@@ -184,10 +196,10 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
               </div>
               <div
                 className={cn(
-                  'max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-                  message.role === 'assistant'
-                    ? 'bg-muted text-foreground'
-                    : 'bg-primary text-primary-foreground'
+                  "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                  message.role === "assistant"
+                    ? "bg-muted text-foreground"
+                    : "bg-primary text-primary-foreground",
                 )}
               >
                 {message.content}
@@ -233,5 +245,5 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
         </form>
       </div>
     </div>
-  )
+  );
 }

@@ -2,8 +2,8 @@
 
 Each subfolder is a self-contained demo with documentation and execution artifacts.
 
-| # | Demo | Status | Date |
-|---|------|--------|------|
+| #   | Demo                                                                                 | Status      | Date       |
+| --- | ------------------------------------------------------------------------------------ | ----------- | ---------- |
 | 001 | [First User Journey](./001-first-user-journey/) — login → submit resource → see list | ✅ Executed | 2026-03-16 |
 
 ---

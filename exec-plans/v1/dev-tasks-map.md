@@ -1,4 +1,5 @@
 # Dev Tasks Dependency Map — Learning Space
+
 _Version: v1 | Generated: 2026-03-14_
 
 ---
@@ -115,50 +116,61 @@ DEV-001 → DEV-002 → DEV-005 → DEV-006 → DEV-013 → DEV-014 → DEV-032 
 ## Parallel Work Streams
 
 ### Stream A — Infrastructure (can start immediately)
+
 DEV-001
 
 ### Stream B — Backend Foundation (after DEV-001, parallel within stream)
+
 DEV-002, DEV-003, DEV-004, DEV-012, DEV-020, DEV-037, DEV-038, DEV-047
 
 ### Stream C — Auth Backend (after DEV-002 + DEV-004)
+
 DEV-005 → DEV-006 → DEV-007, DEV-008, DEV-009, DEV-010 (parallel after DEV-006)
 
 ### Stream D — Resource API (after DEV-006 + DEV-012)
+
 DEV-013, DEV-014, DEV-015 (parallel) → DEV-016, DEV-017 (after DEV-013)
 
 ### Stream E — Worker Pipeline (after DEV-004, parallel with Stream D)
+
 DEV-019, DEV-022 (parallel) → DEV-021 (after DEV-020 + DEV-002) → DEV-023 (after DEV-019 + DEV-020 + DEV-021 + DEV-022)
 
 ### Stream F — Graph Backend (after DEV-003)
+
 DEV-025 → DEV-026 (after DEV-025 + DEV-023), DEV-027 (after DEV-025 + DEV-019), DEV-028, DEV-029 (after DEV-025 + DEV-006)
 
 ### Stream G — Chat Backend (after DEV-014 + DEV-025 + DEV-004)
+
 DEV-035 (after DEV-002) → DEV-032 → DEV-033 → DEV-034
 
 ### Stream H — Frontend Auth (after DEV-005)
+
 DEV-039 → DEV-040 (after DEV-039 + DEV-009), DEV-041 (after DEV-039 + DEV-013)
 
 ### Stream I — Frontend Features (after respective APIs)
+
 DEV-042 (after DEV-041 + DEV-014), DEV-043 (after DEV-015 + DEV-016 + DEV-017)
 DEV-044 (after DEV-028 + DEV-029), DEV-045 (after DEV-044 + DEV-030)
 DEV-046 (after DEV-033 + DEV-034)
 
 ### Stream J — Testing (after respective implementations)
+
 DEV-011, DEV-018, DEV-024, DEV-031, DEV-036 (parallel, each after its module)
 DEV-050, DEV-051 (integration, after unit tests)
 
 ### Stream K — Deployment (after DEV-047)
+
 DEV-048 → DEV-049
 
 ---
 
 ## Milestone Gates
 
-| Milestone | Blocked Tasks Unlocked | Required DEV Tasks |
-|-----------|------------------------|-------------------|
-| **M1: Foundation** | All backend modules | DEV-001, DEV-002, DEV-003, DEV-004, DEV-012, DEV-037, DEV-038 |
+| Milestone                     | Blocked Tasks Unlocked                 | Required DEV Tasks                                                                                                  |
+| ----------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **M1: Foundation**            | All backend modules                    | DEV-001, DEV-002, DEV-003, DEV-004, DEV-012, DEV-037, DEV-038                                                       |
 | **M2: Auth + First Resource** | Resource UI, Settings, Graph API, Chat | DEV-005, DEV-006, DEV-007, DEV-008, DEV-009, DEV-010, DEV-013, DEV-014, DEV-015, DEV-019, DEV-020, DEV-022, DEV-039 |
-| **M3: Processing Pipeline** | Graph updates, FAILED status UI | DEV-021, DEV-023, DEV-025, DEV-026, DEV-027 |
-| **M4: Graph + Chat** | Graph UI, Chat UI, all frontend | DEV-028, DEV-029, DEV-030, DEV-032, DEV-033, DEV-034, DEV-035 |
-| **M5: Full Frontend** | Integration tests | DEV-040, DEV-041, DEV-042, DEV-043, DEV-044, DEV-045, DEV-046 |
-| **M6: Tested & Deployed** | Production readiness | DEV-011, DEV-016, DEV-017, DEV-018, DEV-024, DEV-031, DEV-036, DEV-047, DEV-048, DEV-049, DEV-050, DEV-051 |
+| **M3: Processing Pipeline**   | Graph updates, FAILED status UI        | DEV-021, DEV-023, DEV-025, DEV-026, DEV-027                                                                         |
+| **M4: Graph + Chat**          | Graph UI, Chat UI, all frontend        | DEV-028, DEV-029, DEV-030, DEV-032, DEV-033, DEV-034, DEV-035                                                       |
+| **M5: Full Frontend**         | Integration tests                      | DEV-040, DEV-041, DEV-042, DEV-043, DEV-044, DEV-045, DEV-046                                                       |
+| **M6: Tested & Deployed**     | Production readiness                   | DEV-011, DEV-016, DEV-017, DEV-018, DEV-024, DEV-031, DEV-036, DEV-047, DEV-048, DEV-049, DEV-050, DEV-051          |

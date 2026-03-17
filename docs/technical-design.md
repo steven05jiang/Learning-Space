@@ -21,14 +21,14 @@ This document provides a technical design for the Learning Space application, de
 
 ### 1.1 Architecture Summary
 
-| Layer | Technology | Responsibility |
-|-------|------------|----------------|
-| **UI** | Next.js, graph lib (e.g. React Flow / Cytoscape.js) | Resource submission, browsing, graph viz, chatbot |
-| **API** | FastAPI | Request routing, auth, rate limiting |
-| **Resource Update** | Python (async workers) | Create/update/delete resources, LLM summarization, tag extraction, graph updates |
-| **Resource Viewer** | Python service | Read resources, search by tag, graph traversal APIs |
-| **AI Agent** | LangGraph, LangSmith | Chat, tool use (search, graph, summarization) |
-| **Data** | PostgreSQL, Neo4j | Users/resources/metadata; knowledge graph |
+| Layer               | Technology                                          | Responsibility                                                                   |
+| ------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **UI**              | Next.js, graph lib (e.g. React Flow / Cytoscape.js) | Resource submission, browsing, graph viz, chatbot                                |
+| **API**             | FastAPI                                             | Request routing, auth, rate limiting                                             |
+| **Resource Update** | Python (async workers)                              | Create/update/delete resources, LLM summarization, tag extraction, graph updates |
+| **Resource Viewer** | Python service                                      | Read resources, search by tag, graph traversal APIs                              |
+| **AI Agent**        | LangGraph, LangSmith                                | Chat, tool use (search, graph, summarization)                                    |
+| **Data**            | PostgreSQL, Neo4j                                   | Users/resources/metadata; knowledge graph                                        |
 
 ### 1.2 Data Store Responsibilities
 
@@ -45,31 +45,31 @@ This document provides a technical design for the Learning Space application, de
 
 Represents a single person. Identity is aggregated from one or more linked social accounts.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK, default gen_random_uuid() | User ID |
-| `display_name` | VARCHAR(255) | | Preferred display name (optional; can be derived from linked accounts) |
-| `email` | VARCHAR(255) | | Preferred email (optional; can be derived from linked accounts) |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default now() | |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, default now() | |
+| Column         | Type         | Constraints                   | Description                                                            |
+| -------------- | ------------ | ----------------------------- | ---------------------------------------------------------------------- |
+| `id`           | UUID         | PK, default gen_random_uuid() | User ID                                                                |
+| `display_name` | VARCHAR(255) |                               | Preferred display name (optional; can be derived from linked accounts) |
+| `email`        | VARCHAR(255) |                               | Preferred email (optional; can be derived from linked accounts)        |
+| `created_at`   | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                        |
+| `updated_at`   | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                        |
 
 #### 2.1.2 `user_accounts`
 
 One row per linked social (OAuth) account. A user can have multiple accounts (e.g. Twitter + Google + GitHub). Login with any linked account authenticates as the same user.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK, default gen_random_uuid() | Account ID |
-| `user_id` | UUID | FK(users.id), NOT NULL | Owner user |
-| `provider` | VARCHAR(50) | NOT NULL | e.g. `twitter`, `google`, `github` |
-| `external_id` | VARCHAR(255) | NOT NULL | Provider's subject (e.g. Twitter user ID) |
-| `access_token` | TEXT | | Encrypted; used for provider API calls and for **fetching URL content** when a resource URL is from that provider and requires login (e.g. Twitter post). |
-| `refresh_token` | TEXT | | If provider supports refresh |
-| `email` | VARCHAR(255) | | Email from provider (if available) |
-| `display_name` | VARCHAR(255) | | Display name from provider |
-| `last_login_at` | TIMESTAMPTZ | | Last time this account was used to log in |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default now() | |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, default now() | |
+| Column          | Type         | Constraints                   | Description                                                                                                                                               |
+| --------------- | ------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | UUID         | PK, default gen_random_uuid() | Account ID                                                                                                                                                |
+| `user_id`       | UUID         | FK(users.id), NOT NULL        | Owner user                                                                                                                                                |
+| `provider`      | VARCHAR(50)  | NOT NULL                      | e.g. `twitter`, `google`, `github`                                                                                                                        |
+| `external_id`   | VARCHAR(255) | NOT NULL                      | Provider's subject (e.g. Twitter user ID)                                                                                                                 |
+| `access_token`  | TEXT         |                               | Encrypted; used for provider API calls and for **fetching URL content** when a resource URL is from that provider and requires login (e.g. Twitter post). |
+| `refresh_token` | TEXT         |                               | If provider supports refresh                                                                                                                              |
+| `email`         | VARCHAR(255) |                               | Email from provider (if available)                                                                                                                        |
+| `display_name`  | VARCHAR(255) |                               | Display name from provider                                                                                                                                |
+| `last_login_at` | TIMESTAMPTZ  |                               | Last time this account was used to log in                                                                                                                 |
+| `created_at`    | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                           |
+| `updated_at`    | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                           |
 
 **Unique constraint**: `(provider, external_id)` — a given social account can be linked to at most one user.
 
@@ -77,32 +77,32 @@ One row per linked social (OAuth) account. A user can have multiple accounts (e.
 
 #### 2.1.3 `resources`
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK, default gen_random_uuid() | Resource ID |
-| `owner_id` | UUID | FK(users.id), NOT NULL | Owner user |
-| `content_type` | VARCHAR(20) | NOT NULL | `url` or `text` |
-| `original_content` | TEXT | NOT NULL | URL string or pasted text |
-| `title` | VARCHAR(500) | | LLM-generated or derived title |
-| `summary` | TEXT | | LLM-generated summary |
-| `tags` | JSONB | default '[]' | Array of tag strings from LLM |
-| `status` | VARCHAR(20) | NOT NULL, default 'PENDING' | `PENDING`, `PROCESSING`, `READY`, `FAILED` |
-| `status_message` | VARCHAR(500) | | Optional error or progress message (e.g. "Link your Twitter account in Settings to save content from this site.") |
-| `prefer_provider` | VARCHAR(50) | | Optional. For URL resources: which linked account to use when the target site requires login (e.g. `twitter`, `google`). Worker can also infer from URL domain. |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default now() | |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, default now() | |
+| Column             | Type         | Constraints                   | Description                                                                                                                                                     |
+| ------------------ | ------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | UUID         | PK, default gen_random_uuid() | Resource ID                                                                                                                                                     |
+| `owner_id`         | UUID         | FK(users.id), NOT NULL        | Owner user                                                                                                                                                      |
+| `content_type`     | VARCHAR(20)  | NOT NULL                      | `url` or `text`                                                                                                                                                 |
+| `original_content` | TEXT         | NOT NULL                      | URL string or pasted text                                                                                                                                       |
+| `title`            | VARCHAR(500) |                               | LLM-generated or derived title                                                                                                                                  |
+| `summary`          | TEXT         |                               | LLM-generated summary                                                                                                                                           |
+| `tags`             | JSONB        | default '[]'                  | Array of tag strings from LLM                                                                                                                                   |
+| `status`           | VARCHAR(20)  | NOT NULL, default 'PENDING'   | `PENDING`, `PROCESSING`, `READY`, `FAILED`                                                                                                                      |
+| `status_message`   | VARCHAR(500) |                               | Optional error or progress message (e.g. "Link your Twitter account in Settings to save content from this site.")                                               |
+| `prefer_provider`  | VARCHAR(50)  |                               | Optional. For URL resources: which linked account to use when the target site requires login (e.g. `twitter`, `google`). Worker can also infer from URL domain. |
+| `created_at`       | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
+| `updated_at`       | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
 
 **Indexes**: `owner_id`, `status`, `created_at`, GIN on `tags` for search.
 
 #### 2.1.4 `resource_processing_log` (optional, for observability)
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | |
-| `resource_id` | UUID | FK(resources.id) | |
-| `event` | VARCHAR(50) | | e.g. `queued`, `fetch_started`, `llm_started`, `graph_updated`, `completed`, `failed` |
-| `payload` | JSONB | | Event-specific data |
-| `created_at` | TIMESTAMPTZ | NOT NULL | |
+| Column        | Type        | Constraints      | Description                                                                           |
+| ------------- | ----------- | ---------------- | ------------------------------------------------------------------------------------- |
+| `id`          | UUID        | PK               |                                                                                       |
+| `resource_id` | UUID        | FK(resources.id) |                                                                                       |
+| `event`       | VARCHAR(50) |                  | e.g. `queued`, `fetch_started`, `llm_started`, `graph_updated`, `completed`, `failed` |
+| `payload`     | JSONB       |                  | Event-specific data                                                                   |
+| `created_at`  | TIMESTAMPTZ | NOT NULL         |                                                                                       |
 
 ### 2.2 Neo4j (Knowledge Graph)
 
@@ -197,11 +197,11 @@ Or for pasted text:
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `content_type` | string | Yes | `"url"` or `"text"` |
-| `original_content` | string | Yes | URL or raw text |
-| `prefer_provider` | string | No | When the URL is from a login-required site (e.g. Twitter), hint which linked account to use: `twitter`, `google`, `github`. If omitted, the worker infers from URL domain (e.g. twitter.com → twitter). |
+| Field              | Type   | Required | Description                                                                                                                                                                                             |
+| ------------------ | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content_type`     | string | Yes      | `"url"` or `"text"`                                                                                                                                                                                     |
+| `original_content` | string | Yes      | URL or raw text                                                                                                                                                                                         |
+| `prefer_provider`  | string | No       | When the URL is from a login-required site (e.g. Twitter), hint which linked account to use: `twitter`, `google`, `github`. If omitted, the worker infers from URL domain (e.g. twitter.com → twitter). |
 
 **Submission requires authentication.** If the client is not logged in, `POST /resources` returns **401 Unauthorized**. The frontend should prompt the user to log in and then retry or redirect to login before allowing resource submission.
 
@@ -249,12 +249,12 @@ All fields optional; only provided fields are updated. Changing `original_conten
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Tag name (unique per user) |
-| `label` | string | Display label (same as id for tags) |
-| `level` | string | `parent` \| `current` \| `child` |
-| `resource_count` | integer | Number of resources with this tag |
+| Field            | Type    | Description                         |
+| ---------------- | ------- | ----------------------------------- |
+| `id`             | string  | Tag name (unique per user)          |
+| `label`          | string  | Display label (same as id for tags) |
+| `level`          | string  | `parent` \| `current` \| `child`    |
+| `resource_count` | integer | Number of resources with this tag   |
 
 #### 3.2.2 Graph edge
 
@@ -272,8 +272,18 @@ All fields optional; only provided fields are updated. Changing `original_conten
 {
   "nodes": [
     { "id": "AI", "label": "AI", "level": "parent", "resource_count": 5 },
-    { "id": "Coding Agents", "label": "Coding Agents", "level": "current", "resource_count": 3 },
-    { "id": "Developer Tools", "label": "Developer Tools", "level": "child", "resource_count": 2 }
+    {
+      "id": "Coding Agents",
+      "label": "Coding Agents",
+      "level": "current",
+      "resource_count": 3
+    },
+    {
+      "id": "Developer Tools",
+      "label": "Developer Tools",
+      "level": "child",
+      "resource_count": 2
+    }
   ],
   "edges": [
     { "source": "AI", "target": "Coding Agents", "weight": 3 },
@@ -300,10 +310,10 @@ Query params or body to request “next level” centered on a node:
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `message` | string | Yes | User message |
-| `conversation_id` | string (UUID) | No | If omitted, start new conversation |
+| Field             | Type          | Required | Description                        |
+| ----------------- | ------------- | -------- | ---------------------------------- |
+| `message`         | string        | Yes      | User message                       |
+| `conversation_id` | string (UUID) | No       | If omitted, start new conversation |
 
 #### 3.3.2 Chat message (response)
 
@@ -353,23 +363,23 @@ Includes the user and all linked social accounts (tokens and sensitive fields ar
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string (UUID) | User ID |
-| `display_name` | string | User-level display name (e.g. from primary account or merged) |
-| `email` | string \| null | User-level email if available from any account |
-| `accounts` | array | List of linked social accounts (no tokens) |
+| Field          | Type           | Description                                                   |
+| -------------- | -------------- | ------------------------------------------------------------- |
+| `id`           | string (UUID)  | User ID                                                       |
+| `display_name` | string         | User-level display name (e.g. from primary account or merged) |
+| `email`        | string \| null | User-level email if available from any account                |
+| `accounts`     | array          | List of linked social accounts (no tokens)                    |
 
 #### 3.4.2 Linked account (response, within current user)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string (UUID) | Account ID (use for unlink) |
-| `provider` | string | `twitter`, `google`, `github` |
-| `display_name` | string \| null | Display name from provider |
-| `email` | string \| null | Email from provider |
-| `last_login_at` | string (ISO8601) \| null | Last login with this account |
-| `created_at` | string (ISO8601) | When the account was linked |
+| Field           | Type                     | Description                   |
+| --------------- | ------------------------ | ----------------------------- |
+| `id`            | string (UUID)            | Account ID (use for unlink)   |
+| `provider`      | string                   | `twitter`, `google`, `github` |
+| `display_name`  | string \| null           | Display name from provider    |
+| `email`         | string \| null           | Email from provider           |
+| `last_login_at` | string (ISO8601) \| null | Last login with this account  |
+| `created_at`    | string (ISO8601)         | When the account was linked   |
 
 ### 3.5 Errors
 
@@ -393,41 +403,41 @@ Base path: `/api/v1`. All endpoints except auth and health require authenticatio
 
 ### 4.1 Health & Auth
 
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| GET | `/health` | Liveness/readiness | No |
-| GET | `/auth/login/{provider}` | Redirect to OAuth provider (`twitter`, `google`, `github`). Query: `?redirect_uri=` optional. | No |
-| GET | `/auth/callback` | OAuth callback. Query: `state` (e.g. `link:<user_id>` for link flow). Creates or finds user/account; returns session/JWT. | No |
-| GET | `/auth/link/{provider}` | Start link flow (must be authenticated). Redirects to provider; callback creates new `user_accounts` row for current user. | Yes |
-| POST | `/auth/logout` | Invalidate session | Yes |
-| GET | `/auth/me` | Current user and linked accounts (see [3.4.1](#341-current-user-response)) | Yes |
-| DELETE | `/auth/accounts/{account_id}` | Unlink a social account. Fails with 400 if it is the user's last account (must keep at least one). | Yes |
+| Method | Path                          | Description                                                                                                                | Auth |
+| ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---- |
+| GET    | `/health`                     | Liveness/readiness                                                                                                         | No   |
+| GET    | `/auth/login/{provider}`      | Redirect to OAuth provider (`twitter`, `google`, `github`). Query: `?redirect_uri=` optional.                              | No   |
+| GET    | `/auth/callback`              | OAuth callback. Query: `state` (e.g. `link:<user_id>` for link flow). Creates or finds user/account; returns session/JWT.  | No   |
+| GET    | `/auth/link/{provider}`       | Start link flow (must be authenticated). Redirects to provider; callback creates new `user_accounts` row for current user. | Yes  |
+| POST   | `/auth/logout`                | Invalidate session                                                                                                         | Yes  |
+| GET    | `/auth/me`                    | Current user and linked accounts (see [3.4.1](#341-current-user-response))                                                 | Yes  |
+| DELETE | `/auth/accounts/{account_id}` | Unlink a social account. Fails with 400 if it is the user's last account (must keep at least one).                         | Yes  |
 
 ### 4.2 Resources
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/resources` | Create resource (body: content_type, original_content, optional prefer_provider). **Requires auth**; returns 401 if not logged in. Returns 202 with resource (status PENDING/PROCESSING). |
-| GET | `/resources` | List resources for current user. Query: `?status=READY`, `?tag=AI`, `?limit=20`, `?offset=0`. |
-| GET | `/resources/{id}` | Get single resource. |
-| PATCH | `/resources/{id}` | Update resource (user-editable fields). If original_content changes, trigger re-processing. |
-| DELETE | `/resources/{id}` | Delete resource and update graph asynchronously. |
+| Method | Path              | Description                                                                                                                                                                               |
+| ------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/resources`      | Create resource (body: content_type, original_content, optional prefer_provider). **Requires auth**; returns 401 if not logged in. Returns 202 with resource (status PENDING/PROCESSING). |
+| GET    | `/resources`      | List resources for current user. Query: `?status=READY`, `?tag=AI`, `?limit=20`, `?offset=0`.                                                                                             |
+| GET    | `/resources/{id}` | Get single resource.                                                                                                                                                                      |
+| PATCH  | `/resources/{id}` | Update resource (user-editable fields). If original_content changes, trigger re-processing.                                                                                               |
+| DELETE | `/resources/{id}` | Delete resource and update graph asynchronously.                                                                                                                                          |
 
 ### 4.3 Knowledge Graph
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/graph` | Get graph view (parent / current / child levels). Query: `?root=TagName` (optional; default root = “all” or first level). |
-| GET | `/graph/nodes/{node_id}/resources` | List resources that have the given tag. |
-| POST | `/graph/expand` | Expand graph (body or query: `node_id`, optional `direction`). Returns updated nodes/edges for next level. |
+| Method | Path                               | Description                                                                                                               |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/graph`                           | Get graph view (parent / current / child levels). Query: `?root=TagName` (optional; default root = “all” or first level). |
+| GET    | `/graph/nodes/{node_id}/resources` | List resources that have the given tag.                                                                                   |
+| POST   | `/graph/expand`                    | Expand graph (body or query: `node_id`, optional `direction`). Returns updated nodes/edges for next level.                |
 
 ### 4.4 Chat
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/chat` | Send message (body: message, optional conversation_id). Returns assistant message (streaming optional). |
-| GET | `/chat/conversations` | List conversations for current user. |
-| GET | `/chat/conversations/{id}/messages` | Get messages in a conversation. |
+| Method | Path                                | Description                                                                                             |
+| ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| POST   | `/chat`                             | Send message (body: message, optional conversation_id). Returns assistant message (streaming optional). |
+| GET    | `/chat/conversations`               | List conversations for current user.                                                                    |
+| GET    | `/chat/conversations/{id}/messages` | Get messages in a conversation.                                                                         |
 
 ### 4.5 Example Request/Response
 
@@ -513,7 +523,7 @@ When the resource is a URL, the worker fetches the content as follows:
    - **Resolve provider**: From the URL domain (e.g. twitter.com → `twitter`) or from the optional `prefer_provider` stored with the resource (or passed in the job payload).
    - **Load linked account**: Look up `user_accounts` for the resource’s `owner_id` and matching `provider`. Use that account’s `access_token` (refresh first if expired and `refresh_token` is available).
    - **Fetch with token**: Call the provider’s API or perform an authenticated fetch (e.g. Twitter API, or authenticated scrape) to obtain the content.
-3. **If the user has no linked account for that provider**, set resource `status = FAILED` and `status_message` to a user-facing message, e.g. *"This link requires login. Link your Twitter account in Settings to save content from Twitter."* The UI can show this and offer a link to Settings to add the account.
+3. **If the user has no linked account for that provider**, set resource `status = FAILED` and `status_message` to a user-facing message, e.g. _"This link requires login. Link your Twitter account in Settings to save content from Twitter."_ The UI can show this and offer a link to Settings to add the account.
 4. For **pasted text** (`content_type = text`), no fetch is needed; use `original_content` as-is.
 
 ### 5.2 Resource update (re-process)
@@ -875,18 +885,18 @@ Learning-Space/
 
 ### 8.5 Environment variables (reference)
 
-| Variable | Where | Description |
-|----------|--------|-------------|
-| `DATABASE_URL` | API, Worker | PostgreSQL connection string |
-| `NEO4J_URI` | API, Worker | Neo4j bolt URI |
-| `NEO4J_USER` / `NEO4J_PASSWORD` | API, Worker | Neo4j auth |
-| `REDIS_URL` | API, Worker | If using Celery |
-| `OAUTH_TWITTER_CLIENT_ID` / `OAUTH_TWITTER_CLIENT_SECRET` | API | Twitter/X OAuth |
-| `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET` | API | Google OAuth (when enabled) |
-| `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET` | API | GitHub OAuth (when enabled) |
-| `OAUTH_CALLBACK_BASE_URL` | API | e.g. `https://api.learningspace.example` (single callback for all providers) |
-| `LANGCHAIN_API_KEY` | API (agent) | LangSmith |
-| `OPENAI_API_KEY` or LLM provider keys | API (agent), Worker | LLM for summarization and agent |
+| Variable                                                  | Where               | Description                                                                  |
+| --------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `DATABASE_URL`                                            | API, Worker         | PostgreSQL connection string                                                 |
+| `NEO4J_URI`                                               | API, Worker         | Neo4j bolt URI                                                               |
+| `NEO4J_USER` / `NEO4J_PASSWORD`                           | API, Worker         | Neo4j auth                                                                   |
+| `REDIS_URL`                                               | API, Worker         | If using Celery                                                              |
+| `OAUTH_TWITTER_CLIENT_ID` / `OAUTH_TWITTER_CLIENT_SECRET` | API                 | Twitter/X OAuth                                                              |
+| `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET`   | API                 | Google OAuth (when enabled)                                                  |
+| `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET`   | API                 | GitHub OAuth (when enabled)                                                  |
+| `OAUTH_CALLBACK_BASE_URL`                                 | API                 | e.g. `https://api.learningspace.example` (single callback for all providers) |
+| `LANGCHAIN_API_KEY`                                       | API (agent)         | LangSmith                                                                    |
+| `OPENAI_API_KEY` or LLM provider keys                     | API (agent), Worker | LLM for summarization and agent                                              |
 
 ### 8.6 Testing hints
 
@@ -900,4 +910,4 @@ Learning-Space/
 
 ---
 
-*This technical design should be updated when requirements or technology choices change. Keep it in sync with [requirements.md](requirements.md).*
+_This technical design should be updated when requirements or technology choices change. Keep it in sync with [requirements.md](requirements.md)._

@@ -8,6 +8,7 @@
 ---
 
 ## Progress Summary
+
 - Total: 5 tasks
 - ✅ Fixed: 5
 - 🔄 Active: 0

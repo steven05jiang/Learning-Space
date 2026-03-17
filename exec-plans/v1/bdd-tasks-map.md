@@ -1,4 +1,5 @@
 # BDD Tasks Dependency Map — Learning Space
+
 _Version: v1 | Generated: 2026-03-14_
 
 ---
@@ -133,22 +134,26 @@ _Version: v1 | Generated: 2026-03-14_
 These groups of scenarios have no interdependencies and can be developed/tested in parallel:
 
 **Group A — Foundation (no dependencies):**
+
 - Health check returns OK
 - API returns standard error format
 - Docker images build successfully
 
 **Group B — Auth (depends only on Group A foundation):**
+
 - User logs in with Twitter for the first time
 - Session/JWT is validated on each request
 - Unauthenticated user is redirected to login
 
 **Group C — After Auth established (parallel within group):**
+
 - User links an additional social account
 - User retrieves their profile and linked accounts
 - Authenticated user submits a URL resource
 - Authenticated user submits a text resource
 
 **Group D — After resources exist (parallel within group):**
+
 - User lists their resources
 - User views a single resource
 - User filters resources by status
@@ -158,12 +163,14 @@ These groups of scenarios have no interdependencies and can be developed/tested 
 - Worker processes a text resource successfully
 
 **Group E — After graph populated (parallel within group):**
+
 - User views the root graph
 - User views graph centered on a specific tag
 - User expands a graph node
 - User views resources for a graph node
 
 **Group F — Frontend (parallel with backend, after APIs exist):**
+
 - Resource UI scenarios
 - Graph visualization scenarios
 - Chat UI scenarios

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Optional, Tuple
 
 from fastapi import HTTPException, status
@@ -58,7 +58,7 @@ class AuthService:
             provider_account_id=provider_account_id,
             access_token=access_token,
             refresh_token=refresh_token,
-            last_login_at=datetime.now(timezone.utc),
+            last_login_at=datetime.utcnow(),
         )
         db.add(account)
         await db.commit()
@@ -81,7 +81,7 @@ class AuthService:
                 account.access_token = access_token
                 if refresh_token:
                     account.refresh_token = refresh_token
-                account.last_login_at = datetime.now(timezone.utc)
+                account.last_login_at = datetime.utcnow()
                 break
         await db.commit()
 
@@ -184,7 +184,7 @@ class AuthService:
                 provider_account_id=provider_account_id,
                 access_token=access_token,
                 refresh_token=refresh_token,
-                last_login_at=datetime.now(timezone.utc),
+                last_login_at=datetime.utcnow(),
             )
             db.add(account)
             await db.commit()
