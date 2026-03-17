@@ -3,9 +3,11 @@
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from core.deps import get_current_user
+from models.user import User
 from services.queue_service import queue_service
 
 logger = logging.getLogger(__name__)
@@ -45,7 +47,10 @@ class JobStatusResponse(BaseModel):
 
 
 @router.post("/process-resource", response_model=JobResponse)
-async def enqueue_resource_processing(request: ResourceProcessingRequest):
+async def enqueue_resource_processing(
+    request: ResourceProcessingRequest,
+    current_user: User = Depends(get_current_user),
+):
     """Enqueue a resource processing job.
 
     Args:
@@ -61,10 +66,8 @@ async def enqueue_resource_processing(request: ResourceProcessingRequest):
         job_id = await queue_service.enqueue_resource_processing(
             request.resource_id, request.options
         )
-        return JobResponse(
-            job_id=job_id,
-            message=f"Resource processing job enqueued for resource {request.resource_id}"
-        )
+        message = f"Resource processing job enqueued for resource {request.resource_id}"
+        return JobResponse(job_id=job_id, message=message)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -73,7 +76,10 @@ async def enqueue_resource_processing(request: ResourceProcessingRequest):
 
 
 @router.post("/sync-graph", response_model=JobResponse)
-async def enqueue_graph_sync(request: GraphSyncRequest):
+async def enqueue_graph_sync(
+    request: GraphSyncRequest,
+    current_user: User = Depends(get_current_user),
+):
     """Enqueue a graph synchronization job.
 
     Args:
@@ -91,7 +97,7 @@ async def enqueue_graph_sync(request: GraphSyncRequest):
         )
         return JobResponse(
             job_id=job_id,
-            message=f"Graph sync job enqueued for entity {request.entity_id}"
+            message=f"Graph sync job enqueued for entity {request.entity_id}",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -101,7 +107,10 @@ async def enqueue_graph_sync(request: GraphSyncRequest):
 
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
-async def get_job_status(job_id: str):
+async def get_job_status(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Get the status of a job.
 
     Args:
