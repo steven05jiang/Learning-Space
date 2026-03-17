@@ -297,7 +297,8 @@ export default function ResourcesPage() {
               return (
                 <Card
                   key={resource.id}
-                  className="flex flex-col transition-shadow hover:shadow-md"
+                  className="flex flex-col transition-shadow hover:shadow-md cursor-pointer"
+                  onClick={() => router.push(`/resources/${resource.id}`)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
