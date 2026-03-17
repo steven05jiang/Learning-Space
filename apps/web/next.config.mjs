@@ -6,9 +6,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  eslint: {
-    dirs: ['.']
-  },
 }
 
 export default nextConfig
