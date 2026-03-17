@@ -8,12 +8,13 @@
 
 Use the following stack:
 
-* **Framework:** Next.js (App Router)
+* **Framework:** Next.js 16.1.6 (App Router) with Turbopack
 * **Language:** TypeScript
-* **UI:** React
-* **Styling:** TailwindCSS
-* **Component Library:** shadcn/ui
+* **UI:** React 19.2.4
+* **Styling:** TailwindCSS v4 (`@import 'tailwindcss'`, `@tailwindcss/postcss`)
+* **Component Library:** shadcn/ui (New York style)
 * **Icons:** lucide-react
+* **Graph Visualization:** react-force-graph-2d (knowledge graph)
 
 The UI must support **system dark/light mode automatically** using `prefers-color-scheme`.
 
@@ -42,53 +43,28 @@ Use **two different UI styles**:
 
 # 3. Color System
 
+Colors are defined via **OKLch CSS variables** in `globals.css` (not raw hex). The system auto-switches via `prefers-color-scheme`.
+
+Reference values (approximate hex equivalents):
+
 ### Light Mode
 
-Background:
-
-```
-#f8fafc
-```
-
-Card background:
-
-```
-#ffffff
-```
-
-Primary color:
-
-```
-#6366f1
-```
-
-Accent color:
-
-```
-#22c55e
-```
-
----
+| Token | Value |
+|-------|-------|
+| Background | `#f8fafc` |
+| Card | `#ffffff` |
+| Primary | `#111827` (near-black, OKLch-based) |
+| Border | `#e5e7eb` |
+| Text primary | `#111827` |
+| Text secondary | `#6b7280` |
 
 ### Dark Mode
 
-Background:
-
-```
-#0f172a
-```
-
-Card background:
-
-```
-#1e293b
-```
-
-Text:
-
-```
-#e5e7eb
-```
+| Token | Value |
+|-------|-------|
+| Background | `#0f172a` |
+| Card | `#1e293b` |
+| Text | `#e5e7eb` |
 
 ---
 
@@ -100,15 +76,18 @@ Modern Gradient UI with minimal content.
 
 Full-screen gradient background with a centered login card.
 
-### Gradient Background
+### Background
 
-Use a vibrant gradient similar to:
+**Blur orbs** (not full-screen gradient). Three layered radial gradient blobs using `blur-3xl` create a soft ambient effect. The page background is `bg-background` (neutral).
 
+```tsx
+// Implemented in app/login/page.tsx
+<div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent blur-3xl" />
+<div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-gradient-to-tl from-muted/60 via-muted/30 to-transparent blur-3xl" />
+<div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] ... blur-3xl" />
 ```
-linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899)
-```
 
-Dark mode should use a darker gradient variation.
+> **Decision:** Chose prototype's blur orbs over the original full-screen gradient spec.
 
 ---
 
@@ -166,10 +145,12 @@ Required components:
 * Password input
 * Sign In button
 * Forgot Password link
+* "Don't have an account? Sign up" link
 
-Optional:
+Social login (2-column grid layout):
 
 * Login with Google
+* Login with X (Twitter)
 
 ---
 
@@ -257,13 +238,15 @@ AI Agent
 
 # 8. AI Agent Chat Button
 
-At the **bottom of the sidebar**, include a button:
+At the **bottom of the sidebar**, include an icon-only toggle button:
 
-```
-🤖 Ask AI Agent
-```
+* Icon: `Sparkles` (lucide-react)
+* No text label — icon only
+* **Toggles** the chat panel open/closed (not just open)
+* Active state: `bg-primary/20 text-primary ring-2 ring-primary/50`
+* Inactive state: `bg-primary text-primary-foreground`
 
-Clicking this button opens the **chat assistant panel**.
+> **Decision:** Changed from labeled "Ask AI Agent" button to icon-only Sparkles toggle per prototype PR #2.
 
 ---
 
