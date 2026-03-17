@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from schemas.resource import (
     ResourceListResponse,
     ResourceResponse,
     ResourceStatus,
+    ResourceUpdate,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,3 +173,155 @@ async def list_resources(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/{resource_id}", response_model=ResourceResponse)
+async def get_resource(
+    resource_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ResourceResponse:
+    """
+    Get a single resource by ID.
+
+    - **resource_id**: The resource ID to retrieve
+
+    Returns the full resource data if found and owned by the authenticated user.
+    Returns 404 if the resource doesn't exist or is not owned by the user.
+    """
+    # Query for the resource, ensuring ownership
+    query = select(Resource).where(
+        Resource.id == resource_id, Resource.owner_id == current_user.id
+    )
+    result = await db.execute(query)
+    resource = result.scalar_one_or_none()
+
+    if not resource:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
+        )
+
+    logger.info(f"Retrieved resource {resource_id} for user {current_user.id}")
+
+    # Return the resource response
+    return ResourceResponse(
+        id=str(resource.id),
+        owner_id=str(resource.owner_id),
+        content_type=ContentType(resource.content_type),
+        original_content=resource.original_content,
+        prefer_provider=resource.prefer_provider,
+        title=resource.title,
+        summary=resource.summary,
+        tags=resource.tags or [],
+        status=ResourceStatus(resource.status.value),
+        created_at=resource.created_at,
+        updated_at=resource.updated_at,
+    )
+
+
+@router.patch("/{resource_id}", response_model=ResourceResponse)
+async def update_resource(
+    resource_id: int,
+    resource_data: ResourceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ResourceResponse:
+    """
+    Update a resource (partial update).
+
+    - **resource_id**: The resource ID to update
+    - **title**: Optional new title
+    - **summary**: Optional new summary
+    - **tags**: Optional new tags list
+    - **original_content**: Optional new content (triggers reprocessing)
+
+    Only provided fields are updated (PATCH semantics).
+    If original_content changes, status is reset to PENDING.
+    Returns 404 if the resource doesn't exist or is not owned by the user.
+    """
+    # Query for the resource, ensuring ownership
+    query = select(Resource).where(
+        Resource.id == resource_id, Resource.owner_id == current_user.id
+    )
+    result = await db.execute(query)
+    resource = result.scalar_one_or_none()
+
+    if not resource:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
+        )
+
+    # Get only the fields that were actually provided
+    update_data = resource_data.model_dump(exclude_unset=True)
+
+    # Check if original_content is being updated
+    original_content_changed = "original_content" in update_data
+
+    # Apply updates
+    for field, value in update_data.items():
+        setattr(resource, field, value)
+
+    # If original_content changed, reset status to PENDING
+    if original_content_changed:
+        resource.status = ModelResourceStatus.PENDING
+        # TODO: enqueue process_resource job (DEV-019)
+        logger.info(
+            f"Resource {resource_id} original_content updated, status reset to PENDING"
+        )
+
+    # Commit changes (updated_at is automatically updated by SQLAlchemy onupdate)
+    await db.commit()
+    await db.refresh(resource)
+
+    logger.info(f"Updated resource {resource_id} for user {current_user.id}")
+
+    # Return the updated resource response
+    return ResourceResponse(
+        id=str(resource.id),
+        owner_id=str(resource.owner_id),
+        content_type=ContentType(resource.content_type),
+        original_content=resource.original_content,
+        prefer_provider=resource.prefer_provider,
+        title=resource.title,
+        summary=resource.summary,
+        tags=resource.tags or [],
+        status=ResourceStatus(resource.status.value),
+        created_at=resource.created_at,
+        updated_at=resource.updated_at,
+    )
+
+
+@router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_resource(
+    resource_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Delete a resource.
+
+    - **resource_id**: The resource ID to delete
+
+    Permanently removes the resource from the database.
+    Returns 404 if the resource doesn't exist or is not owned by the user.
+    """
+    # Query for the resource, ensuring ownership
+    query = select(Resource).where(
+        Resource.id == resource_id, Resource.owner_id == current_user.id
+    )
+    result = await db.execute(query)
+    resource = result.scalar_one_or_none()
+
+    if not resource:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
+        )
+
+    # Delete the resource
+    await db.delete(resource)
+    await db.commit()
+
+    # TODO: enqueue graph_sync job (DEV-019)
+    logger.info(f"Deleted resource {resource_id} for user {current_user.id}")
+
+    # Return 204 No Content (FastAPI automatically handles this with the status_code)
