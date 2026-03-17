@@ -409,7 +409,7 @@ async def test_oauth_callback_link_flow_mismatched_user_blocked(
     mock_get_user_info: AsyncMock,
     mock_exchange_code: AsyncMock,
 ):
-    """Test OAuth callback with link flow blocks when authenticated user doesn't match link state."""
+    """Test OAuth callback blocks when authenticated user doesn't match link state."""
     from unittest.mock import Mock
 
     from sqlalchemy.ext.asyncio import AsyncSession

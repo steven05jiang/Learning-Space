@@ -6,7 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.deps import get_current_user, get_current_user_optional
-from core.errors import ErrorCode, ForbiddenError, InternalServerError, UnauthorizedError, ValidationError
+from core.errors import (
+    ErrorCode,
+    ForbiddenError,
+    InternalServerError,
+    UnauthorizedError,
+    ValidationError,
+)
 from models.database import get_db
 from models.user import User
 from services.auth import auth_service
@@ -109,15 +115,20 @@ async def oauth_callback(
     # Handle link flow vs regular login flow
     try:
         if is_link_flow:
-            # Account linking flow - SECURITY: Verify authenticated user matches link state
+            # Account linking flow - SECURITY: Verify user matches link state
             if not link_user_id:
                 raise ValidationError("Invalid link state")
 
             if not current_user:
-                raise UnauthorizedError("Authentication required for account linking", ErrorCode.AUTHENTICATION_REQUIRED)
+                raise UnauthorizedError(
+                    "Authentication required for account linking",
+                    ErrorCode.AUTHENTICATION_REQUIRED,
+                )
 
             if current_user.id != link_user_id:
-                raise ForbiddenError("Link state does not match authenticated user", ErrorCode.FORBIDDEN)
+                raise ForbiddenError(
+                    "Link state does not match authenticated user", ErrorCode.FORBIDDEN
+                )
 
             # Use the authenticated user directly (no need to query again)
             # Note: current_user is already loaded from the database via dependency
