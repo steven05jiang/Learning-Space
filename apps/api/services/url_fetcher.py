@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional
 
 import httpx
 
@@ -81,12 +81,16 @@ class URLFetcherService:
                 response = await client.get(url)
 
                 # Extract content type
-                content_type = response.headers.get("content-type", "").split(";")[0].lower()
+                content_type = (
+                    response.headers.get("content-type", "").split(";")[0].lower()
+                )
 
                 # Check if response is successful
                 if response.status_code >= 400:
                     error_type = self._classify_http_error(response.status_code)
-                    error_message = f"HTTP {response.status_code}: {response.reason_phrase}"
+                    error_message = (
+                        f"HTTP {response.status_code}: {response.reason_phrase}"
+                    )
 
                     logger.warning(f"HTTP error fetching {url}: {error_message}")
 
@@ -164,7 +168,9 @@ class URLFetcherService:
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            logger.error(f"Unexpected error fetching {url}: {error_message}", exc_info=True)
+            logger.error(
+                f"Unexpected error fetching {url}: {error_message}", exc_info=True
+            )
             return FetchResult(
                 success=False,
                 error_type="unknown_error",

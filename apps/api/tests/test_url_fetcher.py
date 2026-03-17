@@ -1,10 +1,11 @@
 """Tests for the URL fetcher service."""
 
-import pytest
-import httpx
 from unittest.mock import AsyncMock, patch
 
-from services.url_fetcher import URLFetcherService, FetchResult
+import httpx
+import pytest
+
+from services.url_fetcher import URLFetcherService
 
 
 class TestURLFetcherService:
@@ -190,10 +191,12 @@ class TestURLFetcherService:
         mock_response.reason_phrase = "OK"
         mock_response.headers = {"content-type": "text/html"}
         mock_response.url = "https://example.com/"
+
         # Mock text property to raise UnicodeDecodeError
-        type(mock_response).text = property(
-            lambda self: exec('raise UnicodeDecodeError("utf-8", b"\\xff", 0, 1, "invalid start byte")')
-        )
+        def raise_unicode_error():
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+
+        type(mock_response).text = property(lambda self: raise_unicode_error())
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
