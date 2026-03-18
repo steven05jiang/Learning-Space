@@ -1,11 +1,12 @@
 """
 Tests for OAuth authentication scenarios including email collision handling.
 """
-import pytest
 from unittest.mock import AsyncMock
 
-from models.user import User
+import pytest
+
 from models.account import Account
+from models.user import User
 from services.auth import auth_service
 
 
@@ -43,14 +44,6 @@ class TestOAuthScenarios:
             "display_name": "User Name",
         }
 
-        # Mock account creation
-        mock_account = Account(
-            id=1,
-            user_id=1,
-            provider=provider,
-            provider_account_id=provider_account_id,
-            access_token=access_token,
-        )
 
         # Test OAuth authentication
         user, jwt_token = await auth_service.authenticate_oauth_user(
@@ -100,7 +93,9 @@ class TestOAuthScenarios:
         )
 
         # Mock finding existing user by provider account
-        auth_service.find_user_by_provider_account = AsyncMock(return_value=existing_user)
+        auth_service.find_user_by_provider_account = AsyncMock(
+            return_value=existing_user
+        )
         auth_service.update_account_tokens = AsyncMock()
 
         # OAuth login data
