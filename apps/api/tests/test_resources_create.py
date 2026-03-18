@@ -270,7 +270,7 @@ class TestCreateResource:
         # Verify only one resource exists in the database
         stmt = select(Resource).where(
             Resource.content_type == "url",
-            Resource.original_content == "https://example.com/duplicate-test"
+            Resource.original_content == "https://example.com/duplicate-test",
         )
         result = await db_session.execute(stmt)
         resources = result.scalars().all()
@@ -301,7 +301,7 @@ class TestCreateResource:
         # Verify two text resources exist in the database
         stmt = select(Resource).where(
             Resource.content_type == "text",
-            Resource.original_content == "This is duplicate text content"
+            Resource.original_content == "This is duplicate text content",
         )
         result = await db_session.execute(stmt)
         resources = result.scalars().all()
@@ -313,8 +313,8 @@ class TestCreateResource:
     ):
         """Test that different users can add the same URL."""
         # Create a second user
-        from models.user import User
         from core.jwt import create_access_token
+        from models.user import User
 
         second_user = User(
             email="second@example.com",
@@ -354,7 +354,7 @@ class TestCreateResource:
         # Verify both resources exist in the database
         stmt = select(Resource).where(
             Resource.content_type == "url",
-            Resource.original_content == "https://example.com/multi-user-test"
+            Resource.original_content == "https://example.com/multi-user-test",
         )
         result = await db_session.execute(stmt)
         resources = result.scalars().all()
