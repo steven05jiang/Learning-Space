@@ -311,9 +311,29 @@ class TestCreateResource:
     async def test_duplicate_url_different_users_allowed(
         self, client: AsyncClient, db_session: AsyncSession, auth_headers: dict
     ):
-        """Test that different users can add the same URL (basic test with one user)."""
-        # This test verifies the duplicate check is scoped per user
-        # For now, we just verify the basic duplicate logic works for one user
+        """Test that different users can add the same URL."""
+        # Create a second user
+        from models.user import User
+        from core.jwt import create_access_token
+
+        second_user = User(
+            email="second@example.com",
+            display_name="Second User",
+            avatar_url="https://example.com/avatar2.jpg",
+        )
+        db_session.add(second_user)
+        await db_session.commit()
+        await db_session.refresh(second_user)
+
+        # Create auth headers for second user
+        second_token_data = {
+            "sub": str(second_user.id),
+            "email": second_user.email,
+            "display_name": second_user.display_name,
+        }
+        second_token = create_access_token(second_token_data)
+        second_auth_headers = {"Authorization": f"Bearer {second_token}"}
+
         resource_data = {
             "content_type": "url",
             "original_content": "https://example.com/multi-user-test",
@@ -325,17 +345,21 @@ class TestCreateResource:
         )
         assert first_response.status_code == 202
 
-        # Same user tries to create the same resource (should be denied)
+        # Second user creates the same URL (should be allowed)
         second_response = await client.post(
-            "/resources/", json=resource_data, headers=auth_headers
+            "/resources/", json=resource_data, headers=second_auth_headers
         )
-        assert second_response.status_code == 409
+        assert second_response.status_code == 202
 
-        # Verify only one resource exists in the database
+        # Verify both resources exist in the database
         stmt = select(Resource).where(
             Resource.content_type == "url",
             Resource.original_content == "https://example.com/multi-user-test"
         )
         result = await db_session.execute(stmt)
         resources = result.scalars().all()
-        assert len(resources) == 1
+        assert len(resources) == 2
+
+        # Verify each resource belongs to the correct user
+        user_ids = [r.owner_id for r in resources]
+        assert len(set(user_ids)) == 2  # Two different users
