@@ -301,13 +301,17 @@ async def get_linked_accounts(
     """
     accounts = []
     for account in current_user.accounts:
-        accounts.append({
-            "id": account.id,
-            "provider": account.provider,
-            "provider_account_id": account.provider_account_id,
-            "last_login_at": account.last_login_at.isoformat() if account.last_login_at else None,
-            "created_at": account.created_at.isoformat(),
-        })
+        accounts.append(
+            {
+                "id": account.id,
+                "provider": account.provider,
+                "provider_account_id": account.provider_account_id,
+                "last_login_at": (
+                    account.last_login_at.isoformat() if account.last_login_at else None
+                ),
+                "created_at": account.created_at.isoformat(),
+            }
+        )
 
     return {"accounts": accounts}
 

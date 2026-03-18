@@ -1,6 +1,7 @@
 """
 Integration tests for OAuth login flow to verify local user and account creation.
 """
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,9 @@ class TestOAuthIntegration:
             yield session
             break
 
-    async def test_oauth_authenticate_creates_user_and_account(self, db_session: AsyncSession):
+    async def test_oauth_authenticate_creates_user_and_account(
+        self, db_session: AsyncSession
+    ):
         """Test that OAuth authentication creates both user and account records."""
         # Test data from a hypothetical Google OAuth response
         provider = "google"
@@ -61,6 +64,7 @@ class TestOAuthIntegration:
         # Verify JWT token is tied to local user ID
         assert jwt_token is not None
         from core.jwt import verify_token
+
         payload = verify_token(jwt_token)
         assert payload is not None
         assert payload["sub"] == str(user.id)
@@ -83,9 +87,7 @@ class TestOAuthIntegration:
 
         # Verify user record exists in database
         user_query = (
-            select(User)
-            .where(User.id == user.id)
-            .options(selectinload(User.accounts))
+            select(User).where(User.id == user.id).options(selectinload(User.accounts))
         )
         db_user_result = await db_session.execute(user_query)
         db_user = db_user_result.scalar_one_or_none()
@@ -94,8 +96,10 @@ class TestOAuthIntegration:
         assert len(db_user.accounts) == 1
         assert db_user.accounts[0].provider == provider
 
-    async def test_oauth_subsequent_login_finds_existing_user(self, db_session: AsyncSession):
-        """Test that subsequent OAuth login finds existing user (no duplicate creation)."""
+    async def test_oauth_subsequent_login_finds_existing_user(
+        self, db_session: AsyncSession
+    ):
+        """Test subsequent OAuth login finds existing user (no duplicate)."""
         # Test data
         provider = "google"
         provider_account_id = "google_user_456"
@@ -147,7 +151,7 @@ class TestOAuthIntegration:
         assert account.access_token == new_access_token
 
     async def test_oauth_creates_linkable_foundation(self, db_session: AsyncSession):
-        """Test that OAuth login creates proper foundation for multi-provider linking."""
+        """Test OAuth login creates proper foundation for multi-provider linking."""
         # First provider login
         google_user, google_token = await auth_service.authenticate_oauth_user(
             db=db_session,
@@ -162,7 +166,7 @@ class TestOAuthIntegration:
         )
 
         # Simulate linking a second provider to the same user
-        github_account = await auth_service.link_oauth_account(
+        await auth_service.link_oauth_account(
             db=db_session,
             current_user=google_user,
             provider="github",
@@ -192,7 +196,9 @@ class TestOAuthIntegration:
         for account in user.accounts:
             assert account.user_id == google_user.id
 
-    async def test_oauth_with_existing_email_links_account(self, db_session: AsyncSession):
+    async def test_oauth_with_existing_email_links_account(
+        self, db_session: AsyncSession
+    ):
         """Test OAuth login when user exists with same email but different provider."""
         # Create a user with GitHub first
         github_user, github_token = await auth_service.authenticate_oauth_user(
