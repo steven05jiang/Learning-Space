@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from models.account import Account
-from models.database import get_db
 from models.user import User
 from services.auth import auth_service
 
@@ -39,9 +38,11 @@ class TestOAuthIntegration:
     @pytest.fixture
     async def db_session(self, setup_test_db) -> AsyncSession:
         """Get a real database session for testing."""
-        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-        from core.config import settings
         import os
+
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+        from core.config import settings
 
         # Create a fresh engine for each test to avoid connection pooling issues
         database_url = os.getenv("DATABASE_URL", settings.database_url)
