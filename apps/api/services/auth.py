@@ -33,9 +33,7 @@ class AuthService:
     async def find_user_by_email(self, db: AsyncSession, email: str) -> Optional[User]:
         """Find user by email address."""
         stmt = (
-            select(User)
-            .where(User.email == email)
-            .options(selectinload(User.accounts))
+            select(User).where(User.email == email).options(selectinload(User.accounts))
         )
         result = await db.execute(stmt)
         return result.scalar_one_or_none()

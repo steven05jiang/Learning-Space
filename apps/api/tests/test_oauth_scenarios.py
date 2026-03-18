@@ -1,6 +1,7 @@
 """
 Tests for OAuth authentication scenarios including email collision handling.
 """
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -27,7 +28,7 @@ class TestOAuthScenarios:
             id=1,
             email="user@example.com",
             display_name="Existing User",
-            accounts=[]  # No accounts linked yet
+            accounts=[],  # No accounts linked yet
         )
 
         # Mock database queries
@@ -43,7 +44,6 @@ class TestOAuthScenarios:
             "email": "user@example.com",  # Same email as existing user
             "display_name": "User Name",
         }
-
 
         # Test OAuth authentication
         user, jwt_token = await auth_service.authenticate_oauth_user(
@@ -89,7 +89,7 @@ class TestOAuthScenarios:
             id=1,
             email="user@example.com",
             display_name="Returning User",
-            accounts=[existing_account]
+            accounts=[existing_account],
         )
 
         # Mock finding existing user by provider account

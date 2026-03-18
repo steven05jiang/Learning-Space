@@ -60,7 +60,7 @@ async def create_resource(
         existing_query = select(Resource).where(
             Resource.owner_id == current_user.id,
             Resource.content_type == "url",
-            Resource.original_content == resource_data.original_content
+            Resource.original_content == resource_data.original_content,
         )
         existing_result = await db.execute(existing_query)
         existing_resource = existing_result.scalar_one_or_none()
@@ -68,7 +68,7 @@ async def create_resource(
         if existing_resource:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="This resource has already been added."
+                detail="This resource has already been added.",
             )
 
     # Create the resource in the database
