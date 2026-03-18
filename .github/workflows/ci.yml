@@ -88,6 +88,9 @@ jobs:
           PGPASSWORD=changeme psql -h localhost -U learningspace -d postgres -c "CREATE DATABASE learningspace_test;"
           # Run migrations on the fresh test database
           uv run alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test
+          JWT_SECRET_KEY: ci-test-secret-key-32-chars-minimum
       - name: Run integration tests
         run: |
           cd apps/api
