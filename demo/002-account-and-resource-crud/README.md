@@ -168,7 +168,7 @@ Click delete on a resource — confirm dialog → resource removed from list.
 
 | Run   | Date | Status | Artifacts |
 | ----- | ---- | ------ | --------- |
-| run-1 | 2026-03-17 | ✅ | [artifacts/](./artifacts/) |
+| run-1 | 2026-03-17 | ✅ | [artifacts/run-1/](./artifacts/run-1/) |
 
 ---
 
@@ -176,21 +176,21 @@ Click delete on a resource — confirm dialog → resource removed from list.
 
 | Step | Result | Artifact |
 | ---- | ------ | -------- |
-| infra-up | ✅ All containers healthy (postgres, neo4j, redis) | [01-infra-start.txt](./artifacts/01-infra-start.txt) |
-| DB migrations | ✅ Up to date | [02-migrations.txt](./artifacts/02-migrations.txt) |
-| GET /health | ✅ 200 `{"status":"healthy"}` | [03-health.json](./artifacts/03-health.json) |
-| GET /auth/me | ✅ 200 + user profile | [06-auth-me.json](./artifacts/06-auth-me.json) |
-| POST /resources (×2) | ✅ 202 ACCEPTED (ids 5, 6) | [07-seed-resources.txt](./artifacts/07-seed-resources.txt) |
-| GET /resources/5 | ✅ 200 full resource object | [08-resource-crud.txt](./artifacts/08-resource-crud.txt) |
-| PATCH /resources/5 | ✅ 200 title updated to "Anthropic Python SDK" | [08-resource-crud.txt](./artifacts/08-resource-crud.txt) |
-| DELETE /resources/6 | ✅ 204 No Content | [08-resource-crud.txt](./artifacts/08-resource-crud.txt) |
-| GET /resources (after delete) | ✅ 200 — resource 6 absent, 5 resources total | [08-resource-crud.txt](./artifacts/08-resource-crud.txt) |
-| GET /auth/providers | ✅ 200 `["github","google","twitter"]` | [09-accounts.txt](./artifacts/09-accounts.txt) |
-| Frontend /login | ✅ Login page rendered | [10-frontend-login.png](./artifacts/10-frontend-login.png) |
-| Frontend /dashboard | ✅ Dashboard with "Welcome back, Demo User" | [11-frontend-dashboard.png](./artifacts/11-frontend-dashboard.png) |
-| Frontend /resources | ✅ 5 resource cards, "Anthropic Python SDK" title visible | [12-frontend-resources-list.png](./artifacts/12-frontend-resources-list.png) |
-| Frontend /resources/5 | ✅ Resource detail with Edit + Delete buttons | [13-frontend-resource-detail.png](./artifacts/13-frontend-resource-detail.png) |
-| Frontend /settings | ✅ Account Settings with Profile info + Linked Accounts (GitHub/Google/Twitter) | [14-frontend-settings.png](./artifacts/14-frontend-settings.png) |
+| infra-up | ✅ All containers healthy (postgres, neo4j, redis) | [01-infra-start.txt](./artifacts/run-1/01-infra-start.txt) |
+| DB migrations | ✅ Up to date | [02-migrations.txt](./artifacts/run-1/02-migrations.txt) |
+| GET /health | ✅ 200 `{"status":"healthy"}` | [03-health.json](./artifacts/run-1/03-health.json) |
+| GET /auth/me | ✅ 200 + user profile | [06-auth-me.json](./artifacts/run-1/06-auth-me.json) |
+| POST /resources (×2) | ✅ 202 ACCEPTED (ids 5, 6) | [07-seed-resources.txt](./artifacts/run-1/07-seed-resources.txt) |
+| GET /resources/5 | ✅ 200 full resource object | [08-resource-crud.txt](./artifacts/run-1/08-resource-crud.txt) |
+| PATCH /resources/5 | ✅ 200 title updated to "Anthropic Python SDK" | [08-resource-crud.txt](./artifacts/run-1/08-resource-crud.txt) |
+| DELETE /resources/6 | ✅ 204 No Content | [08-resource-crud.txt](./artifacts/run-1/08-resource-crud.txt) |
+| GET /resources (after delete) | ✅ 200 — resource 6 absent, 5 resources total | [08-resource-crud.txt](./artifacts/run-1/08-resource-crud.txt) |
+| GET /auth/providers | ✅ 200 `["github","google","twitter"]` | [09-accounts.txt](./artifacts/run-1/09-accounts.txt) |
+| Frontend /login | ✅ Login page rendered | [10-frontend-login.png](./artifacts/run-1/10-frontend-login.png) |
+| Frontend /dashboard | ✅ Dashboard with "Welcome back, Demo User" | [11-frontend-dashboard.png](./artifacts/run-1/11-frontend-dashboard.png) |
+| Frontend /resources | ✅ 5 resource cards, "Anthropic Python SDK" title visible | [12-frontend-resources-list.png](./artifacts/run-1/12-frontend-resources-list.png) |
+| Frontend /resources/5 | ✅ Resource detail with Edit + Delete buttons | [13-frontend-resource-detail.png](./artifacts/run-1/13-frontend-resource-detail.png) |
+| Frontend /settings | ✅ Account Settings with Profile info + Linked Accounts (GitHub/Google/Twitter) | [14-frontend-settings.png](./artifacts/run-1/14-frontend-settings.png) |
 
 ---
 
