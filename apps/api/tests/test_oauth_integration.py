@@ -39,10 +39,21 @@ class TestOAuthIntegration:
     @pytest.fixture
     async def db_session(self, setup_test_db) -> AsyncSession:
         """Get a real database session for testing."""
-        # Use the standard database connection for integration tests
-        async for session in get_db():
-            yield session
-            break
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+        from core.config import settings
+        import os
+
+        # Create a fresh engine for each test to avoid connection pooling issues
+        database_url = os.getenv("DATABASE_URL", settings.database_url)
+        engine = create_async_engine(database_url, poolclass=None)
+        async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+        async with async_session_factory() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+                await engine.dispose()
 
     async def test_oauth_authenticate_creates_user_and_account(
         self, db_session: AsyncSession
