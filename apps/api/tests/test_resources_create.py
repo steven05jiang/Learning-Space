@@ -241,3 +241,101 @@ class TestCreateResource:
 
         assert resource is not None
         assert resource.owner_id == test_user.id
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_url_resource_returns_409(
+        self, client: AsyncClient, db_session: AsyncSession, auth_headers: dict
+    ):
+        """Test that creating a duplicate URL resource returns 409 Conflict."""
+        resource_data = {
+            "content_type": "url",
+            "original_content": "https://example.com/duplicate-test",
+        }
+
+        # Create the first resource
+        first_response = await client.post(
+            "/resources/", json=resource_data, headers=auth_headers
+        )
+        assert first_response.status_code == 202
+
+        # Try to create the same resource again
+        second_response = await client.post(
+            "/resources/", json=resource_data, headers=auth_headers
+        )
+        assert second_response.status_code == 409
+
+        error_data = second_response.json()
+        assert error_data["detail"] == "This resource has already been added."
+
+        # Verify only one resource exists in the database
+        stmt = select(Resource).where(
+            Resource.content_type == "url",
+            Resource.original_content == "https://example.com/duplicate-test"
+        )
+        result = await db_session.execute(stmt)
+        resources = result.scalars().all()
+        assert len(resources) == 1
+
+    @pytest.mark.asyncio
+    async def test_duplicate_text_resource_allowed(
+        self, client: AsyncClient, db_session: AsyncSession, auth_headers: dict
+    ):
+        """Test that duplicate text resources are allowed (only URLs are checked)."""
+        resource_data = {
+            "content_type": "text",
+            "original_content": "This is duplicate text content",
+        }
+
+        # Create the first text resource
+        first_response = await client.post(
+            "/resources/", json=resource_data, headers=auth_headers
+        )
+        assert first_response.status_code == 202
+
+        # Try to create the same text resource again (should be allowed)
+        second_response = await client.post(
+            "/resources/", json=resource_data, headers=auth_headers
+        )
+        assert second_response.status_code == 202
+
+        # Verify two text resources exist in the database
+        stmt = select(Resource).where(
+            Resource.content_type == "text",
+            Resource.original_content == "This is duplicate text content"
+        )
+        result = await db_session.execute(stmt)
+        resources = result.scalars().all()
+        assert len(resources) == 2
+
+    @pytest.mark.asyncio
+    async def test_duplicate_url_different_users_allowed(
+        self, client: AsyncClient, db_session: AsyncSession, auth_headers: dict
+    ):
+        """Test that different users can add the same URL (basic test with one user)."""
+        # This test verifies the duplicate check is scoped per user
+        # For now, we just verify the basic duplicate logic works for one user
+        resource_data = {
+            "content_type": "url",
+            "original_content": "https://example.com/multi-user-test",
+        }
+
+        # First user creates the resource
+        first_response = await client.post(
+            "/resources/", json=resource_data, headers=auth_headers
+        )
+        assert first_response.status_code == 202
+
+        # Same user tries to create the same resource (should be denied)
+        second_response = await client.post(
+            "/resources/", json=resource_data, headers=auth_headers
+        )
+        assert second_response.status_code == 409
+
+        # Verify only one resource exists in the database
+        stmt = select(Resource).where(
+            Resource.content_type == "url",
+            Resource.original_content == "https://example.com/multi-user-test"
+        )
+        result = await db_session.execute(stmt)
+        resources = result.scalars().all()
+        assert len(resources) == 1

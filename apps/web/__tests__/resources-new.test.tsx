@@ -314,4 +314,43 @@ describe("NewResourcePage", () => {
       expect(screen.getByText("Invalid URL format")).toBeInTheDocument();
     });
   });
+
+  it("shows duplicate URL error message on 409 response", async () => {
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+      if (key === "auth_token") return "mock-token";
+      if (key === "user_info")
+        return JSON.stringify({
+          id: "1",
+          email: "test@example.com",
+          display_name: "Test User",
+        });
+      return null;
+    });
+    (fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: "Conflict",
+      json: () => Promise.resolve({ detail: "This resource has already been added." }),
+    });
+
+    render(<NewResourcePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Add New Resource")).toBeInTheDocument();
+    });
+
+    const urlInput = screen.getByLabelText("URL");
+    const submitButton = screen
+      .getAllByRole("button")
+      .find((b) => b.getAttribute("type") === "submit")!;
+
+    fireEvent.change(urlInput, {
+      target: { value: "https://example.com/duplicate-url" },
+    });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("This resource has already been added.")).toBeInTheDocument();
+    });
+  });
 });
