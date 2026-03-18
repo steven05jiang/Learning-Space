@@ -30,6 +30,12 @@ class AuthService:
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def find_user_by_email(self, db: AsyncSession, email: str) -> Optional[User]:
+        """Find user by email address."""
+        stmt = select(User).where(User.email == email).options(selectinload(User.accounts))
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def create_user_with_account(
         self,
         db: AsyncSession,
@@ -105,28 +111,66 @@ class AuthService:
     ) -> Tuple[User, str]:
         """
         Authenticate or create OAuth user.
+
+        This method handles three scenarios:
+        1. User has this provider account linked → update tokens
+        2. User exists by email but doesn't have this provider → link the account
+        3. No user exists → create new user and account
+
         Returns (user, jwt_token).
         """
-        # Check if user exists
+        # First, check if this specific provider account is already linked to a user
         user = await self.find_user_by_provider_account(
             db, provider, provider_account_id
         )
 
         if user:
-            # Update existing user's tokens
+            # Scenario 1: Provider account already linked, update tokens
             await self.update_account_tokens(
                 db, user, provider, access_token, refresh_token
             )
         else:
-            # Create new user
-            user = await self.create_user_with_account(
-                db,
-                provider,
-                provider_account_id,
-                access_token,
-                user_info,
-                refresh_token,
-            )
+            # Check if a user exists with this email from any provider
+            email = user_info.get("email")
+            if email:
+                user_by_email = await self.find_user_by_email(db, email)
+                if user_by_email:
+                    # Scenario 2: User exists but doesn't have this provider linked
+                    # Link this provider account to the existing user
+                    account = Account(
+                        user_id=user_by_email.id,
+                        provider=provider,
+                        provider_account_id=provider_account_id,
+                        access_token=access_token,
+                        refresh_token=refresh_token,
+                        last_login_at=datetime.utcnow(),
+                    )
+                    db.add(account)
+                    await db.commit()
+
+                    # Refresh to get updated accounts
+                    await db.refresh(user_by_email, ["accounts"])
+                    user = user_by_email
+                else:
+                    # Scenario 3: No user exists, create new user and account
+                    user = await self.create_user_with_account(
+                        db,
+                        provider,
+                        provider_account_id,
+                        access_token,
+                        user_info,
+                        refresh_token,
+                    )
+            else:
+                # No email provided by OAuth provider, create user anyway
+                user = await self.create_user_with_account(
+                    db,
+                    provider,
+                    provider_account_id,
+                    access_token,
+                    user_info,
+                    refresh_token,
+                )
 
         # Generate JWT token
         jwt_token = self.generate_jwt_token(user)
