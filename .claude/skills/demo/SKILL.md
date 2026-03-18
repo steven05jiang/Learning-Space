@@ -206,24 +206,20 @@ Check `demo/<NNN>-<slug>/artifacts/` for existing run subfolders:
 ls demo/<NNN>-<slug>/artifacts/ 2>/dev/null
 ```
 
-- **First run**: artifacts go directly in `demo/<NNN>-<slug>/artifacts/` (no subfolder)
+All runs go in a `run-N/` subfolder — including the first. There is no flat artifacts layout.
+
+- **First run**: create `demo/<NNN>-<slug>/artifacts/run-1/`
 - **Second run**: create `demo/<NNN>-<slug>/artifacts/run-2/`
 - **Third run**: create `demo/<NNN>-<slug>/artifacts/run-3/`
 - etc.
 
-Detect the current run number by counting existing `run-N/` subdirectories (plus 1 for the
-base artifacts dir if it already has files). Set `ARTIFACTS=demo/<NNN>-<slug>/artifacts[/run-N]`.
+Detect the current run number by counting existing `run-N/` subdirectories and adding 1.
 
 ```bash
 EXISTING_RUNS=$(ls -d demo/<NNN>-<slug>/artifacts/run-* 2>/dev/null | wc -l | tr -d ' ')
-if [ "$(ls demo/<NNN>-<slug>/artifacts/*.* 2>/dev/null | wc -l)" -gt 0 ]; then
-  RUN_N=$((EXISTING_RUNS + 2))
-  ARTIFACTS="demo/<NNN>-<slug>/artifacts/run-${RUN_N}"
-  mkdir -p "$ARTIFACTS"
-else
-  RUN_N=1
-  ARTIFACTS="demo/<NNN>-<slug>/artifacts"
-fi
+RUN_N=$((EXISTING_RUNS + 1))
+ARTIFACTS="demo/<NNN>-<slug>/artifacts/run-${RUN_N}"
+mkdir -p "$ARTIFACTS"
 echo "Run $RUN_N → $ARTIFACTS"
 ```
 
@@ -414,7 +410,7 @@ Also append an **Actual Outcome** subsection titled `### Run <N> — YYYY-MM-DD`
 | Step                | Result                    | Artifact                                             |
 | ------------------- | ------------------------- | ---------------------------------------------------- |
 | infra-up            | ✅ All containers healthy | —                                                    |
-| GET /health         | ✅ 200                    | [03-health.json](./artifacts[/run-N]/03-health.json) |
+| GET /health         | ✅ 200                    | [03-health.json](./artifacts/run-N/03-health.json) |
 | GET /auth/me        | ✅ 200 + user profile     | [06-auth-me.json](...)                               |
 | POST /resources     | ✅ 202 ACCEPTED           | [07-create-resource.json](...)                       |
 | Frontend /dashboard | ✅ Loads correctly        | [09-frontend-dashboard.png](...)                     |
@@ -481,7 +477,7 @@ demo/
   001-first-user-journey/
     README.md                       ← demo definition + run history
     screenshot.mjs                  ← reusable screenshot script (overwritten each run)
-    artifacts/                      ← run 1 artifacts (flat, no subfolder)
+    artifacts/run-1/                ← run 1 artifacts (always in run-N subfolder)
       01-infra-start.txt
       02-migrations.txt
       03-health.json
