@@ -302,7 +302,7 @@ export default function ResourcesPage() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold text-sm text-foreground line-clamp-2 leading-tight">
+                      <p className="font-semibold text-sm text-foreground line-clamp-2 leading-tight min-w-0 flex-1">
                         {resource.title || resource.url || "Untitled Resource"}
                       </p>
                       <Badge
