@@ -80,6 +80,14 @@ jobs:
         with:
           python-version: "3.12"
       - run: cd apps/api && uv sync --frozen --extra dev
+      - name: Set up test database
+        run: |
+          cd apps/api
+          # Drop and recreate the test database for a clean slate
+          PGPASSWORD=changeme psql -h localhost -U learningspace -d postgres -c "DROP DATABASE IF EXISTS learningspace_test;"
+          PGPASSWORD=changeme psql -h localhost -U learningspace -d postgres -c "CREATE DATABASE learningspace_test;"
+          # Run migrations on the fresh test database
+          uv run alembic upgrade head
       - name: Run integration tests
         run: |
           cd apps/api

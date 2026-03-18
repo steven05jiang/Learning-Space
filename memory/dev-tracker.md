@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-18
 
 ---
 
 ## Progress Summary
 
-- Total: 58 tasks (53 DEV + 5 DEMO)
-- ✅ Completed: 29
+- Total: 60 tasks (55 DEV + 5 DEMO)
+- ✅ Completed: 30
 - 🔄 Active: 0
-- ⏳ Pending: 29
+- ⏳ Pending: 30
 - ⚠️ Stuck: 0
 
 ---
@@ -74,6 +74,8 @@
 - [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
 - [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
+- [x] DEV-054: Duplicate URL detection with user-facing notification — 409 on duplicate submit + "already added" toast (PR #64 ✅)
+- [ ] DEV-055: Dashboard statistics panel — in-processing count, total added, categories identified, category rankings
 
 ## 🟢 Tier 4 — Hardening
 

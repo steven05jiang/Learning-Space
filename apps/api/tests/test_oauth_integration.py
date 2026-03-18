@@ -17,9 +17,29 @@ from services.auth import auth_service
 class TestOAuthIntegration:
     """Integration tests for OAuth authentication flow."""
 
+    @pytest.fixture(scope="class")
+    async def setup_test_db(self):
+        """Set up a clean test database for the entire test class."""
+        import os
+
+        from core.config import settings
+
+        # Use dedicated test database
+        test_db_url = os.getenv("DATABASE_URL", settings.database_url)
+        if not test_db_url.endswith("_test"):
+            # Ensure we're using a test database
+            if "learningspace_test" not in test_db_url:
+                # For safety, only run if we detect we're in test environment
+                pytest.skip("Integration tests require a _test database")
+
+        # Set up clean database - this would normally be done in CI
+        # Local developers should set up learningspace_test database manually
+        yield
+
     @pytest.fixture
-    async def db_session(self) -> AsyncSession:
+    async def db_session(self, setup_test_db) -> AsyncSession:
         """Get a real database session for testing."""
+        # Use the standard database connection for integration tests
         async for session in get_db():
             yield session
             break
