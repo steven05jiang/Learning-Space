@@ -53,7 +53,24 @@ async def create_resource(
 
     Returns HTTP 202 with the resource data and status PENDING.
     A background job is enqueued for processing the resource.
+    Returns HTTP 409 if the URL already exists for this user.
     """
+    # Check for duplicate URLs (only for URL content type)
+    if resource_data.content_type.value == "url":
+        existing_query = select(Resource).where(
+            Resource.owner_id == current_user.id,
+            Resource.content_type == "url",
+            Resource.original_content == resource_data.original_content,
+        )
+        existing_result = await db.execute(existing_query)
+        existing_resource = existing_result.scalar_one_or_none()
+
+        if existing_resource:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This resource has already been added.",
+            )
+
     # Create the resource in the database
     resource = Resource(
         owner_id=current_user.id,
