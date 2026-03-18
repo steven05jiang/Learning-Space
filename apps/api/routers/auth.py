@@ -289,6 +289,33 @@ async def oauth_link(
     return {"authorization_url": auth_url, "provider": provider, "state": state}
 
 
+@router.get("/accounts")
+async def get_linked_accounts(
+    current_user: User = Depends(get_current_user),
+) -> Dict:
+    """
+    Get all OAuth accounts linked to the current user.
+
+    Returns:
+        List of linked accounts with provider information
+    """
+    accounts = []
+    for account in current_user.accounts:
+        accounts.append(
+            {
+                "id": account.id,
+                "provider": account.provider,
+                "provider_account_id": account.provider_account_id,
+                "last_login_at": (
+                    account.last_login_at.isoformat() if account.last_login_at else None
+                ),
+                "created_at": account.created_at.isoformat(),
+            }
+        )
+
+    return {"accounts": accounts}
+
+
 @router.delete("/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def unlink_account(
     account_id: int,
