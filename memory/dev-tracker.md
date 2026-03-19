@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-19
 
 ---
 
 ## Progress Summary
 
 - Total: 60 tasks (55 DEV + 5 DEMO)
-- ✅ Completed: 30
+- ✅ Completed: 32
 - 🔄 Active: 0
-- ⏳ Pending: 30
+- ⏳ Pending: 28
 - ⚠️ Stuck: 0
 
 ---
@@ -62,8 +62,8 @@
 - [ ] DEV-032: Implement LangGraph agent with tools — Core chat intelligence
 - [ ] DEV-033: Implement POST /chat endpoint — Chat API
 - [ ] DEV-034: Implement GET /chat/conversations and messages — Chat history
-- [ ] DEV-040: Implement Settings — Account Management UI — Manage linked accounts UI
-- [ ] DEV-043: Implement resource detail / edit / delete — Full resource management UI
+- [x] DEV-040: Implement Settings — Account Management UI — Manage linked accounts UI (PR #59 ✅)
+- [x] DEV-043: Implement resource detail / edit / delete — Full resource management UI (PR #58 ✅)
 - [x] DEV-044: Implement graph visualization component — react-force-graph-2d UI shell (PR #40, #41 ✅)
 - [x] DEV-045: Implement resource panel on node click — node detail dialog UI shell (PR #40 ✅)
 - [x] DEV-046: Implement chat UI — chat panel UI shell with scroll fixes (PR #40, #41 ✅)
