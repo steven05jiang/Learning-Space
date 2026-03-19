@@ -22,8 +22,7 @@
         "LS",
         "TodoWrite"
       ],
-      "deny": [
-        // Don't add any deny here because it will be handled on the root-level config
-      ]
+      "_comment": "Don't add any deny here because it will be handled on the root-level config to deny section for settings.json in this repo",
+      "deny": []
     }
 }
