@@ -3,14 +3,14 @@
 **Scope:** Bug reports, defects, regressions
 **Task prefix:** `BUG-`
 **Initialized:** 2026-03-15
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-19
 
 ---
 
 ## Progress Summary
 
-- Total: 6 tasks
-- ✅ Fixed: 5
+- Total: 9 tasks
+- ✅ Fixed: 8
 - 🔄 Active: 0
 - ⏳ Pending: 1
 - ⚠️ Stuck: 0
@@ -25,3 +25,6 @@
 - [x] BUG-004: No CORS middleware — fixed inline during demo 001 (added CORSMiddleware to main.py, cors_origins to config)
 - [x] BUG-dashboard-svg: Dashboard SVG icon renders oversized without CSS — added width="20" height="20" to inline SVG in dashboard/page.tsx (PR #30 ✅)
 - [ ] BUG-005: CORS allow_origins hardcoded to port 3000 only — port 3001 (and other dev ports) blocked; found during demo 002 run-1
+- [x] BUG-006: Pending tag overflow in resources page — long URL title causes "Pending" badge to overflow card bounds (PR #63 ✅)
+- [x] BUG-007: Settings linked accounts shows incorrect connection status — Google shown as "not connected" after OAuth login; resolved by BUG-008 (PR #65 ✅)
+- [x] BUG-008: OAuth lint fix + accounts table persistence — unused mock_account variable, lint errors, OAuth callback not persisting to accounts table; added GET /auth/accounts endpoint (PR #65 ✅)
