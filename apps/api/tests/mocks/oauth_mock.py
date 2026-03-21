@@ -9,6 +9,20 @@ from typing import Dict, Optional
 import httpx
 import respx
 
+# Mock user data constants
+MOCK_TWITTER_USER = {
+    "id": "1234567890",
+    "username": "testuser",
+    "name": "Test User",
+    "profile_image_url": "https://pbs.twimg.com/profile_images/test.jpg",
+}
+
+MOCK_GOOGLE_USER = {
+    "sub": "google-user-456",
+    "name": "Test User",
+    "email": "test@example.com",
+}
+
 
 def setup_twitter_oauth_mock(
     mock_user_data: Optional[Dict] = None,
@@ -21,12 +35,7 @@ def setup_twitter_oauth_mock(
     Returns the mock user data that will be returned by the mocked API calls.
     """
     if mock_user_data is None:
-        mock_user_data = {
-            "id": provider_user_id,
-            "username": "testuser",
-            "name": "Test User",
-            "profile_image_url": "https://pbs.twimg.com/profile_images/test.jpg",
-        }
+        mock_user_data = MOCK_TWITTER_USER.copy()
 
     # Mock token exchange endpoint
     respx.post("https://api.twitter.com/2/oauth2/token").mock(
@@ -49,58 +58,32 @@ def setup_twitter_oauth_mock(
     return mock_user_data
 
 
-def setup_github_oauth_mock(
-    mock_user_data: Optional[Dict] = None,
-    access_token: str = "mock_access_token_456",
-    provider_user_id: str = "9876543",
-) -> Dict:
+def setup_google_oauth_mock(respx_mock) -> Dict:
     """
-    Set up GitHub OAuth API mocks using respx.
+    Set up Google OAuth API mocks using respx.
 
     Returns the mock user data that will be returned by the mocked API calls.
     """
-    if mock_user_data is None:
-        mock_user_data = {
-            "id": int(provider_user_id),
-            "login": "testuser",
-            "name": "Test User",
-            "email": "testuser@example.com",
-            "avatar_url": "https://avatars.githubusercontent.com/u/test?v=4",
-        }
-
     # Mock token exchange endpoint
-    respx.post("https://github.com/login/oauth/access_token").mock(
+    respx_mock.post("https://oauth2.googleapis.com/token").mock(
         return_value=httpx.Response(
             200,
             json={
-                "access_token": access_token,
+                "access_token": "mock-google-token",
                 "token_type": "bearer",
-                "scope": "user:email",
             },
         )
     )
 
     # Mock user info endpoint
-    respx.get("https://api.github.com/user").mock(
-        return_value=httpx.Response(200, json=mock_user_data)
-    )
-
-    # Mock user emails endpoint (GitHub specific)
-    respx.get("https://api.github.com/user/emails").mock(
+    respx_mock.get("https://www.googleapis.com/oauth2/v3/userinfo").mock(
         return_value=httpx.Response(
             200,
-            json=[
-                {
-                    "email": mock_user_data.get("email", "testuser@example.com"),
-                    "primary": True,
-                    "verified": True,
-                    "visibility": "private",
-                }
-            ],
+            json=MOCK_GOOGLE_USER
         )
     )
 
-    return mock_user_data
+    return MOCK_GOOGLE_USER
 
 
 def setup_oauth_error_mock(
@@ -110,7 +93,7 @@ def setup_oauth_error_mock(
     Set up OAuth error responses for testing error scenarios.
 
     Args:
-        provider: "twitter" or "github"
+        provider: "twitter" or "google"
         error_type: OAuth error type (invalid_grant, invalid_client, etc.)
         status_code: HTTP status code to return
     """
@@ -128,12 +111,12 @@ def setup_oauth_error_mock(
                 401, json={"errors": [{"message": "Unauthorized"}]}
             )
         )
-    elif provider == "github":
-        respx.post("https://github.com/login/oauth/access_token").mock(
+    elif provider == "google":
+        respx.post("https://oauth2.googleapis.com/token").mock(
             return_value=httpx.Response(status_code, json=error_response)
         )
-        respx.get("https://api.github.com/user").mock(
-            return_value=httpx.Response(401, json={"message": "Bad credentials"})
+        respx.get("https://www.googleapis.com/oauth2/v3/userinfo").mock(
+            return_value=httpx.Response(401, json={"error": "unauthorized"})
         )
 
 
