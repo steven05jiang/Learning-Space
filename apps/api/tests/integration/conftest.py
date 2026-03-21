@@ -42,7 +42,7 @@ def mock_oauth(respx_mock):
 def mock_llm():
     """Replaces the LLM client with MockLLMClient."""
     from tests.mocks.llm_mock import MockLLMClient
-    with patch("services.llm_processor.get_llm_client", return_value=MockLLMClient()):
+    with patch("services.llm_processor.Anthropic", return_value=MockLLMClient()):
         yield
 
 
