@@ -1,6 +1,7 @@
 .PHONY: ci ci-check ci-lint ci-test ci-security ci-integration \
         api-lint api-test api-security api-integration \
         web-lint web-build web-security web-dev web-dev-mock \
+        int-test-ci int-test int-test-web int-test-e2e int-test-full \
         infra-up infra-down
 
 # ── Full CI (requires `make infra-up` first for integration tests) ────────
@@ -68,6 +69,32 @@ web-dev:
 web-dev-mock:
 	@echo "── Web: dev server (mock data, no backend needed) ─────"
 	cd apps/web && npm run dev:mock
+
+# ── Integration Tests ──────────────────────────────────────────────────────
+
+INT_GROUPS ?= auth,resources
+
+int-test-ci:
+	@echo "-- API integration tests (CI groups: $(INT_GROUPS)) ----"
+	$(eval MARKERS := $(shell echo "$(INT_GROUPS)" | tr ',' '\n' | sed 's/^/int_/' | tr '\n' ' ' | sed 's/ / or /g' | sed 's/ or $$//'))
+	cd apps/api && uv run pytest -m "integration and ($(MARKERS))" -v
+
+int-test:
+	@echo "── Integration: all backend tests ─────────────────────"
+	@echo "   (requires: make infra-up)"
+	cd apps/api && uv sync --frozen --extra dev -q
+	cd apps/api && uv run pytest -m "integration" -v
+
+int-test-web:
+	@echo "── Integration: web component tests ───────────────────"
+	cd apps/web && npm test -- --testPathPattern="integration" --watchAll=false
+
+int-test-e2e:
+	@echo "── Integration: end-to-end tests ──────────────────────"
+	@echo "   (requires: docker-compose -f docker-compose.e2e.yml up -d)"
+	cd tests/e2e && npx playwright test
+
+int-test-full: int-test int-test-web int-test-e2e
 
 # ── Infrastructure ─────────────────────────────────────────────────────────
 
