@@ -163,7 +163,9 @@ async def test_list_resources_returns_paginated_own_resources_only(
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-@pytest.mark.skip(reason="Tag filtering not yet implemented in resources router - waiting for DEV task to add this feature")
+@pytest.mark.skip(
+    reason="Tag filtering not yet implemented in resources router"
+)
 async def test_list_resources_filter_by_tag(
     client, auth_headers, db_session, test_user
 ):
