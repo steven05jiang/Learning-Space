@@ -8,7 +8,7 @@ class GraphNode(BaseModel):
 
     id: str
     label: str
-    level: str  # "root", "current", "child"
+    level: str  # "root", "current", "child", "parent"
 
 
 class GraphEdge(BaseModel):
