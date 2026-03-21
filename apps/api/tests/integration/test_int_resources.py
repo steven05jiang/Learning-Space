@@ -163,15 +163,15 @@ async def test_list_resources_returns_paginated_own_resources_only(
 
 @pytest.mark.integration
 @pytest.mark.int_resources
+@pytest.mark.skip(reason="Tag filtering not yet implemented in resources router - waiting for DEV task to add this feature")
 async def test_list_resources_filter_by_tag(
     client, auth_headers, db_session, test_user
 ):
     """
     INT-018: GET /resources?tag=AI → filters by tag
 
-    Note: This test assumes tag filtering is implemented in the router.
-    If not implemented yet, this test will need to be updated when DEV task
-    adds the feature.
+    Currently skipped because tag filtering is not implemented in the router.
+    This test will be enabled when the DEV task adds tag query parameter support.
     """
     # Create resources with different tags
     await make_resource(db_session, test_user.id, title="AI Article", tags=["AI", "ML"])
@@ -189,22 +189,15 @@ async def test_list_resources_filter_by_tag(
     # Test tag filter for "AI"
     response = await client.get("/resources/?tag=AI", headers=auth_headers)
 
-    # If tag filtering is not yet implemented, this will return all resources
-    # When implemented, it should return only AI-tagged resources
     assert response.status_code == 200
     data = response.json()
 
-    # For now, assert the structure is correct
-    assert "items" in data
-    assert "total" in data
-
-    # TODO: Update this assertion when tag filtering is implemented
-    # Expected behavior: should return only ai_resource and mixed_resource
-    # assert data["total"] == 2
-    # returned_titles = [item["title"] for item in data["items"]]
-    # assert "AI Article" in returned_titles
-    # assert "Mixed Article" in returned_titles
-    # assert "Tech Article" not in returned_titles
+    # Expected behavior when tag filtering is implemented:
+    assert data["total"] == 2
+    returned_titles = [item["title"] for item in data["items"]]
+    assert "AI Article" in returned_titles
+    assert "Mixed Article" in returned_titles
+    assert "Tech Article" not in returned_titles
 
 
 @pytest.mark.integration
@@ -330,12 +323,12 @@ async def test_patch_resource_title_updates_title_and_timestamp(
     """
     resource = await make_resource(db_session, test_user.id, title="Original Title")
     await db_session.commit()
+
+    # Set updated_at to a known past timestamp to ensure reliable comparison
+    past_time = datetime(2020, 1, 1, 0, 0, 0)
+    resource.updated_at = past_time
+    await db_session.commit()
     original_updated_at = resource.updated_at
-
-    # Small delay to ensure updated_at changes
-    import asyncio
-
-    await asyncio.sleep(0.1)
 
     patch_data = {"title": "Updated Title"}
     response = await client.patch(
@@ -363,6 +356,9 @@ async def test_patch_resource_original_content_triggers_reprocessing(
     """
     INT-022: PATCH /resources/{id} with new original_content → re-triggers
     PROCESSING + enqueues new job
+
+    Note: Job enqueuing verification is deferred to INT-024+ worker tests
+    (pending DEV-019 queue integration).
     """
     resource = await make_resource(
         db_session,
@@ -428,6 +424,9 @@ async def test_delete_resource_removes_resource(
 ):
     """
     INT-023: DELETE /resources/{id} → resource removed, graph sync job enqueued
+
+    Note: Graph sync job verification is deferred to INT-029+ graph tests
+    (pending DEV-019 queue integration).
     """
     resource = await make_resource(db_session, test_user.id, title="To Delete")
     await db_session.commit()
