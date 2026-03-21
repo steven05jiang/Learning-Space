@@ -208,6 +208,112 @@ class GraphService:
 
             return relationships
 
+    async def get_graph(self, owner_id: int, root: str | None = None) -> dict:
+        """
+        Get graph data for the authenticated user.
+
+        Args:
+            owner_id: User ID to get graph data for
+            root: Optional root tag name to scope the graph
+
+        Returns:
+            Dictionary with nodes and edges lists for the knowledge graph
+        """
+        neo4j_driver = await get_neo4j_driver()
+
+        async with neo4j_driver.get_session() as session:
+            if root is None:
+                # Get all nodes and edges for the user
+                result = await session.run(
+                    """
+                    MATCH (t:Tag {owner_id: $owner_id})
+                    OPTIONAL MATCH (t)-[r:RELATED_TO]-(t2:Tag {owner_id: $owner_id})
+                    WHERE t.name < t2.name  // avoid duplicates
+                    RETURN t, t2, r
+                    """,
+                    owner_id=owner_id,
+                )
+            else:
+                # Get rooted subgraph
+                result = await session.run(
+                    """
+                    MATCH (root:Tag {name: $root, owner_id: $owner_id})
+                    OPTIONAL MATCH (root)-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                    RETURN root, neighbor, r
+                    """,
+                    root=root,
+                    owner_id=owner_id,
+                )
+
+            nodes = []
+            edges = []
+            nodes_set = set()
+
+            async for record in result:
+                if root is None:
+                    # All nodes mode
+                    tag = record["t"]
+                    tag2 = record.get("t2")
+                    relationship = record.get("r")
+
+                    # Add main tag
+                    if tag["name"] not in nodes_set:
+                        nodes.append({
+                            "id": tag["name"],
+                            "label": tag["name"],
+                            "level": "root"
+                        })
+                        nodes_set.add(tag["name"])
+
+                    # Add related tag and edge if exists
+                    if tag2 and relationship:
+                        if tag2["name"] not in nodes_set:
+                            nodes.append({
+                                "id": tag2["name"],
+                                "label": tag2["name"],
+                                "level": "root"
+                            })
+                            nodes_set.add(tag2["name"])
+
+                        # Add edge (undirected, so we use consistent ordering)
+                        edges.append({
+                            "source": tag["name"],
+                            "target": tag2["name"],
+                            "weight": relationship["weight"]
+                        })
+                else:
+                    # Rooted subgraph mode
+                    root_tag = record["root"]
+                    neighbor = record.get("neighbor")
+                    relationship = record.get("r")
+
+                    # Add root tag
+                    if root_tag["name"] not in nodes_set:
+                        nodes.append({
+                            "id": root_tag["name"],
+                            "label": root_tag["name"],
+                            "level": "current"
+                        })
+                        nodes_set.add(root_tag["name"])
+
+                    # Add neighbor and edge if exists
+                    if neighbor and relationship:
+                        if neighbor["name"] not in nodes_set:
+                            nodes.append({
+                                "id": neighbor["name"],
+                                "label": neighbor["name"],
+                                "level": "child"
+                            })
+                            nodes_set.add(neighbor["name"])
+
+                        edges.append({
+                            "source": root_tag["name"],
+                            "target": neighbor["name"],
+                            "weight": relationship["weight"]
+                        })
+
+            return {"nodes": nodes, "edges": edges}
+
 
 # Global instance
 graph_service = GraphService()
