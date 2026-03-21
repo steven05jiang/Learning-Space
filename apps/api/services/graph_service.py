@@ -381,17 +381,20 @@ class GraphService:
             # Build query based on direction
             if direction == "out":
                 query = """
-                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})-[r:RELATED_TO]->(neighbor:Tag {owner_id: $owner_id})
+                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})
+                        -[r:RELATED_TO]->(neighbor:Tag {owner_id: $owner_id})
                     RETURN root, neighbor, r
                 """
             elif direction == "in":
                 query = """
-                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})<-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})
+                        <-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
                     RETURN root, neighbor, r
                 """
             else:  # "both"
                 query = """
-                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})
+                        -[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
                     RETURN root, neighbor, r
                 """
 
