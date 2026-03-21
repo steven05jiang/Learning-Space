@@ -88,10 +88,34 @@ class ResourceListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ResourceNodeItem(BaseModel):
+    """Response schema for resource items from graph nodes (includes all required fields)."""
+
+    id: str
+    title: Optional[str] = None
+    summary: Optional[str] = None
+    original_content: str
+    content_type: ContentType
+    status: ResourceStatus
+    created_at: datetime
+    tags: list[str] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ResourceListResponse(BaseModel):
     """Response schema for paginated resource list."""
 
     items: list[ResourceListItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class ResourceNodeResponse(BaseModel):
+    """Response schema for paginated resource node list."""
+
+    items: list[ResourceNodeItem]
     total: int
     limit: int
     offset: int

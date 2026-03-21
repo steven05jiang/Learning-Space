@@ -78,7 +78,7 @@ class TestGetNodeResources:
         # Should return 2 resources with "python" tag
         assert data["total"] == 2
         assert len(data["items"]) == 2
-        assert data["limit"] == 2
+        assert data["limit"] == 50  # Default limit parameter
         assert data["offset"] == 0
 
         # Check that both resources are returned
@@ -87,14 +87,16 @@ class TestGetNodeResources:
         assert str(resource2.id) in resource_ids
         assert str(resource3.id) not in resource_ids
 
-        # Verify resource structure
+        # Verify resource structure includes required fields
         for item in data["items"]:
             assert "id" in item
             assert "title" in item
             assert "summary" in item
-            assert "tags" in item
+            assert "original_content" in item
+            assert "content_type" in item
             assert "status" in item
             assert "created_at" in item
+            assert "tags" in item
             assert "python" in item["tags"]
 
     async def test_get_node_resources_empty_result(
@@ -128,7 +130,7 @@ class TestGetNodeResources:
 
         assert data["total"] == 0
         assert len(data["items"]) == 0
-        assert data["limit"] == 0
+        assert data["limit"] == 50  # Default limit parameter
         assert data["offset"] == 0
 
     async def test_get_node_resources_owner_scoped(
@@ -222,11 +224,13 @@ class TestGetNodeResources:
             item for item in data["items"] if item["id"] == str(text_resource.id)
         )
 
-        # URL resource should have url field populated
-        assert url_item["url"] == "https://example.com"
+        # URL resource should have original_content with URL and content_type "url"
+        assert url_item["original_content"] == "https://example.com"
+        assert url_item["content_type"] == "url"
 
-        # Text resource should have url field as None
-        assert text_item["url"] is None
+        # Text resource should have original_content with text and content_type "text"
+        assert text_item["original_content"] == "Some text content"
+        assert text_item["content_type"] == "text"
 
     async def test_get_node_resources_unauthenticated(
         self, client: AsyncClient
