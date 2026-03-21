@@ -527,7 +527,7 @@ class TestProcessResource:
     async def test_process_resource_graph_update_called_with_correct_args(
         self, mock_resource, mock_fetch_success, monkeypatch
     ):
-        """Test that graph_service.update_from_resource is called with correct owner_id and tags."""
+        """Test graph_service.update_from_resource called with correct arguments."""
         # Mock LLM result with multiple tags
         mock_llm_multiple_tags = LLMResult(
             success=True,
@@ -580,7 +580,7 @@ class TestProcessResource:
         # Verify graph service was called with exact owner_id and tags
         mock_graph_service.update_from_resource.assert_called_once_with(
             456,  # owner_id from mock_resource
-            ["python", "testing", "api"]  # tags from mock_llm_multiple_tags
+            ["python", "testing", "api"],  # tags from mock_llm_multiple_tags
         )
 
     @pytest.mark.asyncio
@@ -678,7 +678,9 @@ class TestProcessResource:
 
         # Mock graph service to fail
         mock_graph_service = AsyncMock()
-        mock_graph_service.update_from_resource.side_effect = Exception("Neo4j connection error")
+        mock_graph_service.update_from_resource.side_effect = Exception(
+            "Neo4j connection error"
+        )
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
