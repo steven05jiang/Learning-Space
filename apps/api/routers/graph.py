@@ -12,9 +12,9 @@ from core.deps import get_current_user
 from models.database import get_db
 from models.resource import Resource
 from models.user import User
-from schemas.graph import GraphResponse
+from schemas.graph import GraphExpandRequest, GraphResponse
 from schemas.resource import ResourceNodeItem, ResourceNodeResponse
-from services.graph_service import get_graph_service
+from services.graph_service import GraphService, get_graph_service
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +124,33 @@ async def get_graph(
     ("current", "child", "parent"), and edges with source, target, and weight fields.
     """
     graph_data = await graph_service.get_graph(current_user.id, root)
+
+    return GraphResponse(
+        nodes=[
+            {"id": node["id"], "label": node["label"], "level": node["level"]}
+            for node in graph_data["nodes"]
+        ],
+        edges=[
+            {
+                "source": edge["source"],
+                "target": edge["target"],
+                "weight": edge["weight"],
+            }
+            for edge in graph_data["edges"]
+        ],
+    )
+
+
+@router.post("/expand", response_model=GraphResponse)
+async def expand_graph(
+    body: GraphExpandRequest,
+    current_user: User = Depends(get_current_user),
+    graph_svc: GraphService = Depends(get_graph_service),
+) -> GraphResponse:
+    """Expand a graph node — returns direct neighbors as child nodes + edges."""
+    graph_data = await graph_svc.get_neighbors(
+        current_user.id, body.node_id, body.direction
+    )
 
     return GraphResponse(
         nodes=[

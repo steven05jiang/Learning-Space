@@ -675,3 +675,243 @@ class TestGetGraph:
             mock_session.run.assert_called_once()
             args, kwargs = mock_session.run.call_args
             assert kwargs["root"] == "NonexistentTag"
+
+
+class TestExpandGraph:
+    """Test cases for POST /graph/expand."""
+
+    async def test_expand_graph_success(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test successful expansion of a graph node with neighbors."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock the async iterator for expand query result
+            async def mock_records(self):
+                yield {
+                    "root": {"name": "AI"},
+                    "neighbor": {"name": "Python"},
+                    "r": {"weight": 3},
+                }
+                yield {
+                    "root": {"name": "AI"},
+                    "neighbor": {"name": "Machine Learning"},
+                    "r": {"weight": 2},
+                }
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.post(
+                "/graph/expand",
+                headers=auth_headers,
+                json={"node_id": "AI", "direction": "out"},
+            )
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            assert "nodes" in data
+            assert "edges" in data
+            assert isinstance(data["nodes"], list)
+            assert isinstance(data["edges"], list)
+
+            # Check that child nodes are returned
+            node_ids = [node["id"] for node in data["nodes"]]
+            assert "Python" in node_ids
+            assert "Machine Learning" in node_ids
+
+            # Check that all nodes have level "child"
+            for node in data["nodes"]:
+                assert node["level"] == "child"
+
+            # Check that edges are from AI to children
+            assert len(data["edges"]) == 2
+            for edge in data["edges"]:
+                assert edge["source"] == "AI"
+                assert edge["target"] in ["Python", "Machine Learning"]
+                assert edge["weight"] in [2, 3]
+
+            # Verify the query was called with correct parameters
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            assert "node_id" in kwargs
+            assert kwargs["node_id"] == "AI"
+            assert kwargs["owner_id"] == test_user.id
+
+    async def test_expand_graph_no_neighbors(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test expansion of a node with no neighbors returns empty response."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock empty result (no neighbors)
+            async def mock_records(self):
+                return
+                yield  # No records
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.post(
+                "/graph/expand",
+                headers=auth_headers,
+                json={"node_id": "IsolatedTag", "direction": "out"},
+            )
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            assert data["nodes"] == []
+            assert data["edges"] == []
+
+            # Verify the query was called
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            assert kwargs["node_id"] == "IsolatedTag"
+            assert kwargs["owner_id"] == test_user.id
+
+    async def test_expand_graph_unauthenticated(self, client: AsyncClient):
+        """Test that unauthenticated requests are rejected."""
+        response = await client.post(
+            "/graph/expand",
+            json={"node_id": "AI", "direction": "out"},
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_expand_graph_direction_in(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test expansion with direction='in' uses inbound query."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock the async iterator for expand query result
+            async def mock_records(self):
+                yield {
+                    "root": {"name": "AI"},
+                    "neighbor": {"name": "DeepLearning"},
+                    "r": {"weight": 5},
+                }
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.post(
+                "/graph/expand",
+                headers=auth_headers,
+                json={"node_id": "AI", "direction": "in"},
+            )
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            # Check that child nodes are returned
+            assert len(data["nodes"]) == 1
+            assert data["nodes"][0]["id"] == "DeepLearning"
+            assert data["nodes"][0]["level"] == "child"
+
+            # Check that edges are from AI to children
+            assert len(data["edges"]) == 1
+            assert data["edges"][0]["source"] == "AI"
+            assert data["edges"][0]["target"] == "DeepLearning"
+
+            # Verify that inbound query was used (check for <- in query)
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            query = args[0]
+            assert "<-[r:RELATED_TO]-" in query
+
+    async def test_expand_graph_direction_both(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test expansion with direction='both' uses undirected query."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock the async iterator for expand query result
+            async def mock_records(self):
+                yield {
+                    "root": {"name": "AI"},
+                    "neighbor": {"name": "Python"},
+                    "r": {"weight": 3},
+                }
+                yield {
+                    "root": {"name": "AI"},
+                    "neighbor": {"name": "DeepLearning"},
+                    "r": {"weight": 5},
+                }
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.post(
+                "/graph/expand",
+                headers=auth_headers,
+                json={"node_id": "AI", "direction": "both"},
+            )
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            # Check that child nodes are returned
+            assert len(data["nodes"]) == 2
+            node_ids = [node["id"] for node in data["nodes"]]
+            assert "Python" in node_ids
+            assert "DeepLearning" in node_ids
+
+            # Check that edges are from AI to children
+            assert len(data["edges"]) == 2
+
+            # Verify that bidirectional query was used (check for - without arrow)
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            query = args[0]
+            assert "-[r:RELATED_TO]-" in query
+            # Ensure it's not specifically directional
+            assert "->" not in query
+            assert "<-" not in query
+
+    async def test_expand_graph_invalid_direction(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+    ):
+        """Test expansion with invalid direction returns 422."""
+        response = await client.post(
+            "/graph/expand",
+            headers=auth_headers,
+            json={"node_id": "AI", "direction": "sideways"},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert "detail" in data
