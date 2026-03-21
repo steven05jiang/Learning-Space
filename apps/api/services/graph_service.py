@@ -366,21 +366,37 @@ class GraphService:
         Args:
             owner_id: User ID to scope the query to
             node_id: Name of the tag node to expand
-            direction: Direction of relationships ("out", "in", "both") - unused
+            direction: Direction of relationships ("out", "in", "both")
 
         Returns:
             Dictionary with nodes and edges lists for the expanded node's neighbors
         """
+        # Validate direction
+        if direction not in ("out", "in", "both"):
+            direction = "out"  # safe default
+
         neo4j_driver = await get_neo4j_driver()
 
         async with neo4j_driver.get_session() as session:
-            # Query to get direct neighbors of the specified node
-            result = await session.run(
+            # Build query based on direction
+            if direction == "out":
+                query = """
+                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})-[r:RELATED_TO]->(neighbor:Tag {owner_id: $owner_id})
+                    RETURN root, neighbor, r
                 """
-                MATCH (root:Tag {name: $node_id, owner_id: $owner_id})
-                    -[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
-                RETURN root, neighbor, r
-                """,
+            elif direction == "in":
+                query = """
+                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})<-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                    RETURN root, neighbor, r
+                """
+            else:  # "both"
+                query = """
+                    MATCH (root:Tag {name: $node_id, owner_id: $owner_id})-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                    RETURN root, neighbor, r
+                """
+
+            result = await session.run(
+                query,
                 node_id=node_id,
                 owner_id=owner_id,
             )

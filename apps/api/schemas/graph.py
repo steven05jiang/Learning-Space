@@ -1,6 +1,6 @@
 """Pydantic schemas for graph API endpoints."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class GraphNode(BaseModel):
@@ -31,3 +31,10 @@ class GraphExpandRequest(BaseModel):
 
     node_id: str
     direction: str = "out"  # "out", "in", "both"
+
+    @field_validator("direction")
+    @classmethod
+    def validate_direction(cls, v: str) -> str:
+        if v not in ("out", "in", "both"):
+            raise ValueError("direction must be one of: out, in, both")
+        return v
