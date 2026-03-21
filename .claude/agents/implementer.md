@@ -231,17 +231,35 @@ When the PM instructs you to merge after reviewer approval:
   REASON: <specific reason>
   ```
 
+## Tech Debt Log (write when taking shortcuts)
+
+If you make any intentional shortcut during implementation — skipping an edge case, using a stub instead of a real implementation, hardcoding a value, deferring an error path — append an entry to `memory/tech-debt.md` **before** committing.
+
+Format:
+
+```
+### YYYY-MM-DD | <TASK-ID> | <short title>
+**Shortcut:** <what was done instead of the right thing>
+**Proper fix:** <what should be done later>
+**Why deferred:** <reason — time, blocked dependency, out of scope>
+**Priority:** P0 (blocking) / P1 (before release) / P2 (nice to have)
+```
+
+Only append new entries — never remove or edit existing ones. If there are no shortcuts, do not write anything.
+
 ## Memory File Boundaries (STRICT)
 
-You may only write to files under `memory/active/`. You must NEVER write to or stage:
+You may write to files under `memory/active/` and to `memory/tech-debt.md`.
+You must NEVER write to or stage:
 
 - `memory/dev-tracker.md` — owned by the PM exclusively
 - `memory/bugs-tracker.md` — owned by the PM exclusively
 - `memory/ops-tracker.md` — owned by the PM exclusively
 - `memory/build-tracker.md` — owned by the PM exclusively
 - `memory/tech-debt-tracker.md` — owned by the PM exclusively
+- `memory/sprints.md` — owned by the PM exclusively
 - `memory/completed/**` — owned by the PM exclusively
-- Any other file outside `memory/active/` in the memory/ tree
+- Any other file outside `memory/active/` in the memory/ tree (except `memory/tech-debt.md`)
 
 This rule is unconditional. There are no exceptions — not even for "Persist memory state" chore commits. The PM writes all tracker files and moves completed task files directly.
 
