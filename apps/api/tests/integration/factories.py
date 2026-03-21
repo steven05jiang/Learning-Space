@@ -1,12 +1,11 @@
-# ADJUST IMPORT TO MATCH ACTUAL CODEBASE PATH:
-from models.resource import Resource  # or app.models.resource, etc.
+from models.resource import Resource, ResourceStatus
 
 
 async def make_resource(db, owner_id, **kwargs) -> Resource:
     defaults = {
         "content_type": "url",
         "original_content": "https://example.com/article",
-        "status": "READY",
+        "status": ResourceStatus.READY,
         "title": "Test Article",
         "summary": "A test summary.",
         "tags": ["AI", "Testing"],

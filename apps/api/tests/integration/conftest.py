@@ -3,11 +3,10 @@ import pytest
 from unittest.mock import patch
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-# ADJUST THESE IMPORTS TO MATCH ACTUAL CODEBASE PATHS:
-from models.database import Base         # or app.models.database, etc.
-from models.user import User  # check actual class names
-from models.account import Account  # check actual class names
-from core.jwt import create_access_token  # check actual module path
+from models.database import Base
+from models.user import User
+from models.account import Account
+from core.jwt import create_access_token
 
 
 @pytest.fixture(scope="session")
@@ -43,7 +42,6 @@ def mock_oauth(respx_mock):
 def mock_llm():
     """Replaces the LLM client with MockLLMClient."""
     from tests.mocks.llm_mock import MockLLMClient
-    # ADJUST the patch target to match actual service path:
     with patch("services.llm_processor.get_llm_client", return_value=MockLLMClient()):
         yield
 
