@@ -1,6 +1,6 @@
-import { test as authTest } from './fixtures/auth';
+import { test as authTest } from '../fixtures/auth';
 
-authTest.describe('AI Chat E2E Tests', () => {
+authTest.describe('@int_chat Chat smoke tests', () => {
   authTest.todo('user can open chat panel from main interface');
 
   authTest.todo('user can send a simple message to the AI agent');

@@ -5,13 +5,16 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './specs',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   timeout: 30000,
+  grep: process.env.INT_GROUPS
+    ? new RegExp(process.env.INT_GROUPS.split(',').map((g: string) => `@int_${g}`).join('|'))
+    : undefined,
   expect: {
     timeout: 5000,
   },

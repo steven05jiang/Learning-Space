@@ -1,7 +1,7 @@
-import { test as authTest } from './fixtures/auth';
-import { GraphPage } from './pages/GraphPage';
+import { test as authTest } from '../fixtures/auth';
+import { GraphPage } from '../pages/GraphPage';
 
-authTest.describe('Knowledge Graph E2E Tests', () => {
+authTest.describe('@int_graph Graph smoke tests', () => {
   authTest.todo('user can view empty graph message when no resources exist');
 
   authTest.todo('user can view graph with nodes after adding resources');

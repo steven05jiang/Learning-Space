@@ -43,3 +43,9 @@ export const test = base.extend<{
 });
 
 export { expect } from '@playwright/test';
+
+export async function bypassOAuth(page: Page) {
+  await page.route('**/auth/callback*', async route => {
+    await route.continue();
+  });
+}

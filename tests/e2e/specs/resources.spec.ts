@@ -1,7 +1,7 @@
-import { test as authTest } from './fixtures/auth';
-import { ResourcesPage } from './pages/ResourcesPage';
+import { test as authTest } from '../fixtures/auth';
+import { ResourcesPage } from '../pages/ResourcesPage';
 
-authTest.describe('Resource Management E2E Tests', () => {
+authTest.describe('@int_resources Resources smoke tests', () => {
   authTest.todo('user can view empty resource list');
 
   authTest.todo('user can submit a new resource with URL');
