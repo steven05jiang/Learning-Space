@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -50,9 +49,8 @@ class AuthService:
         """Create a new user with associated OAuth account."""
         # Create user
         user = User(
-            email=user_info.get(
-                "email", f"{provider}_{provider_account_id}@example.com"
-            ),
+            email=user_info.get("email")
+            or f"{provider}_{provider_account_id}@example.com",
             display_name=user_info.get("display_name", "Unknown User"),
             avatar_url=user_info.get("avatar_url"),
         )
@@ -212,10 +210,9 @@ class AuthService:
         )
 
         if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"This {provider} account is already linked to another user",
-            )
+            from core.errors import account_already_linked
+
+            raise account_already_linked()
 
         if existing_user and existing_user.id == current_user.id:
             # Account already linked to this user, just update tokens

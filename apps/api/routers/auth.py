@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Optional
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -198,7 +198,7 @@ async def oauth_callback(
                     "avatar_url": user.avatar_url,
                 },
             }
-    except (UnauthorizedError, ForbiddenError, ValidationError) as e:
+    except (UnauthorizedError, ForbiddenError, ValidationError, HTTPException) as e:
         # Re-raise authentication/authorization errors as-is
         raise e
     except Exception as e:
