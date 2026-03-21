@@ -89,7 +89,7 @@ class ResourceListItem(BaseModel):
 
 
 class ResourceNodeItem(BaseModel):
-    """Response schema for resource items from graph nodes (includes all required fields)."""
+    """Response schema for resource items from graph nodes (all required fields)."""
 
     id: str
     title: Optional[str] = None

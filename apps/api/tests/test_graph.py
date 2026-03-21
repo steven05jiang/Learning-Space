@@ -232,9 +232,7 @@ class TestGetNodeResources:
         assert text_item["original_content"] == "Some text content"
         assert text_item["content_type"] == "text"
 
-    async def test_get_node_resources_unauthenticated(
-        self, client: AsyncClient
-    ):
+    async def test_get_node_resources_unauthenticated(self, client: AsyncClient):
         """Test that unauthenticated requests are rejected."""
         response = await client.get("/graph/nodes/test-tag/resources")
 

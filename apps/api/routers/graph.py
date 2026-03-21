@@ -38,10 +38,11 @@ async def get_node_resources(
     scoped to the authenticated user. Uses GIN index on tags for efficient querying.
     """
     # Validate node_id to prevent LIKE injection attacks
-    if not re.match(r'^[\w\s-]+$', node_id):
+    if not re.match(r"^[\w\s-]+$", node_id):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="node_id contains invalid characters. Only alphanumeric characters, hyphens, underscores, and spaces are allowed."
+            detail="node_id contains invalid characters. Only alphanumeric "
+            "characters, hyphens, underscores, and spaces are allowed.",
         )
 
     # Query resources where tags contains the node_id (tag name)
@@ -54,15 +55,15 @@ async def get_node_resources(
         # This searches for the tag value in the JSON array
         tag_condition = Resource.tags.op("LIKE")(f"%{json.dumps(node_id)}%")
 
-    query = select(Resource).where(
-        Resource.owner_id == current_user.id,
-        tag_condition
-    ).order_by(Resource.created_at.desc())
+    query = (
+        select(Resource)
+        .where(Resource.owner_id == current_user.id, tag_condition)
+        .order_by(Resource.created_at.desc())
+    )
 
     # Get total count for pagination metadata
     count_query = select(func.count(Resource.id)).where(
-        Resource.owner_id == current_user.id,
-        tag_condition
+        Resource.owner_id == current_user.id, tag_condition
     )
 
     total_result = await db.execute(count_query)
