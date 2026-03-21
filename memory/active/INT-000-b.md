@@ -39,3 +39,7 @@ Create API integration test fixtures for the backend integration tests. This pro
 ## Progress Log
 
 2026-03-20 15:30 — Task created, implementing API integration test fixtures
+2026-03-20 16:15 — Created conftest.py with Layer 1 pytest fixtures (pg_engine, db_session, mock_oauth, mock_llm, mock_fetch, test_user, auth_headers)
+2026-03-20 16:30 — Created factories.py with make_resource helper and sample data generators
+2026-03-20 16:45 — Fixed Makefile to include JWT_SECRET_KEY env var for api-test and api-security targets
+2026-03-20 17:00 — All tests passing (203 unit tests pass, lint clean), PR #74 created
