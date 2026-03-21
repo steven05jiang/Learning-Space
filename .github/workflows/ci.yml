@@ -6,10 +6,31 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  # ── Change Detection ─────────────────────────────────────────────────────
+
+  changes:
+    name: "Detect Changes"
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'
+
   # ── API ──────────────────────────────────────────────────────────────────
 
   api-lint:
     name: "API · Lint"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +43,8 @@ jobs:
 
   api-test:
     name: "API · Unit Tests"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +58,8 @@ jobs:
 
   api-security:
     name: "API · Security Scan"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +78,8 @@ jobs:
   api-integration:
     name: "API · Integration Tests"
     runs-on: ubuntu-latest
-    needs: [api-lint, api-test]
+    needs: [changes, api-lint, api-test]
+    if: needs.changes.outputs.api == 'true'
     services:
       postgres:
         image: postgres:16
@@ -114,6 +140,8 @@ jobs:
 
   web-lint-build:
     name: "Web · Lint + Build"
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,6 +156,8 @@ jobs:
 
   web-security:
     name: "Web · Security Scan"
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
