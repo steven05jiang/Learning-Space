@@ -1,24 +1,16 @@
-import '@testing-library/jest-dom';
+import { setupServer } from 'msw/node'
+import { authHandlers } from './handlers/auth'
+import { resourceHandlers } from './handlers/resources'
+import { graphHandlers } from './handlers/graph'
+import { chatHandlers } from './handlers/chat'
 
-// Mock fetch for integration tests
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+export const server = setupServer(
+  ...authHandlers,
+  ...resourceHandlers,
+  ...graphHandlers,
+  ...chatHandlers,
+)
 
-// Test setup utilities
-export { mockFetch };
-
-// Mock data exports for easy access in tests
-export * from './mocks/auth';
-export * from './mocks/resources';
-export * from './mocks/graph';
-export * from './mocks/chat';
-
-// Reset mocks before each test
-beforeEach(() => {
-  mockFetch.mockClear();
-});
-
-// Clean up after each test
-afterEach(() => {
-  jest.clearAllMocks();
-});
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
