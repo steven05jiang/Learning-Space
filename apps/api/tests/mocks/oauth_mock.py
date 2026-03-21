@@ -14,6 +14,7 @@ MOCK_TWITTER_USER = {
     "id": "1234567890",
     "username": "testuser",
     "name": "Test User",
+    "email": "test@example.com",
     "profile_image_url": "https://pbs.twimg.com/profile_images/test.jpg",
 }
 
@@ -24,25 +25,20 @@ MOCK_GOOGLE_USER = {
 }
 
 
-def setup_twitter_oauth_mock(
-    mock_user_data: Optional[Dict] = None,
-    access_token: str = "mock_access_token_123",
-    provider_user_id: str = "1234567890",
-) -> Dict:
+def setup_twitter_oauth_mock(respx_mock) -> Dict:
     """
     Set up Twitter OAuth API mocks using respx.
 
     Returns the mock user data that will be returned by the mocked API calls.
     """
-    if mock_user_data is None:
-        mock_user_data = MOCK_TWITTER_USER.copy()
+    mock_user_data = MOCK_TWITTER_USER.copy()
 
     # Mock token exchange endpoint
-    respx.post("https://api.twitter.com/2/oauth2/token").mock(
+    respx_mock.post("https://api.twitter.com/2/oauth2/token").mock(
         return_value=httpx.Response(
             200,
             json={
-                "access_token": access_token,
+                "access_token": "mock-twitter-token",
                 "token_type": "bearer",
                 "scope": "tweet.read users.read",
                 "expires_in": 7200,
@@ -51,7 +47,7 @@ def setup_twitter_oauth_mock(
     )
 
     # Mock user info endpoint
-    respx.get("https://api.twitter.com/2/users/me").mock(
+    respx_mock.get("https://api.twitter.com/2/users/me").mock(
         return_value=httpx.Response(200, json={"data": mock_user_data})
     )
 

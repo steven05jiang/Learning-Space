@@ -33,6 +33,7 @@ MOCK_TWEET_JSON = {
 
 
 def setup_fetch_success(
+    respx_mock,
     url: str,
     content: str = None,
     content_type: str = "text/html",
@@ -63,7 +64,7 @@ def setup_fetch_success(
         "content-length": str(len(content)),
     }
 
-    respx.get(url).mock(
+    respx_mock.get(url).mock(
         return_value=httpx.Response(
             status_code,
             content=content,
