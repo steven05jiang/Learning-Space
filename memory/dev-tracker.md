@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (INT-000 complete — all 5 subtasks merged PRs #67 #68 #69 #73 #74)
+**Last Updated:** 2026-03-21 (INT-001–INT-055 restored to tracker; INT-000 complete — PRs #67 #68 #69 #73 #74)
 
 ---
 
 ## Progress Summary
 
-- Total: 61 tasks (55 DEV + 5 DEMO + 1 INT)
+- Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
 - ✅ Completed: 33
 - 🔄 Active: 0
-- ⏳ Pending: 28
+- ⏳ Pending: 83
 - ⚠️ Stuck: 0
 
 ---
@@ -88,6 +88,89 @@
 ## 🛠️ Integration Test Framework
 
 - [x] INT-000: Build integration test framework — Python mocks, pytest fixtures, MSW frontend mocks, CI infra, Playwright E2E (PRs #67 #68 #69 #73 #74 ✅)
+
+## 🧪 Integration Tests (INT-001 – INT-055)
+
+_One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework: INT-000 ✅_
+
+> **CI groups**: `auth,resources` — every PR | `worker,graph,chat` — nightly | `web` — frontend PRs | `deploy` — release only
+
+### Layer 1 — API Integration (pytest + real DB, mocked externals)
+
+**Group: health** — CI: every PR
+- [ ] INT-001: Health check returns OK — GET /health → 200 (BDD: API Health) (ready ✅)
+- [ ] INT-002: API returns standard error format — error response schema (BDD: API Errors) (ready ✅)
+
+**Group: auth** — CI: every PR
+- [ ] INT-003: User logs in with Twitter for the first time — creates user + account row (BDD: OAuth Login) (ready ✅)
+- [ ] INT-004: User logs in with an existing linked account — returns existing user (BDD: OAuth Login) (ready ✅)
+- [ ] INT-005: User logs in with Google (second provider, same user) (BDD: OAuth Login) (ready ✅)
+- [ ] INT-006: Unauthenticated user is redirected to login — 401 on protected endpoint (BDD: OAuth Login) (ready ✅)
+- [ ] INT-007: Session/JWT validated on each request — expired token returns 401 (BDD: OAuth Login) (ready ✅)
+- [ ] INT-008: User links an additional social account — new user_accounts row (BDD: Account Linking) (ready ✅)
+- [ ] INT-009: Link attempt when account already linked to another user — 409 (BDD: Account Linking) (ready ✅)
+- [ ] INT-010: User unlinks a social account — account row deleted (BDD: Account Linking) (ready ✅)
+- [ ] INT-011: User cannot unlink their last account — 400 CANNOT_UNLINK_LAST_ACCOUNT (BDD: Account Linking) (ready ✅)
+- [ ] INT-012: GET /auth/me returns profile + linked accounts (BDD: Current User) (ready ✅)
+
+**Group: resources** — CI: every PR
+- [ ] INT-013: Authenticated user submits a URL resource — 202 + PENDING/PROCESSING (BDD: Resource Create) (ready ✅)
+- [ ] INT-014: Authenticated user submits a text resource — 202 (BDD: Resource Create) (ready ✅)
+- [ ] INT-015: Unauthenticated user cannot create resource — 401 (BDD: Resource Create) (ready ✅)
+- [ ] INT-016: User submits URL with prefer_provider hint — stored on resource (BDD: Resource Create) (ready ✅)
+- [ ] INT-017: User lists their resources — paginated, own resources only (BDD: Resource Read) (ready ✅)
+- [ ] INT-018: User filters resources by tag (BDD: Resource Read) (ready ✅)
+- [ ] INT-019: User filters resources by status (BDD: Resource Read) (ready ✅)
+- [ ] INT-020: User views a single resource — full details (BDD: Resource Read) (ready ✅)
+- [ ] INT-021: User updates a resource title — updated_at changes (BDD: Resource Update) (ready ✅)
+- [ ] INT-022: User updates original_content — triggers PROCESSING + new job (BDD: Resource Update) (ready ✅)
+- [ ] INT-023: User deletes a resource — removed + graph sync enqueued (BDD: Resource Delete) (ready ✅)
+
+**Group: worker** — CI: nightly (blocked: DEV-023)
+- [ ] INT-024: Worker processes URL resource successfully — READY + graph updated (BDD: Async Worker) (blocked: DEV-023)
+- [ ] INT-025: Worker processes text resource successfully — LLM title/summary/tags (BDD: Async Worker) (blocked: DEV-023)
+- [ ] INT-026: URL requires login, user has linked account — provider fetch succeeds (BDD: Async Worker) (blocked: DEV-021, DEV-023)
+- [ ] INT-027: URL requires login, user has no linked account — FAILED + status_message (BDD: Async Worker) (blocked: DEV-021, DEV-023)
+- [ ] INT-028: LLM processing fails — FAILED + status_message (BDD: Async Worker) (blocked: DEV-023)
+
+**Group: graph** — CI: nightly (blocked: DEV-025–030)
+- [ ] INT-029: Graph updated after resource processed — Tag nodes + RELATED_TO edges created (BDD: Graph Update) (blocked: DEV-025, DEV-026)
+- [ ] INT-030: Graph updated after resource deletion — edge weights decremented (BDD: Graph Update) (blocked: DEV-025, DEV-027)
+- [ ] INT-031: Graph updated after resource re-processing — old tags removed, new applied (BDD: Graph Update) (blocked: DEV-025, DEV-026)
+- [ ] INT-032: User views root graph — nodes + edges for personal graph (BDD: Graph Exploration) (blocked: DEV-028)
+- [ ] INT-033: User views graph centered on specific tag (BDD: Graph Exploration) (blocked: DEV-028)
+- [ ] INT-034: User expands a graph node (BDD: Graph Exploration) (blocked: DEV-029)
+- [ ] INT-035: User views resources for a graph node (BDD: Graph Exploration) (blocked: DEV-030)
+
+**Group: chat** — CI: nightly (blocked: DEV-032–035)
+- [ ] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
+- [ ] INT-037: User continues a conversation with context (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
+- [ ] INT-038: Agent uses graph traversal tool (BDD: Chat Agent) (blocked: DEV-032)
+- [ ] INT-039: User lists their conversations (BDD: Chat Agent) (blocked: DEV-034)
+- [ ] INT-040: User retrieves messages in a conversation (BDD: Chat Agent) (blocked: DEV-034)
+
+### Layer 2 — Frontend Integration (Jest + MSW, no backend)
+
+**Group: web** — CI: frontend PRs
+- [ ] INT-041: User sees resource submission form (BDD: Frontend Resource UI) (ready ✅)
+- [ ] INT-042: Resource shows processing status indicator (BDD: Frontend Resource UI) (ready ✅)
+- [ ] INT-043: Resource shows FAILED status with actionable message (BDD: Frontend Resource UI) (ready ✅)
+- [ ] INT-044: User browses resource list (BDD: Frontend Resource UI) (ready ✅)
+- [ ] INT-045: User views the knowledge graph — force-directed render (BDD: Frontend Graph) (blocked: DEV-052)
+- [ ] INT-046: User clicks a node to expand — graph expands (BDD: Frontend Graph) (blocked: DEV-052)
+- [ ] INT-047: User clicks a node to see resources — panel shown (BDD: Frontend Graph) (blocked: DEV-052)
+- [ ] INT-048: User opens the chat interface — panel slides open (BDD: Frontend Chat) (blocked: DEV-053)
+- [ ] INT-049: User sends a message and receives a response (BDD: Frontend Chat) (blocked: DEV-053)
+- [ ] INT-050: User views linked accounts in settings (BDD: Frontend Settings) (ready ✅)
+- [ ] INT-051: User adds a new linked account from settings (BDD: Frontend Settings) (ready ✅)
+- [ ] INT-052: User sees error when unlinking last account (BDD: Frontend Settings) (ready ✅)
+
+### Layer 3 — E2E Deployment (k8s smoke tests)
+
+**Group: deploy** — CI: release only (blocked: DEV-047–049)
+- [ ] INT-053: Docker images build successfully (BDD: Deployment) (blocked: DEV-047)
+- [ ] INT-054: Helm chart deploys to Kubernetes (BDD: Deployment) (blocked: DEV-048)
+- [ ] INT-055: ArgoCD syncs from Git (BDD: Deployment) (blocked: DEV-049)
 
 ## 🎬 Demos
 

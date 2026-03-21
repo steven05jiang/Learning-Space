@@ -16,6 +16,17 @@
 
 Multi-model cross-check (for critical logic): Claude analysis → Codex verification → label `✅ reviewed / ⚠️ unverified`
 
+### Task Completion Gate (before starting the NEXT prefixed task)
+
+> **Every prefixed task (DEV-, INT-, BUG-, OPS-, BUILD-, TD-, DEMO-, etc.) MUST be fully merged to `main` via PR before the next task begins. No exceptions.**
+
+- [ ] All code changes committed and lint/build/test PASS
+- [ ] PR created, reviewed, and merged to `main`
+- [ ] Tracker updated (task marked complete with PR number)
+- [ ] Confirm `main` is up to date locally before starting next task
+
+This rule exists to prevent work-in-progress loss across sessions and ensure every task is independently recoverable from git history.
+
 ### Handoff Checklist (before session-end)
 
 - [ ] Code committed and passes lint/build/test
@@ -93,6 +104,18 @@ make web-security    # npm audit
 **Integration tests** are marked `@pytest.mark.integration` and require real services.
 Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `make api-integration`.
 
+```bash
+# Integration test targets (from docs/integration-test-design.md)
+INT_GROUPS=auth,resources make int-test-ci   # Layer 1: CI-default groups (every PR)
+make int-test                                 # Layer 1: all API integration groups
+make int-test-web                             # Layer 2: frontend (Jest + MSW, no infra)
+make int-test-e2e                             # Layer 3: Playwright E2E (full stack)
+make int-test-full                            # All three layers
+```
+
+INT tasks that are **ready to write** (DEV dependencies complete): INT-001–023 (health, auth, resources), INT-041–044, INT-050–052 (frontend settings/resource UI).
+Remaining INT tasks are blocked pending their DEV dependency — see `memory/dev-tracker.md` for per-task status.
+
 ---
 
 ## Task Tracker Files
@@ -100,6 +123,7 @@ Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `mak
 | Tracker                 | File                          | Prefix   | Scope                                           |
 | ----------------------- | ----------------------------- | -------- | ----------------------------------------------- |
 | Feature development     | `memory/dev-tracker.md`       | `DEV-`   | Product features per exec-plan                  |
+| Integration tests (BDD) | `memory/dev-tracker.md`       | `INT-`   | One test per BDD scenario; INT-000 = framework, INT-001–055 = BDD coverage |
 | Bug fixes               | `memory/bugs-tracker.md`      | `BUG-`   | Defects and regressions                         |
 | DevOps / Infrastructure | `memory/ops-tracker.md`       | `OPS-`   | Deploy, k8s, ArgoCD, monitoring                 |
 | Build / CI / Tooling    | `memory/build-tracker.md`     | `BUILD-` | CI pipelines, test frameworks, tooling          |
