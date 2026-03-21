@@ -187,6 +187,7 @@ When the PM instructs you to merge after reviewer approval:
 - Do not run reviewers yourself — the PM handles review dispatch
 - Always update `memory/active/<task-id>.md` before outputting your result
 - Only output `STUCK` if you genuinely cannot make progress after a reasonable attempt:
+- **No scope creep:** Implement only what the spec requires. Do not add helper functions, extra test files, extra fixtures, extra classes, or any other code not explicitly listed. If the prompt says "COMPLETE REWRITE", the final file must contain **only** the exact contents specified — nothing else.
   ```
   RESULT: STUCK
   TASK: <task-id>
@@ -198,7 +199,13 @@ When the PM instructs you to merge after reviewer approval:
 You may only write to files under `memory/active/`. You must NEVER write to or stage:
 
 - `memory/dev-tracker.md` — owned by the PM exclusively
+- `memory/bugs-tracker.md` — owned by the PM exclusively
+- `memory/ops-tracker.md` — owned by the PM exclusively
+- `memory/build-tracker.md` — owned by the PM exclusively
+- `memory/tech-debt-tracker.md` — owned by the PM exclusively
 - `memory/completed/**` — owned by the PM exclusively
 - Any other file outside `memory/active/` in the memory/ tree
 
-When committing, always stage files explicitly by name. Never use `git add memory/` or `git add .` — doing so risks capturing tracker or completed files. If `git status` shows `memory/dev-tracker.md` or any `memory/completed/` file as modified, leave them unstaged.
+This rule is unconditional. There are no exceptions — not even for "Persist memory state" chore commits. The PM writes all tracker files and moves completed task files directly.
+
+When committing, always stage files explicitly by name. Never use `git add memory/` or `git add .` — doing so risks capturing tracker or completed files. If `git status` shows any tracker or `memory/completed/` file as modified or staged, unstage it immediately with `git restore --staged <file>` before committing.
