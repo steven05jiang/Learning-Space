@@ -73,10 +73,7 @@ def setup_google_oauth_mock(respx_mock) -> Dict:
 
     # Mock user info endpoint
     respx_mock.get("https://www.googleapis.com/oauth2/v3/userinfo").mock(
-        return_value=httpx.Response(
-            200,
-            json=MOCK_GOOGLE_USER
-        )
+        return_value=httpx.Response(200, json=MOCK_GOOGLE_USER)
     )
 
     return MOCK_GOOGLE_USER
