@@ -4,7 +4,7 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-20 (INT-000-d merged PR #67; wave 1 continues)
 
 ---
 
@@ -84,6 +84,10 @@
 - [ ] DEV-049: Configure ArgoCD application — GitOps automation
 - [ ] DEV-050: Integration test — Auth end-to-end — Full auth flow with real DB
 - [ ] DEV-051: Integration test — Resource pipeline end-to-end — Full create-to-graph flow
+
+## 🛠️ Integration Test Framework
+
+- [~] INT-000: Build integration test framework — BDD scenarios, dependency mocking, CI infrastructure (INT-000-d complete PR #67, wave 1 continues)
 
 ## 🎬 Demos
 
