@@ -224,6 +224,30 @@ Approve this cycle goal? (yes / adjust / skip)
 - The cycle goal should be a short, descriptive sentence (not a task list)
   that captures what will be demonstrably different by the end of the cycle.
 
+**When the user approves**, before proceeding to Phase 4, create or append a new sprint entry in `memory/sprints.md`:
+
+```markdown
+## Sprint YYYY-MM-DD-A — <Cycle Goal short title>
+
+**Status:** 🔄 Active
+**Cycle Goal:** <full cycle goal sentence>
+**Started:** YYYY-MM-DD
+**Completed:** (pending)
+
+### Notes
+
+<any scope decisions, deferred tasks, or constraints>
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| TASK-001 | <description> | 🔄 Active |
+| TASK-002 | <description> | ⏳ Pending (needs TASK-001) |
+```
+
+Use a letter suffix (A, B, C…) if multiple cycles run on the same day. If `memory/sprints.md` does not exist, create it with a top-level header first.
+
 ---
 
 ## Phase 4 — Select Tasks to Dispatch
@@ -413,6 +437,10 @@ N rounds before approval
    - Update Progress Summary counts
    - Update `Last Updated`
 
+3a. Update `memory/sprints.md` — find the current sprint entry and change the task row to:
+   `| TASK-001 | <description> | ✅ Completed (PR #12) |`
+   When all tasks in the sprint are complete or stuck, set `**Status:**` to `✅ Complete` and fill in `**Completed:**`.
+
 4. Persist memory state — **PM does this directly** (no implementer involved):
 
    ```bash
@@ -440,6 +468,9 @@ N rounds before approval
 2. Update the appropriate tracker for this task type (`memory/dev-tracker.md` for DEV, `memory/bugs-tracker.md` for BUG, `memory/ops-tracker.md` for OPS, `memory/build-tracker.md` for BUILD, `memory/tech-debt-tracker.md` for TD):
    - Change `- [~] TASK-001: ...` → `- [!] TASK-001: ... (⚠️ STUCK)`
    - Update Progress Summary counts
+
+2a. Update `memory/sprints.md` — change the task row to:
+   `| TASK-001 | <description> | ⚠️ Stuck — <brief reason> |`
 
 3. Persist memory state — **PM does this directly** (no implementer involved):
 
@@ -497,4 +528,12 @@ If all tasks are complete:
 
 ```
 🎉 All tasks in dev-tracker.md are complete! Sprint done.
+```
+
+After every cycle (regardless of completion), check `memory/tech-debt.md` for any shortcuts logged during this sprint's implementations. If new high-priority entries (P0/P1) are present, surface them to the user:
+
+```
+⚠️  Tech debt logged this cycle:
+  - <TASK-ID>: <shortcut title> (P1 — <brief reason>)
+Consider scheduling a TD- task to address before release.
 ```

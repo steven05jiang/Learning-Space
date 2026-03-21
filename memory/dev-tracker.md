@@ -4,7 +4,7 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (INT-013-023 complete — PR #84)
+**Last Updated:** 2026-03-21 (cycle: resource pipeline + graph view)
 
 ---
 
@@ -12,8 +12,8 @@
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
 - ✅ Completed: 56
-- 🔄 Active: 0
-- ⏳ Pending: 60
+- 🔄 Active: 3
+- ⏳ Pending: 57
 - ⚠️ Stuck: 0
 
 ---
@@ -51,13 +51,13 @@
 - [x] DEV-016: Implement PATCH /resources/{id} (update) — Users edit resources (PR #50 ✅)
 - [x] DEV-017: Implement DELETE /resources/{id} — Users delete resources (PR #50 ✅)
 - [ ] DEV-021: Implement authenticated URL fetcher (provider API) — Fetch from login-required sites
-- [ ] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update
-- [ ] DEV-025: Implement graph service (Neo4j operations) — Foundation for all graph features
+- [~] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update
+- [~] DEV-025: Implement graph service (Neo4j operations) — Foundation for all graph features
 - [ ] DEV-026: Integrate graph update into worker pipeline — Resources update graph on processing
 - [ ] DEV-027: Implement graph sync job for resource deletion — Graph consistency on deletion
 - [ ] DEV-028: Implement GET /graph (graph view) — Core graph exploration API
 - [ ] DEV-029: Implement POST /graph/expand — Graph drill-down
-- [ ] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph
+- [~] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph
 - [ ] DEV-035: Implement conversation storage (DB schema) — Chat persistence
 - [ ] DEV-032: Implement LangGraph agent with tools — Core chat intelligence
 - [ ] DEV-033: Implement POST /chat endpoint — Chat API
