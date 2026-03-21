@@ -1,12 +1,13 @@
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+from core.jwt import create_access_token
+from models.account import Account
 from models.database import Base
 from models.user import User
-from models.account import Account
-from core.jwt import create_access_token
 
 
 @pytest.fixture(scope="session")
@@ -32,7 +33,8 @@ async def db_session(pg_engine):
 @pytest.fixture
 def mock_oauth(respx_mock):
     """Activates all OAuth provider mocks for the duration of a test."""
-    from tests.mocks.oauth_mock import setup_twitter_oauth_mock, setup_google_oauth_mock
+    from tests.mocks.oauth_mock import setup_google_oauth_mock, setup_twitter_oauth_mock
+
     setup_twitter_oauth_mock(respx_mock)
     setup_google_oauth_mock(respx_mock)
     return respx_mock
@@ -42,6 +44,7 @@ def mock_oauth(respx_mock):
 def mock_llm():
     """Replaces the LLM client with MockLLMClient."""
     from tests.mocks.llm_mock import MockLLMClient
+
     with patch("services.llm_processor.Anthropic", return_value=MockLLMClient()):
         yield
 
@@ -50,6 +53,7 @@ def mock_llm():
 def mock_fetch(respx_mock):
     """Default: all external URL fetches return a mock HTML page."""
     from tests.mocks.provider_fetch_mock import setup_fetch_success
+
     setup_fetch_success(respx_mock, url="https://example.com/article")
     return respx_mock
 
@@ -60,8 +64,10 @@ async def test_user(db_session):
     db_session.add(user)
     await db_session.flush()
     account = Account(
-        user_id=user.id, provider="twitter",
-        provider_account_id="twitter-123", access_token="mock-token"
+        user_id=user.id,
+        provider="twitter",
+        provider_account_id="twitter-123",
+        access_token="mock-token",
     )
     db_session.add(account)
     await db_session.flush()
