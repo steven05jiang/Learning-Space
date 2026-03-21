@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth';
 
-test.describe('@int_auth Auth smoke tests', () => {
+authTest.describe('@int_auth Auth smoke tests', () => {
   test('health check - API server is running', async ({ request }) => {
     // This is the only non-todo test - simple smoke test to verify stack is running
     const response = await request.get('/api/health');

@@ -1,5 +1,5 @@
 import { test as authTest } from '../fixtures/auth';
-import { GraphPage } from '../pages/GraphPage';
+import { GraphPage } from '../fixtures/pages';
 
 authTest.describe('@int_graph Graph smoke tests', () => {
   authTest.todo('user can view empty graph message when no resources exist');

@@ -1,5 +1,5 @@
 import { test as authTest } from '../fixtures/auth';
-import { ResourcesPage } from '../pages/ResourcesPage';
+import { ResourcesPage } from '../fixtures/pages';
 
 authTest.describe('@int_resources Resources smoke tests', () => {
   authTest.todo('user can view empty resource list');
