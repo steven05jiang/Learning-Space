@@ -20,6 +20,8 @@ Tests:
 - INT-012: GET /auth/me → returns user profile + linked accounts list
 """
 
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -216,22 +218,50 @@ async def test_protected_endpoint_with_invalid_jwt_returns_401():
 @pytest.mark.integration
 @pytest.mark.int_auth
 async def test_authenticated_user_can_link_additional_account(
-    db_session, auth_headers, mock_oauth
+    db_session, auth_headers, mock_oauth, test_user
 ):
     """
-    INT-008: Authenticated user hits GET /auth/link/twitter → links new Account row
+    INT-008: Authenticated user hits GET /auth/link/google → links new Account row
     to existing user
     """
     # Use the test_user fixture which creates a user with a twitter account already
     async with AsyncClient(app=app, base_url="http://test") as client:
         # Get link URL for Google (since test_user already has Twitter)
-        response = await client.get("/auth/link/google", headers=auth_headers)
+        link_response = await client.get("/auth/link/google", headers=auth_headers)
 
-    assert response.status_code == 200
-    data = response.json()
-    assert "authorization_url" in data
-    assert "state" in data
-    assert data["provider"] == "google"
+        assert link_response.status_code == 200
+        link_data = link_response.json()
+        assert "authorization_url" in link_data
+        assert "state" in link_data
+        assert link_data["provider"] == "google"
+
+        # Extract state from the authorization_url to complete the link flow
+        parsed_url = urlparse(link_data["authorization_url"])
+        query_params = parse_qs(parsed_url.query)
+        state = query_params["state"][0]
+
+        # Complete the link flow by calling the callback
+        callback_response = await client.get(
+            f"/auth/callback/google?code=mock-code&state={state}", headers=auth_headers
+        )
+
+    assert callback_response.status_code == 200
+    callback_data = callback_response.json()
+    assert "message" in callback_data
+    assert "Google account linked successfully" in callback_data["message"]
+    assert "user" in callback_data
+
+    # Verify that a new Google account was created in the database
+    result = await db_session.execute(
+        select(Account).where(
+            Account.user_id == test_user.id, Account.provider == "google"
+        )
+    )
+    google_account = result.scalar_one()
+    assert google_account is not None
+    assert google_account.provider == "google"
+    # Mock OAuth returns "google-user-456"
+    assert google_account.provider_account_id == "google-user-456"
 
 
 @pytest.mark.integration
@@ -349,19 +379,37 @@ async def test_delete_last_account_returns_400_cannot_unlink(
 async def test_get_auth_me_returns_user_profile_and_accounts(test_user, auth_headers):
     """INT-012: GET /auth/me → returns user profile + linked accounts list"""
     async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/auth/me", headers=auth_headers)
+        # Test /auth/me endpoint for user profile
+        me_response = await client.get("/auth/me", headers=auth_headers)
 
-    assert response.status_code == 200
-    data = response.json()
+        # Test /auth/accounts endpoint for linked accounts
+        accounts_response = await client.get("/auth/accounts", headers=auth_headers)
 
-    # Check user profile
-    assert "id" in data
-    assert "email" in data
-    assert "display_name" in data
-    assert "avatar_url" in data
-    assert data["id"] == test_user.id
-    assert data["email"] == test_user.email
-    assert data["display_name"] == test_user.display_name
+    # Verify user profile from /auth/me
+    assert me_response.status_code == 200
+    me_data = me_response.json()
+    assert "id" in me_data
+    assert "email" in me_data
+    assert "display_name" in me_data
+    assert "avatar_url" in me_data
+    assert me_data["id"] == test_user.id
+    assert me_data["email"] == test_user.email
+    assert me_data["display_name"] == test_user.display_name
+
+    # Verify linked accounts from /auth/accounts
+    assert accounts_response.status_code == 200
+    accounts_data = accounts_response.json()
+    assert "accounts" in accounts_data
+    accounts = accounts_data["accounts"]
+    assert len(accounts) == 1  # test_user has one twitter account
+
+    account = accounts[0]
+    assert "id" in account
+    assert "provider" in account
+    assert "provider_account_id" in account
+    assert "created_at" in account
+    assert account["provider"] == "twitter"
+    assert account["provider_account_id"] == "twitter-123"
 
 
 @pytest.mark.integration
