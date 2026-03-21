@@ -14,6 +14,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
+      e2e: ${{ steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -27,6 +28,11 @@ jobs:
               - '.github/workflows/ci.yml'
             web:
               - 'apps/web/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            e2e:
+              - 'tests/e2e/**'
+              - 'docker-compose.e2e.yml'
               - 'Makefile'
               - '.github/workflows/ci.yml'
 
@@ -173,3 +179,16 @@ jobs:
       - name: Dependency vulnerability scan (npm audit)
         # Remaining high-severity issues (GHSA-9g9p, GHSA-h25m) require Next.js 16 to fix. OPS-001 tracks the upgrade.
         run: cd apps/web && npm audit --audit-level=critical
+
+  # ── E2E ──────────────────────────────────────────────────────────────────
+
+  e2e:
+    name: "E2E · Playwright"
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: wire up full E2E run (docker-compose.e2e.yml + Playwright)
+      # Tracked in: tests/e2e/
+      - run: echo "E2E CI not yet configured — placeholder job"
