@@ -13,7 +13,7 @@ from core.errors import (
     http_exception_wrapper,
 )
 from models.database import get_db
-from routers import auth, health, jobs, resources
+from routers import auth, graph, health, jobs, resources
 from services.neo4j_driver import neo4j_driver
 
 
@@ -48,6 +48,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(resources.router)
 app.include_router(jobs.router)
+app.include_router(graph.router)
 
 
 @app.get("/db-health")
