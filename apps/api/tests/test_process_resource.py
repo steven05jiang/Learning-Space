@@ -522,3 +522,177 @@ class TestProcessResource:
         # Verify final status should be READY (can't easily track transitions with Mock)
         assert mock_resource.status == ResourceStatus.READY
         assert mock_resource.status_message is None
+
+    @pytest.mark.asyncio
+    async def test_process_resource_graph_update_called_with_correct_args(
+        self, mock_resource, mock_fetch_success, monkeypatch
+    ):
+        """Test that graph_service.update_from_resource is called with correct owner_id and tags."""
+        # Mock LLM result with multiple tags
+        mock_llm_multiple_tags = LLMResult(
+            success=True,
+            title="Test Article",
+            summary="A test summary",
+            tags=["python", "testing", "api"],
+        )
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_resource
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.commit = AsyncMock()
+
+        class MockAsyncSessionContext:
+            def __init__(self, session):
+                self.session = session
+
+            async def __aenter__(self):
+                return self.session
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        def mock_session_factory():
+            return MockAsyncSessionContext(mock_session)
+
+        monkeypatch.setattr("workers.tasks.AsyncSessionLocal", mock_session_factory)
+
+        # Mock services
+        mock_url_fetcher = AsyncMock()
+        mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
+        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+
+        mock_llm_processor = AsyncMock()
+        mock_llm_processor.process_content.return_value = mock_llm_multiple_tags
+        monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
+
+        mock_graph_service = AsyncMock()
+        monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
+
+        # Execute the task
+        result = await process_resource("123")
+
+        # Verify processing succeeds
+        assert result["status"] == "ready"
+        assert result["tags_count"] == 3
+
+        # Verify graph service was called with exact owner_id and tags
+        mock_graph_service.update_from_resource.assert_called_once_with(
+            456,  # owner_id from mock_resource
+            ["python", "testing", "api"]  # tags from mock_llm_multiple_tags
+        )
+
+    @pytest.mark.asyncio
+    async def test_process_resource_empty_tags_skips_graph_update(
+        self, mock_resource, mock_fetch_success, monkeypatch
+    ):
+        """Test that resources with empty tags skip graph update."""
+        # Mock LLM result with no tags
+        mock_llm_no_tags = LLMResult(
+            success=True,
+            title="Test Article",
+            summary="A test summary",
+            tags=[],  # No tags
+        )
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_resource
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.commit = AsyncMock()
+
+        class MockAsyncSessionContext:
+            def __init__(self, session):
+                self.session = session
+
+            async def __aenter__(self):
+                return self.session
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        def mock_session_factory():
+            return MockAsyncSessionContext(mock_session)
+
+        monkeypatch.setattr("workers.tasks.AsyncSessionLocal", mock_session_factory)
+
+        # Mock services
+        mock_url_fetcher = AsyncMock()
+        mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
+        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+
+        mock_llm_processor = AsyncMock()
+        mock_llm_processor.process_content.return_value = mock_llm_no_tags
+        monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
+
+        mock_graph_service = AsyncMock()
+        monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
+
+        # Execute the task
+        result = await process_resource("123")
+
+        # Verify processing succeeds
+        assert result["status"] == "ready"
+        assert result["tags_count"] == 0
+
+        # Verify graph service was NOT called
+        mock_graph_service.update_from_resource.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_process_resource_graph_failure_resource_stays_ready(
+        self, mock_resource, mock_fetch_success, mock_llm_success, monkeypatch
+    ):
+        """Test that graph update failure doesn't change resource status from READY."""
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_resource
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.commit = AsyncMock()
+
+        class MockAsyncSessionContext:
+            def __init__(self, session):
+                self.session = session
+
+            async def __aenter__(self):
+                return self.session
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        def mock_session_factory():
+            return MockAsyncSessionContext(mock_session)
+
+        monkeypatch.setattr("workers.tasks.AsyncSessionLocal", mock_session_factory)
+
+        # Mock services
+        mock_url_fetcher = AsyncMock()
+        mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
+        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+
+        mock_llm_processor = AsyncMock()
+        mock_llm_processor.process_content.return_value = mock_llm_success
+        monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
+
+        # Mock graph service to fail
+        mock_graph_service = AsyncMock()
+        mock_graph_service.update_from_resource.side_effect = Exception("Neo4j connection error")
+        monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
+
+        # Execute the task
+        result = await process_resource("123")
+
+        # Verify processing still succeeds despite graph update failure
+        assert result["resource_id"] == "123"
+        assert result["status"] == "ready"
+
+        # Verify resource remains in READY state even after graph failure
+        assert mock_resource.status == ResourceStatus.READY
+        assert mock_resource.status_message is None  # No error message set on resource
+
+        # Verify graph service was called (but failed)
+        mock_graph_service.update_from_resource.assert_called_once_with(
+            456, ["test", "article", "content"]
+        )
