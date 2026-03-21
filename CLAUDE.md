@@ -93,6 +93,18 @@ make web-security    # npm audit
 **Integration tests** are marked `@pytest.mark.integration` and require real services.
 Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `make api-integration`.
 
+```bash
+# Integration test targets (from docs/integration-test-design.md)
+INT_GROUPS=auth,resources make int-test-ci   # Layer 1: CI-default groups (every PR)
+make int-test                                 # Layer 1: all API integration groups
+make int-test-web                             # Layer 2: frontend (Jest + MSW, no infra)
+make int-test-e2e                             # Layer 3: Playwright E2E (full stack)
+make int-test-full                            # All three layers
+```
+
+INT tasks that are **ready to write** (DEV dependencies complete): INT-001–023 (health, auth, resources), INT-041–044, INT-050–052 (frontend settings/resource UI).
+Remaining INT tasks are blocked pending their DEV dependency — see `memory/dev-tracker.md` for per-task status.
+
 ---
 
 ## Task Tracker Files
@@ -100,6 +112,7 @@ Run `make infra-up` to start PostgreSQL, Neo4j, and Redis via Docker before `mak
 | Tracker                 | File                          | Prefix   | Scope                                           |
 | ----------------------- | ----------------------------- | -------- | ----------------------------------------------- |
 | Feature development     | `memory/dev-tracker.md`       | `DEV-`   | Product features per exec-plan                  |
+| Integration tests (BDD) | `memory/dev-tracker.md`       | `INT-`   | One test per BDD scenario; INT-000 = framework, INT-001–055 = BDD coverage |
 | Bug fixes               | `memory/bugs-tracker.md`      | `BUG-`   | Defects and regressions                         |
 | DevOps / Infrastructure | `memory/ops-tracker.md`       | `OPS-`   | Deploy, k8s, ArgoCD, monitoring                 |
 | Build / CI / Tooling    | `memory/build-tracker.md`     | `BUILD-` | CI pipelines, test frameworks, tooling          |
