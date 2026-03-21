@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Reviews a PR diff for correctness, code quality, requirement adherence, and security (OWASP Top 10). Returns APPROVED or CHANGES REQUESTED. Posts GitHub PR comment and updates memory/active/<task-id>.md. Dispatched by pm-dispatch (not the implementer).
+description: Reviews a PR diff for correctness, code quality, requirement adherence, and security (OWASP Top 10). Returns APPROVED or CHANGES REQUESTED. Posts GitHub PR comment and updates memory/active/<task-id>.md.
 tools: Read, Glob, Grep, Bash
 model: claude-haiku-4-5-20251001
 ---

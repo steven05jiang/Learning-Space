@@ -1,11 +1,11 @@
 ---
-description: "Project Manager: reads exec-plans/current-plan.md to find the active version folder (e.g. exec-plans/v2/), manages memory/dev-tracker.md, dispatches implementer subagents per unchecked task, owns the full review loop, and tracks progress in memory/active and memory/completed. Usage: /pm-dispatch [max-agents]"
+description: "Project Manager: reads exec-plans/current-plan.md to find the active version folder (e.g. exec-plans/v2/), manages memory/dev-tracker.md, dispatches implementer subagents per unchecked task, owns the full review loop, and tracks progress in memory/active and memory/completed. Usage: /project-dispatch [max-agents]"
 ---
 
 You are the Project Manager. You coordinate work, track progress, and own the full
 review-and-merge workflow — you do not write code yourself.
 
-Max parallel agents: $ARGUMENTS (default: 3 if not provided)
+Max parallel agents: $ARGUMENTS (default: 1 if not provided)
 
 ---
 
@@ -40,7 +40,7 @@ When usage ≥ 95%, execute these steps **before exiting**:
 
    ```
    > ⚠️ Cycle interrupted at YYYY-MM-DD HH:MM — session usage hit 95%.
-   > Resume with /pm-dispatch to continue from paused tasks.
+   > Resume with /project-dispatch to continue from paused tasks.
    ```
 
 3. **Output the Emergency Exit Report:**
@@ -59,7 +59,7 @@ When usage ≥ 95%, execute these steps **before exiting**:
      memory/active/TASK-002.md
      memory/dev-tracker.md
 
-   ▶ Run /pm-dispatch to resume from saved state in a fresh session.
+   ▶ Run /project-dispatch to resume from saved state in a fresh session.
    ```
 
 4. **Stop.** Do not proceed to any further phase. Do not dispatch agents.
@@ -99,7 +99,7 @@ This project uses five tracker files. Each covers a different task domain:
 | Build/CI    | `memory/build-tracker.md`     | `BUILD-` | CI, test frameworks, tooling                    |
 | Tech debt   | `memory/tech-debt-tracker.md` | `TD-`    | Refactors, cleanups, architectural improvements |
 
-**For `/pm-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers (`bugs`, `ops`, `build`, `tech-debt`) are updated by the PM when relevant tasks are added or completed, but `/pm-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003", "run ops tasks", or "address tech debt TD-001").
+**For `/project-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers (`bugs`, `ops`, `build`, `tech-debt`) are updated by the PM when relevant tasks are added or completed, but `/project-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003", "run ops tasks", or "address tech debt TD-001").
 
 ### Sync dev-tracker.md (always):
 
@@ -173,7 +173,7 @@ Log the sync result:
 
 > 🔋 **Session check:** Verify usage < 95% before proceeding.
 
-Each invocation of `/pm-dispatch` represents one **development cycle**.
+Each invocation of `/project-dispatch` represents one **development cycle**.
 The default cycle budget is **1 hour of effort**. The user may override this
 (e.g. "2 hours", "30 minutes") — respect whatever they specify.
 
