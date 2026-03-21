@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.database import AsyncSessionLocal
 from models.resource import Resource, ResourceStatus
+from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
 from services.url_fetcher import url_fetcher_service
-from services.graph_service import graph_service
 
 logger = logging.getLogger(__name__)
 
@@ -143,9 +143,10 @@ async def process_resource(
                         f"with {len(llm_result.tags)} tags"
                     )
                 else:
+                    tag_count = len(llm_result.tags) if llm_result.tags else 0
                     logger.info(
                         f"Skipping graph update for resource {resource_id}: "
-                        f"insufficient tags ({len(llm_result.tags) if llm_result.tags else 0})"
+                        f"insufficient tags ({tag_count})"
                     )
             except Exception as e:
                 # Don't fail the entire job for graph update errors
@@ -163,7 +164,11 @@ async def process_resource(
                 "tags_count": len(llm_result.tags) if llm_result.tags else 0,
                 "stages_completed": [
                     "status_update",
-                    "content_fetch" if resource.content_type == "url" else "content_direct",
+                    (
+                        "content_fetch"
+                        if resource.content_type == "url"
+                        else "content_direct"
+                    ),
                     "llm_processing",
                     "db_update",
                     "graph_update",
@@ -181,7 +186,7 @@ async def process_resource(
             # Handle any other unexpected errors
             logger.error(
                 f"Unexpected error processing resource {resource_id}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             try:
                 # Try to set resource status to FAILED

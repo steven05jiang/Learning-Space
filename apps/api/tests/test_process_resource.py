@@ -1,8 +1,9 @@
 """Tests for the process_resource worker task."""
 
-import pytest
-from unittest.mock import AsyncMock, Mock
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from models.resource import Resource, ResourceStatus
 from services.llm_processor import LLMResult
@@ -57,7 +58,8 @@ class TestProcessResource:
         """Mock successful URL fetch result."""
         return FetchResult(
             success=True,
-            content="<html><body><h1>Test Article</h1><p>Some content here</p></body></html>",
+            content="<html><body><h1>Test Article</h1>"
+            "<p>Some content here</p></body></html>",
             content_type="text/html",
             status_code=200,
             final_url="https://example.com",
@@ -103,16 +105,12 @@ class TestProcessResource:
 
     @pytest.mark.asyncio
     async def test_process_resource_url_success_end_to_end(
-        self,
-        mock_resource,
-        mock_fetch_success,
-        mock_llm_success,
-        monkeypatch
+        self, mock_resource, mock_fetch_success, mock_llm_success, monkeypatch
     ):
         """Test successful end-to-end processing of a URL resource."""
         # Mock database session and query
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
@@ -156,9 +154,14 @@ class TestProcessResource:
         assert result["summary_length"] == len(mock_llm_success.summary)
         assert result["tags_count"] == 3
         assert "processed_at" in result
-        assert set(result["stages_completed"]) == {
-            "status_update", "content_fetch", "llm_processing", "db_update", "graph_update"
+        expected_stages = {
+            "status_update",
+            "content_fetch",
+            "llm_processing",
+            "db_update",
+            "graph_update",
         }
+        assert set(result["stages_completed"]) == expected_stages
 
         # Verify resource was updated correctly
         assert mock_resource.status == ResourceStatus.READY
@@ -168,7 +171,9 @@ class TestProcessResource:
         assert mock_resource.status_message is None
 
         # Verify services were called
-        mock_url_fetcher.fetch_url_content.assert_called_once_with("https://example.com")
+        mock_url_fetcher.fetch_url_content.assert_called_once_with(
+            "https://example.com"
+        )
         mock_llm_processor.process_content.assert_called_once_with(
             mock_fetch_success.content, "text/html"
         )
@@ -177,19 +182,17 @@ class TestProcessResource:
         )
 
         # Verify database commits
-        assert mock_session.commit.call_count == 2  # Once for PROCESSING, once for READY
+        # Once for PROCESSING, once for READY
+        assert mock_session.commit.call_count == 2
 
     @pytest.mark.asyncio
     async def test_process_resource_text_success_end_to_end(
-        self,
-        mock_text_resource,
-        mock_llm_success,
-        monkeypatch
+        self, mock_text_resource, mock_llm_success, monkeypatch
     ):
         """Test successful end-to-end processing of a text resource."""
         # Mock database session and query
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_text_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
@@ -244,7 +247,7 @@ class TestProcessResource:
         """Test that non-existent resource raises ValueError."""
         # Mock database session with no result
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
 
@@ -269,15 +272,12 @@ class TestProcessResource:
 
     @pytest.mark.asyncio
     async def test_process_resource_fetch_failure(
-        self,
-        mock_resource,
-        mock_fetch_failure,
-        monkeypatch
+        self, mock_resource, mock_fetch_failure, monkeypatch
     ):
         """Test that fetch failure sets resource to FAILED status."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
@@ -318,16 +318,12 @@ class TestProcessResource:
 
     @pytest.mark.asyncio
     async def test_process_resource_llm_failure(
-        self,
-        mock_resource,
-        mock_fetch_success,
-        mock_llm_failure,
-        monkeypatch
+        self, mock_resource, mock_fetch_success, mock_llm_failure, monkeypatch
     ):
         """Test that LLM failure sets resource to FAILED status."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
@@ -372,16 +368,12 @@ class TestProcessResource:
 
     @pytest.mark.asyncio
     async def test_process_resource_graph_update_failure_continues(
-        self,
-        mock_resource,
-        mock_fetch_success,
-        mock_llm_success,
-        monkeypatch
+        self, mock_resource, mock_fetch_success, mock_llm_success, monkeypatch
     ):
         """Test that graph update failure doesn't fail the entire job."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
@@ -413,7 +405,9 @@ class TestProcessResource:
 
         # Mock graph service to fail
         mock_graph_service = AsyncMock()
-        mock_graph_service.update_from_resource.side_effect = Exception("Graph connection failed")
+        mock_graph_service.update_from_resource.side_effect = Exception(
+            "Graph connection failed"
+        )
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
@@ -426,10 +420,7 @@ class TestProcessResource:
 
     @pytest.mark.asyncio
     async def test_process_resource_insufficient_tags_skips_graph_update(
-        self,
-        mock_resource,
-        mock_fetch_success,
-        monkeypatch
+        self, mock_resource, mock_fetch_success, monkeypatch
     ):
         """Test that resources with <2 tags skip graph update."""
         # Mock LLM result with insufficient tags
@@ -442,7 +433,7 @@ class TestProcessResource:
 
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
@@ -487,16 +478,12 @@ class TestProcessResource:
 
     @pytest.mark.asyncio
     async def test_process_resource_status_transitions(
-        self,
-        mock_resource,
-        mock_fetch_success,
-        mock_llm_success,
-        monkeypatch
+        self, mock_resource, mock_fetch_success, mock_llm_success, monkeypatch
     ):
         """Test that resource status transitions correctly through pipeline."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for result since scalar_one_or_none is sync
+        mock_result = Mock()  # Use regular Mock for sync method
         mock_result.scalar_one_or_none.return_value = mock_resource
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
