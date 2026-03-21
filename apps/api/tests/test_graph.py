@@ -315,3 +315,139 @@ class TestGetNodeResources:
         assert data["items"][0]["title"] == "Newer Resource"
         assert data["items"][1]["id"] == str(resource1.id)
         assert data["items"][1]["title"] == "Older Resource"
+
+    async def test_get_node_resources_custom_limit(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
+    ):
+        """Test custom limit parameter returns at most specified number of items."""
+        # Create 3 resources with the same tag
+        resources = []
+        for i in range(3):
+            resource = Resource(
+                owner_id=test_user.id,
+                content_type="url",
+                original_content=f"https://example.com/{i}",
+                title=f"Resource {i}",
+                tags=["test-tag"],
+                status=ResourceStatus.READY,
+            )
+            resources.append(resource)
+
+        db_session.add_all(resources)
+        await db_session.commit()
+
+        # Request with limit=1, should return only 1 item even though 3 match
+        response = await client.get(
+            "/graph/nodes/test-tag/resources?limit=1",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data["total"] == 3  # Total matching resources
+        assert len(data["items"]) == 1  # But only 1 returned due to limit
+        assert data["limit"] == 1
+        assert data["offset"] == 0
+
+    async def test_get_node_resources_pagination_offset(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
+    ):
+        """Test offset parameter skips the specified number of items."""
+        # Create 3 resources with the same tag
+        resources = []
+        for i in range(3):
+            resource = Resource(
+                owner_id=test_user.id,
+                content_type="url",
+                original_content=f"https://example.com/{i}",
+                title=f"Resource {i}",
+                tags=["test-tag"],
+                status=ResourceStatus.READY,
+            )
+            resources.append(resource)
+
+        db_session.add_all(resources)
+        await db_session.commit()
+
+        # Get all resources first to know the order
+        response_all = await client.get(
+            "/graph/nodes/test-tag/resources",
+            headers=auth_headers,
+        )
+        all_data = response_all.json()
+
+        # Request with offset=1&limit=10, should skip the first item
+        response = await client.get(
+            "/graph/nodes/test-tag/resources?offset=1&limit=10",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data["total"] == 3  # Total matching resources
+        assert len(data["items"]) == 2  # 2 remaining after skipping first
+        assert data["limit"] == 10
+        assert data["offset"] == 1
+
+        # Verify that the first item from all results is skipped
+        assert data["items"][0]["id"] == all_data["items"][1]["id"]
+        assert data["items"][1]["id"] == all_data["items"][2]["id"]
+
+    async def test_get_node_resources_limit_too_high(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+    ):
+        """Test that limit=101 returns 422 validation error."""
+        response = await client.get(
+            "/graph/nodes/test-tag/resources?limit=101",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert "detail" in data
+
+    async def test_get_node_resources_limit_too_low(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+    ):
+        """Test that limit=0 returns 422 validation error."""
+        response = await client.get(
+            "/graph/nodes/test-tag/resources?limit=0",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert "detail" in data
+
+    async def test_get_node_resources_invalid_node_id(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+    ):
+        """Test that node_id with special characters returns 422 validation error."""
+        # Test with characters that would be problematic for SQL injection
+        response = await client.get(
+            "/graph/nodes/test%;DROP/resources",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert "detail" in data
