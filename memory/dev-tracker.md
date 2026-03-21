@@ -4,7 +4,7 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-20 (INT-000-d merged PR #67; wave 1 continues)
+**Last Updated:** 2026-03-20 (INT-000-c merged PR #69; INT-000-a in review)
 
 ---
 
