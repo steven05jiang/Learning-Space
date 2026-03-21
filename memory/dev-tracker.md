@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (INT-001–INT-055 restored to tracker; INT-000 complete — PRs #67 #68 #69 #73 #74)
+**Last Updated:** 2026-03-21 (INT-001–012 complete — PR #79; INT-000 complete — PRs #67 #68 #69 #73 #74)
 
 ---
 
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 33
+- ✅ Completed: 45
 - 🔄 Active: 0
-- ⏳ Pending: 83
+- ⏳ Pending: 71
 - ⚠️ Stuck: 0
 
 ---
@@ -98,20 +98,20 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 ### Layer 1 — API Integration (pytest + real DB, mocked externals)
 
 **Group: health** — CI: every PR
-- [ ] INT-001: Health check returns OK — GET /health → 200 (BDD: API Health) (ready ✅)
-- [ ] INT-002: API returns standard error format — error response schema (BDD: API Errors) (ready ✅)
+- [x] INT-001: Health check returns OK — GET /health → 200 (BDD: API Health) (PR #79 ✅)
+- [x] INT-002: API returns standard error format — error response schema (BDD: API Errors) (PR #79 ✅)
 
 **Group: auth** — CI: every PR
-- [ ] INT-003: User logs in with Twitter for the first time — creates user + account row (BDD: OAuth Login) (ready ✅)
-- [ ] INT-004: User logs in with an existing linked account — returns existing user (BDD: OAuth Login) (ready ✅)
-- [ ] INT-005: User logs in with Google (second provider, same user) (BDD: OAuth Login) (ready ✅)
-- [ ] INT-006: Unauthenticated user is redirected to login — 401 on protected endpoint (BDD: OAuth Login) (ready ✅)
-- [ ] INT-007: Session/JWT validated on each request — expired token returns 401 (BDD: OAuth Login) (ready ✅)
-- [ ] INT-008: User links an additional social account — new user_accounts row (BDD: Account Linking) (ready ✅)
-- [ ] INT-009: Link attempt when account already linked to another user — 409 (BDD: Account Linking) (ready ✅)
-- [ ] INT-010: User unlinks a social account — account row deleted (BDD: Account Linking) (ready ✅)
-- [ ] INT-011: User cannot unlink their last account — 400 CANNOT_UNLINK_LAST_ACCOUNT (BDD: Account Linking) (ready ✅)
-- [ ] INT-012: GET /auth/me returns profile + linked accounts (BDD: Current User) (ready ✅)
+- [x] INT-003: User logs in with Twitter for the first time — creates user + account row (BDD: OAuth Login) (PR #79 ✅)
+- [x] INT-004: User logs in with an existing linked account — returns existing user (BDD: OAuth Login) (PR #79 ✅)
+- [x] INT-005: User logs in with Google (second provider, same user) (BDD: OAuth Login) (PR #79 ✅)
+- [x] INT-006: Unauthenticated user is redirected to login — 401 on protected endpoint (BDD: OAuth Login) (PR #79 ✅)
+- [x] INT-007: Session/JWT validated on each request — expired token returns 401 (BDD: OAuth Login) (PR #79 ✅)
+- [x] INT-008: User links an additional social account — new user_accounts row (BDD: Account Linking) (PR #79 ✅)
+- [x] INT-009: Link attempt when account already linked to another user — 409 (BDD: Account Linking) (PR #79 ✅)
+- [x] INT-010: User unlinks a social account — account row deleted (BDD: Account Linking) (PR #79 ✅)
+- [x] INT-011: User cannot unlink their last account — 400 CANNOT_UNLINK_LAST_ACCOUNT (BDD: Account Linking) (PR #79 ✅)
+- [x] INT-012: GET /auth/me returns profile + linked accounts (BDD: Current User) (PR #79 ✅)
 
 **Group: resources** — CI: every PR
 - [ ] INT-013: Authenticated user submits a URL resource — 202 + PENDING/PROCESSING (BDD: Resource Create) (ready ✅)
