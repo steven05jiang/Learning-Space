@@ -523,24 +523,47 @@ class TestGetGraph:
         auth_headers: dict,
         mock_neo4j_driver,
     ):
-        """Test successful retrieval of rooted subgraph."""
+        """Test successful retrieval of three-level rooted subgraph."""
         mock_driver, mock_session = mock_neo4j_driver
 
         with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
             mock_result = AsyncMock()
             mock_session.run.return_value = mock_result
 
-            # Mock the async iterator for rooted graph
+            # Mock the async iterator for three-level rooted graph
+            # Structure: DeepLearning -> AI -> Python (parent -> current -> child)
             async def mock_records(self):
+                # Root with child Python
                 yield {
                     "root": {"name": "AI"},
-                    "neighbor": {"name": "Python"},
-                    "r": {"weight": 3},
+                    "child": {"name": "Python"},
+                    "r1": {"weight": 3},
+                    "parent": None,
+                    "r2": None,
                 }
+                # Root with child Machine Learning
                 yield {
                     "root": {"name": "AI"},
-                    "neighbor": {"name": "Machine Learning"},
-                    "r": {"weight": 2},
+                    "child": {"name": "Machine Learning"},
+                    "r1": {"weight": 2},
+                    "parent": None,
+                    "r2": None,
+                }
+                # Child Python with parent Deep Learning
+                yield {
+                    "root": {"name": "AI"},
+                    "child": {"name": "Python"},
+                    "r1": {"weight": 3},
+                    "parent": {"name": "Deep Learning"},
+                    "r2": {"weight": 4},
+                }
+                # Child Machine Learning with parent Neural Networks
+                yield {
+                    "root": {"name": "AI"},
+                    "child": {"name": "Machine Learning"},
+                    "r1": {"weight": 2},
+                    "parent": {"name": "Neural Networks"},
+                    "r2": {"weight": 1},
                 }
 
             mock_result.__aiter__ = mock_records
@@ -553,10 +576,27 @@ class TestGetGraph:
             assert "nodes" in data
             assert "edges" in data
 
-            # Should have the root node and its neighbors
+            # Verify three-level structure
             node_levels = {node["id"]: node["level"] for node in data["nodes"]}
+
+            # Root node should be "current"
             assert "AI" in node_levels
-            # The root should be marked as "current" when specified
+            assert node_levels["AI"] == "current"
+
+            # Direct neighbors should be "child"
+            assert "Python" in node_levels
+            assert node_levels["Python"] == "child"
+            assert "Machine Learning" in node_levels
+            assert node_levels["Machine Learning"] == "child"
+
+            # Neighbors of neighbors should be "parent"
+            assert "Deep Learning" in node_levels
+            assert node_levels["Deep Learning"] == "parent"
+            assert "Neural Networks" in node_levels
+            assert node_levels["Neural Networks"] == "parent"
+
+            # Should have edges between all levels
+            assert len(data["edges"]) >= 2  # At least root-child and child-parent edges
 
             # Verify the query was called with root parameter
             mock_session.run.assert_called_once()

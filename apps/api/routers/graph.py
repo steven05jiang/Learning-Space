@@ -116,12 +116,12 @@ async def get_graph(
     Get knowledge graph data for the authenticated user.
 
     - Without **root**: Returns all tag nodes with level "root" and all edges
-    - With **root**: Returns the root tag as "current", its neighbors as "child",
-      and edges between them
+    - With **root**: Returns the root tag as "current", its direct neighbors as "child",
+      and the neighbors' neighbors as "parent", with edges between all levels
     - Empty graph: Returns {nodes: [], edges: []}
 
-    The response contains nodes with id, label, and level fields, and edges
-    with source, target, and weight fields.
+    The response contains nodes with id, label, and level fields
+    ("current", "child", "parent"), and edges with source, target, and weight fields.
     """
     graph_data = await graph_service.get_graph(current_user.id, root)
 
