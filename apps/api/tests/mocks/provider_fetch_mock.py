@@ -1,7 +1,8 @@
-import respx
 from httpx import Response
 
-MOCK_PAGE_HTML = "<html><head><title>Test Page</title></head><body>Content here.</body></html>"
+MOCK_PAGE_HTML = (
+    "<html><head><title>Test Page</title></head><body>Content here.</body></html>"
+)
 MOCK_TWEET_JSON = {"data": {"text": "Mock tweet content for testing."}}
 
 
