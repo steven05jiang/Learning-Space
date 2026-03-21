@@ -66,6 +66,43 @@ Read every line of output. For each `FAILED` or `ERROR` entry, fix the code and 
 - Add integration tests (marked `@pytest.mark.integration`) for any new endpoint, DB interaction, or service boundary — these run in CI and catch real infrastructure issues early
 - Aim for high coverage on new code; do not leave untested happy paths or error branches
 
+**Integration test policy — when to run locally vs. let CI handle it:**
+
+| Situation | Run integration tests locally? |
+|-----------|-------------------------------|
+| Initial implementation (new branch, new PR) | ❌ No — CI runs them first; skip local integration run |
+| Fix round addressing PR reviewer comments, and CI integration has **never failed** on this branch | ❌ No — CI will validate; skip local integration run |
+| Fix round after CI integration tests **failed at least once** on this branch | ✅ Yes — run locally before pushing to shorten the feedback loop |
+
+To check whether CI integration has ever failed on this branch:
+```bash
+GH_TOKEN=$GH_TOKEN_REVIEWER gh pr checks <PR> 2>&1
+# Also check run history:
+GH_TOKEN=$GH_TOKEN_REVIEWER gh run list --branch <branch> --workflow ci.yml --json conclusion,status | python3 -m json.tool
+```
+If any past run shows `"conclusion": "failure"` for the Integration Tests job, treat it as "CI integration has failed on this branch" and run locally.
+
+**How to run integration tests locally** (only when required by the policy above):
+```bash
+# 1. Ensure infra is up
+make infra-up
+
+# 2. Run migrations against the test DB
+cd apps/api && TEST_DATABASE_URL=postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test \
+  DATABASE_URL=postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test \
+  JWT_SECRET_KEY=ci-test-secret-key-32-chars-minimum \
+  uv run alembic upgrade head
+
+# 3. Run the relevant integration test group(s)
+cd apps/api && TEST_DATABASE_URL=postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test \
+  DATABASE_URL=postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test \
+  JWT_SECRET_KEY=ci-test-secret-key-32-chars-minimum \
+  ENVIRONMENT=test NEO4J_URI=bolt://localhost:7687 NEO4J_USER=neo4j NEO4J_PASSWORD=changeme \
+  uv run pytest -m "integration and (<group_marker>)" -v 2>&1
+```
+
+All tests must show `PASSED` before pushing. Fix failures by reading the actual app source (router, service, model) — do not guess.
+
 ### 3d — For web changes: type-check
 
 If you modified anything under `apps/web/`:
@@ -109,7 +146,7 @@ Confirm every stage passes:
 - `api-test` — all unit tests green ✅
 - `web-lint` + `web-build` — if web files were touched ✅
 
-If any stage fails, fix the issue, re-run Step 3c for the relevant test file, then re-run the failing stage. Do not push with failing lint or tests. Security scanning and integration tests run in CI — you do not need to run them locally.
+If any stage fails, fix the issue, re-run Step 3c for the relevant test file, then re-run the failing stage. Do not push with failing lint or tests. Security scanning runs in CI only. Integration tests follow the policy in Step 3c — run locally only when required.
 
 ## Step 5 — Push & Report
 
