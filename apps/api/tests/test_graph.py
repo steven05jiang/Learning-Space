@@ -494,13 +494,9 @@ class TestGetGraph:
                 yield {
                     "t": {"name": "AI"},
                     "t2": {"name": "Python"},
-                    "r": {"weight": 3}
+                    "r": {"weight": 3},
                 }
-                yield {
-                    "t": {"name": "Machine Learning"},
-                    "t2": None,
-                    "r": None
-                }
+                yield {"t": {"name": "Machine Learning"}, "t2": None, "r": None}
 
             mock_result.__aiter__ = mock_records
 
@@ -539,12 +535,12 @@ class TestGetGraph:
                 yield {
                     "root": {"name": "AI"},
                     "neighbor": {"name": "Python"},
-                    "r": {"weight": 3}
+                    "r": {"weight": 3},
                 }
                 yield {
                     "root": {"name": "AI"},
                     "neighbor": {"name": "Machine Learning"},
-                    "r": {"weight": 2}
+                    "r": {"weight": 2},
                 }
 
             mock_result.__aiter__ = mock_records
@@ -625,7 +621,9 @@ class TestGetGraph:
 
             mock_result.__aiter__ = mock_records
 
-            response = await client.get("/graph?root=NonexistentTag", headers=auth_headers)
+            response = await client.get(
+                "/graph?root=NonexistentTag", headers=auth_headers
+            )
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()

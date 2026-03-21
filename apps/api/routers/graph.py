@@ -110,34 +110,32 @@ async def get_node_resources(
 async def get_graph(
     root: str | None = Query(None, description="Root tag to scope the graph"),
     current_user: User = Depends(get_current_user),
-    graph_service = Depends(get_graph_service),
+    graph_service=Depends(get_graph_service),
 ) -> GraphResponse:
     """
     Get knowledge graph data for the authenticated user.
 
-    - Without **root**: Returns all tag nodes with level "root" and all edges between them
-    - With **root**: Returns the root tag as level "current", its direct neighbors as level "child", and edges between them
+    - Without **root**: Returns all tag nodes with level "root" and all edges
+    - With **root**: Returns the root tag as "current", its neighbors as "child",
+      and edges between them
     - Empty graph: Returns {nodes: [], edges: []}
 
-    The response contains nodes with id, label, and level fields, and edges with source, target, and weight fields.
+    The response contains nodes with id, label, and level fields, and edges
+    with source, target, and weight fields.
     """
     graph_data = await graph_service.get_graph(current_user.id, root)
 
     return GraphResponse(
         nodes=[
-            {
-                "id": node["id"],
-                "label": node["label"],
-                "level": node["level"]
-            }
+            {"id": node["id"], "label": node["label"], "level": node["level"]}
             for node in graph_data["nodes"]
         ],
         edges=[
             {
                 "source": edge["source"],
                 "target": edge["target"],
-                "weight": edge["weight"]
+                "weight": edge["weight"],
             }
             for edge in graph_data["edges"]
-        ]
+        ],
     )

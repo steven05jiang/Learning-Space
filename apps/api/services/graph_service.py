@@ -238,7 +238,8 @@ class GraphService:
                 result = await session.run(
                     """
                     MATCH (root:Tag {name: $root, owner_id: $owner_id})
-                    OPTIONAL MATCH (root)-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                    OPTIONAL MATCH (root)-[r:RELATED_TO]-(neighbor:Tag
+                        {owner_id: $owner_id})
                     RETURN root, neighbor, r
                     """,
                     root=root,
@@ -258,29 +259,31 @@ class GraphService:
 
                     # Add main tag
                     if tag["name"] not in nodes_set:
-                        nodes.append({
-                            "id": tag["name"],
-                            "label": tag["name"],
-                            "level": "root"
-                        })
+                        nodes.append(
+                            {"id": tag["name"], "label": tag["name"], "level": "root"}
+                        )
                         nodes_set.add(tag["name"])
 
                     # Add related tag and edge if exists
                     if tag2 and relationship:
                         if tag2["name"] not in nodes_set:
-                            nodes.append({
-                                "id": tag2["name"],
-                                "label": tag2["name"],
-                                "level": "root"
-                            })
+                            nodes.append(
+                                {
+                                    "id": tag2["name"],
+                                    "label": tag2["name"],
+                                    "level": "root",
+                                }
+                            )
                             nodes_set.add(tag2["name"])
 
                         # Add edge (undirected, so we use consistent ordering)
-                        edges.append({
-                            "source": tag["name"],
-                            "target": tag2["name"],
-                            "weight": relationship["weight"]
-                        })
+                        edges.append(
+                            {
+                                "source": tag["name"],
+                                "target": tag2["name"],
+                                "weight": relationship["weight"],
+                            }
+                        )
                 else:
                     # Rooted subgraph mode
                     root_tag = record["root"]
@@ -289,28 +292,34 @@ class GraphService:
 
                     # Add root tag
                     if root_tag["name"] not in nodes_set:
-                        nodes.append({
-                            "id": root_tag["name"],
-                            "label": root_tag["name"],
-                            "level": "current"
-                        })
+                        nodes.append(
+                            {
+                                "id": root_tag["name"],
+                                "label": root_tag["name"],
+                                "level": "current",
+                            }
+                        )
                         nodes_set.add(root_tag["name"])
 
                     # Add neighbor and edge if exists
                     if neighbor and relationship:
                         if neighbor["name"] not in nodes_set:
-                            nodes.append({
-                                "id": neighbor["name"],
-                                "label": neighbor["name"],
-                                "level": "child"
-                            })
+                            nodes.append(
+                                {
+                                    "id": neighbor["name"],
+                                    "label": neighbor["name"],
+                                    "level": "child",
+                                }
+                            )
                             nodes_set.add(neighbor["name"])
 
-                        edges.append({
-                            "source": root_tag["name"],
-                            "target": neighbor["name"],
-                            "weight": relationship["weight"]
-                        })
+                        edges.append(
+                            {
+                                "source": root_tag["name"],
+                                "target": neighbor["name"],
+                                "weight": relationship["weight"],
+                            }
+                        )
 
             return {"nodes": nodes, "edges": edges}
 
