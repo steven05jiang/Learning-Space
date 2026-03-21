@@ -1,5 +1,8 @@
 import "@testing-library/jest-dom";
 
+// Import whatwg-fetch to polyfill fetch for MSW
+import 'whatwg-fetch';
+
 // Mock localStorage
 const localStorageMock = {
   getItem: jest.fn(),
