@@ -148,7 +148,9 @@ async def expand_graph(
     graph_svc: GraphService = Depends(get_graph_service),
 ) -> GraphResponse:
     """Expand a graph node — returns direct neighbors as child nodes + edges."""
-    graph_data = await graph_svc.get_neighbors(current_user.id, body.node_id, body.direction)
+    graph_data = await graph_svc.get_neighbors(
+        current_user.id, body.node_id, body.direction
+    )
 
     return GraphResponse(
         nodes=[

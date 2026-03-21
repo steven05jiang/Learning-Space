@@ -357,14 +357,16 @@ class GraphService:
 
             return {"nodes": nodes, "edges": edges}
 
-    async def get_neighbors(self, owner_id: int, node_id: str, direction: str = "out") -> dict:
+    async def get_neighbors(
+        self, owner_id: int, node_id: str, direction: str = "out"
+    ) -> dict:
         """
         Get direct neighbors of a specific node.
 
         Args:
             owner_id: User ID to scope the query to
             node_id: Name of the tag node to expand
-            direction: Direction of relationships ("out", "in", "both") - currently unused
+            direction: Direction of relationships ("out", "in", "both") - unused
 
         Returns:
             Dictionary with nodes and edges lists for the expanded node's neighbors
@@ -375,7 +377,8 @@ class GraphService:
             # Query to get direct neighbors of the specified node
             result = await session.run(
                 """
-                MATCH (root:Tag {name: $node_id, owner_id: $owner_id})-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                MATCH (root:Tag {name: $node_id, owner_id: $owner_id})
+                    -[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
                 RETURN root, neighbor, r
                 """,
                 node_id=node_id,
