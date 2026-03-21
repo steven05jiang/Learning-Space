@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (INT-001–012 complete — PR #79; INT-000 complete — PRs #67 #68 #69 #73 #74)
+**Last Updated:** 2026-03-21 (INT-013-023 complete — PR #84)
 
 ---
 
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 45
+- ✅ Completed: 56
 - 🔄 Active: 0
-- ⏳ Pending: 71
+- ⏳ Pending: 60
 - ⚠️ Stuck: 0
 
 ---
@@ -114,17 +114,17 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [x] INT-012: GET /auth/me returns profile + linked accounts (BDD: Current User) (PR #79 ✅)
 
 **Group: resources** — CI: every PR
-- [ ] INT-013: Authenticated user submits a URL resource — 202 + PENDING/PROCESSING (BDD: Resource Create) (ready ✅)
-- [ ] INT-014: Authenticated user submits a text resource — 202 (BDD: Resource Create) (ready ✅)
-- [ ] INT-015: Unauthenticated user cannot create resource — 401 (BDD: Resource Create) (ready ✅)
-- [ ] INT-016: User submits URL with prefer_provider hint — stored on resource (BDD: Resource Create) (ready ✅)
-- [ ] INT-017: User lists their resources — paginated, own resources only (BDD: Resource Read) (ready ✅)
-- [ ] INT-018: User filters resources by tag (BDD: Resource Read) (ready ✅)
-- [ ] INT-019: User filters resources by status (BDD: Resource Read) (ready ✅)
-- [ ] INT-020: User views a single resource — full details (BDD: Resource Read) (ready ✅)
-- [ ] INT-021: User updates a resource title — updated_at changes (BDD: Resource Update) (ready ✅)
-- [ ] INT-022: User updates original_content — triggers PROCESSING + new job (BDD: Resource Update) (ready ✅)
-- [ ] INT-023: User deletes a resource — removed + graph sync enqueued (BDD: Resource Delete) (ready ✅)
+- [x] INT-013: Authenticated user submits a URL resource — 202 + PENDING/PROCESSING (BDD: Resource Create) (PR #84 ✅)
+- [x] INT-014: Authenticated user submits a text resource — 202 (BDD: Resource Create) (PR #84 ✅)
+- [x] INT-015: Unauthenticated user cannot create resource — 401 (BDD: Resource Create) (PR #84 ✅)
+- [x] INT-016: User submits URL with prefer_provider hint — stored on resource (BDD: Resource Create) (PR #84 ✅)
+- [x] INT-017: User lists their resources — paginated, own resources only (BDD: Resource Read) (PR #84 ✅)
+- [x] INT-018: User filters resources by tag (BDD: Resource Read) (PR #84 ✅)
+- [x] INT-019: User filters resources by status (BDD: Resource Read) (PR #84 ✅)
+- [x] INT-020: User views a single resource — full details (BDD: Resource Read) (PR #84 ✅)
+- [x] INT-021: User updates a resource title — updated_at changes (BDD: Resource Update) (PR #84 ✅)
+- [x] INT-022: User updates original_content — triggers PROCESSING + new job (BDD: Resource Update) (PR #84 ✅)
+- [x] INT-023: User deletes a resource — removed + graph sync enqueued (BDD: Resource Delete) (PR #84 ✅)
 
 **Group: worker** — CI: nightly (blocked: DEV-023)
 - [ ] INT-024: Worker processes URL resource successfully — READY + graph updated (BDD: Async Worker) (blocked: DEV-023)
