@@ -54,6 +54,15 @@ addopts = "-v --tb=short"
 asyncio_mode = "auto"
 markers = [
     "integration: marks tests as integration tests requiring real databases (deselect with '-m not integration')",
+    "int_ci: CI-safe integration tests (no external deps, mocked services)",
+    "int_auth: Authentication and authorization integration tests",
+    "int_resources: Resource management integration tests",
+    "int_knowledge: Knowledge base integration tests",
+    "int_sharing: Content sharing integration tests",
+    "int_analytics: Analytics and reporting integration tests",
+    "int_e2e: End-to-end tests requiring full stack",
+    "int_performance: Performance and load integration tests",
+    "int_security: Security-focused integration tests",
 ]
 
 [tool.bandit]

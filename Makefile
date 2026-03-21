@@ -1,6 +1,7 @@
 .PHONY: ci ci-check ci-lint ci-test ci-security ci-integration \
         api-lint api-test api-security api-integration \
         web-lint web-build web-security web-dev web-dev-mock \
+        int-test-ci int-test int-test-web int-test-e2e int-test-full \
         infra-up infra-down
 
 # ── Full CI (requires `make infra-up` first for integration tests) ────────
@@ -68,6 +69,36 @@ web-dev:
 web-dev-mock:
 	@echo "── Web: dev server (mock data, no backend needed) ─────"
 	cd apps/web && npm run dev:mock
+
+# ── Integration Tests ──────────────────────────────────────────────────────
+
+int-test-ci:
+	@echo "── Integration: CI tests (no external deps) ───────────"
+	cd apps/api && uv sync --frozen --extra dev -q
+	cd apps/api && uv run pytest -m "int_ci" -v
+
+int-test:
+	@echo "── Integration: all backend tests ─────────────────────"
+	@echo "   (requires: make infra-up)"
+	cd apps/api && uv sync --frozen --extra dev -q
+	cd apps/api && uv run pytest -m "int_auth or int_resources or int_knowledge or int_sharing or int_analytics" -v
+
+int-test-web:
+	@echo "── Integration: web component tests ───────────────────"
+	cd apps/web && npm test
+
+int-test-e2e:
+	@echo "── Integration: end-to-end tests ──────────────────────"
+	@echo "   (requires: docker-compose -f docker-compose.e2e.yml up -d)"
+	cd apps/api && uv sync --frozen --extra dev -q
+	cd apps/api && uv run pytest -m "int_e2e" -v
+
+int-test-full:
+	@echo "── Integration: full test suite ───────────────────────"
+	@echo "   (requires: docker-compose -f docker-compose.e2e.yml up -d)"
+	cd apps/api && uv sync --frozen --extra dev -q
+	cd apps/api && uv run pytest -m "int_ci or int_auth or int_resources or int_knowledge or int_sharing or int_analytics or int_e2e" -v
+	cd apps/web && npm test
 
 # ── Infrastructure ─────────────────────────────────────────────────────────
 
