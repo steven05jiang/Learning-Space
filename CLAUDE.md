@@ -16,6 +16,17 @@
 
 Multi-model cross-check (for critical logic): Claude analysis → Codex verification → label `✅ reviewed / ⚠️ unverified`
 
+### Task Completion Gate (before starting the NEXT prefixed task)
+
+> **Every prefixed task (DEV-, INT-, BUG-, OPS-, BUILD-, TD-, DEMO-, etc.) MUST be fully merged to `main` via PR before the next task begins. No exceptions.**
+
+- [ ] All code changes committed and lint/build/test PASS
+- [ ] PR created, reviewed, and merged to `main`
+- [ ] Tracker updated (task marked complete with PR number)
+- [ ] Confirm `main` is up to date locally before starting next task
+
+This rule exists to prevent work-in-progress loss across sessions and ensure every task is independently recoverable from git history.
+
 ### Handoff Checklist (before session-end)
 
 - [ ] Code committed and passes lint/build/test
