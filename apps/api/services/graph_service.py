@@ -32,7 +32,9 @@ class GraphService:
             tags: List of tag names to process
         """
         if not tags or len(tags) < 2:
-            logger.debug(f"Skipping graph update for owner_id={owner_id}: less than 2 tags")
+            logger.debug(
+                f"Skipping graph update for owner_id={owner_id}: less than 2 tags"
+            )
             return
 
         neo4j_driver = await get_neo4j_driver()
@@ -41,7 +43,10 @@ class GraphService:
         normalized_tags = [tag.strip() for tag in tags if tag and tag.strip()]
 
         if len(normalized_tags) < 2:
-            logger.debug(f"Skipping graph update for owner_id={owner_id}: less than 2 valid tags after normalization")
+            logger.debug(
+                f"Skipping graph update for owner_id={owner_id}: "
+                f"less than 2 valid tags after normalization"
+            )
             return
 
         async with neo4j_driver.get_session() as session:
@@ -53,7 +58,7 @@ class GraphService:
                     ON CREATE SET t.created_at = datetime()
                     """,
                     tag=tag,
-                    owner_id=owner_id
+                    owner_id=owner_id,
                 )
 
             # Create or update RELATED_TO relationships for all tag pairs
@@ -71,10 +76,13 @@ class GraphService:
                     """,
                     tag1=tag1,
                     tag2=tag2,
-                    owner_id=owner_id
+                    owner_id=owner_id,
                 )
 
-        logger.info(f"Updated graph for owner_id={owner_id}: {len(normalized_tags)} tags, {len(tag_pairs)} relationships")
+        logger.info(
+            f"Updated graph for owner_id={owner_id}: "
+            f"{len(normalized_tags)} tags, {len(tag_pairs)} relationships"
+        )
 
     async def remove_resource_tags(self, owner_id: int, old_tags: List[str]) -> None:
         """
@@ -87,7 +95,9 @@ class GraphService:
             old_tags: List of tag names to remove relationships for
         """
         if not old_tags or len(old_tags) < 2:
-            logger.debug(f"Skipping graph removal for owner_id={owner_id}: less than 2 tags")
+            logger.debug(
+                f"Skipping graph removal for owner_id={owner_id}: less than 2 tags"
+            )
             return
 
         neo4j_driver = await get_neo4j_driver()
@@ -96,7 +106,10 @@ class GraphService:
         normalized_tags = [tag.strip() for tag in old_tags if tag and tag.strip()]
 
         if len(normalized_tags) < 2:
-            logger.debug(f"Skipping graph removal for owner_id={owner_id}: less than 2 valid tags after normalization")
+            logger.debug(
+                f"Skipping graph removal for owner_id={owner_id}: "
+                f"less than 2 valid tags after normalization"
+            )
             return
 
         async with neo4j_driver.get_session() as session:
@@ -106,7 +119,9 @@ class GraphService:
             for tag1, tag2 in tag_pairs:
                 await session.run(
                     """
-                    MATCH (t1:Tag {name: $tag1, owner_id: $owner_id})-[r:RELATED_TO]-(t2:Tag {name: $tag2, owner_id: $owner_id})
+                    MATCH (t1:Tag {name: $tag1, owner_id: $owner_id})
+                        -[r:RELATED_TO]-
+                        (t2:Tag {name: $tag2, owner_id: $owner_id})
                     SET r.weight = r.weight - 1
                     WITH r
                     WHERE r.weight <= 0
@@ -114,10 +129,13 @@ class GraphService:
                     """,
                     tag1=tag1,
                     tag2=tag2,
-                    owner_id=owner_id
+                    owner_id=owner_id,
                 )
 
-        logger.info(f"Removed relationships for owner_id={owner_id}: {len(normalized_tags)} tags, {len(tag_pairs)} relationships")
+        logger.info(
+            f"Removed relationships for owner_id={owner_id}: "
+            f"{len(normalized_tags)} tags, {len(tag_pairs)} relationships"
+        )
 
     async def cleanup_orphan_tags(self, owner_id: int) -> None:
         """
@@ -138,7 +156,7 @@ class GraphService:
                 DELETE t
                 RETURN COUNT(*) AS deleted_count, COLLECT(tag_name) AS deleted_tags
                 """,
-                owner_id=owner_id
+                owner_id=owner_id,
             )
 
             record = await result.single()
@@ -146,7 +164,10 @@ class GraphService:
                 deleted_count = record["deleted_count"]
                 deleted_tags = record["deleted_tags"]
                 if deleted_count > 0:
-                    logger.info(f"Cleaned up {deleted_count} orphan tags for owner_id={owner_id}: {deleted_tags}")
+                    logger.info(
+                        f"Cleaned up {deleted_count} orphan tags for "
+                        f"owner_id={owner_id}: {deleted_tags}"
+                    )
                 else:
                     logger.debug(f"No orphan tags found for owner_id={owner_id}")
 
@@ -165,21 +186,25 @@ class GraphService:
         async with neo4j_driver.get_session() as session:
             result = await session.run(
                 """
-                MATCH (t1:Tag {owner_id: $owner_id})-[r:RELATED_TO]-(t2:Tag {owner_id: $owner_id})
+                MATCH (t1:Tag {owner_id: $owner_id})
+                    -[r:RELATED_TO]-
+                    (t2:Tag {owner_id: $owner_id})
                 WHERE t1.name < t2.name  // Avoid duplicate pairs
                 RETURN t1.name AS tag1, t2.name AS tag2, r.weight AS weight
                 ORDER BY r.weight DESC, t1.name, t2.name
                 """,
-                owner_id=owner_id
+                owner_id=owner_id,
             )
 
             relationships = []
             async for record in result:
-                relationships.append({
-                    "tag1": record["tag1"],
-                    "tag2": record["tag2"],
-                    "weight": record["weight"]
-                })
+                relationships.append(
+                    {
+                        "tag1": record["tag1"],
+                        "tag2": record["tag2"],
+                        "weight": record["weight"],
+                    }
+                )
 
             return relationships
 

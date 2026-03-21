@@ -32,18 +32,20 @@ def mock_neo4j_driver():
 
 
 @pytest.mark.asyncio
-async def test_update_from_resource_creates_tags_and_relationships(graph_service, mock_neo4j_driver):
+async def test_update_from_resource_creates_tags_and_relationships(
+    graph_service, mock_neo4j_driver
+):
     """Test that update_from_resource creates Tag nodes and RELATED_TO relationships."""
     mock_driver, mock_session = mock_neo4j_driver
 
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_from_resource(
-            owner_id=1,
-            tags=["python", "programming", "tutorial"]
+            owner_id=1, tags=["python", "programming", "tutorial"]
         )
 
         # Verify Tag node creation calls (3 tags = 3 calls)
-        assert mock_session.run.call_count == 6  # 3 tag creations + 3 relationship creations
+        # 3 tag creations + 3 relationship creations
+        assert mock_session.run.call_count == 6
 
         # Verify Tag node creation queries
         tag_creation_calls = mock_session.run.call_args_list[:3]
@@ -64,7 +66,9 @@ async def test_update_from_resource_creates_tags_and_relationships(graph_service
 
 
 @pytest.mark.asyncio
-async def test_update_from_resource_skips_insufficient_tags(graph_service, mock_neo4j_driver):
+async def test_update_from_resource_skips_insufficient_tags(
+    graph_service, mock_neo4j_driver
+):
     """Test that update_from_resource skips processing when less than 2 tags."""
     mock_driver, mock_session = mock_neo4j_driver
 
@@ -89,8 +93,7 @@ async def test_update_from_resource_normalizes_tags(graph_service, mock_neo4j_dr
 
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_from_resource(
-            owner_id=1,
-            tags=["  python  ", "programming", "  tutorial  "]
+            owner_id=1, tags=["  python  ", "programming", "  tutorial  "]
         )
 
         # Verify that tags were normalized in the calls
@@ -109,30 +112,36 @@ async def test_update_from_resource_normalizes_tags(graph_service, mock_neo4j_dr
 
 
 @pytest.mark.asyncio
-async def test_remove_resource_tags_decrements_weights(graph_service, mock_neo4j_driver):
+async def test_remove_resource_tags_decrements_weights(
+    graph_service, mock_neo4j_driver
+):
     """Test that remove_resource_tags decrements relationship weights."""
     mock_driver, mock_session = mock_neo4j_driver
 
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.remove_resource_tags(
-            owner_id=1,
-            old_tags=["python", "programming", "tutorial"]
+            owner_id=1, old_tags=["python", "programming", "tutorial"]
         )
 
-        # Should have 3 calls for the 3 tag pairs: (python,programming), (python,tutorial), (programming,tutorial)
+        # Should have 3 calls for the 3 tag pairs:
+        # (python,programming), (python,tutorial), (programming,tutorial)
         assert mock_session.run.call_count == 3
 
         # Verify decrement and delete queries
         for call in mock_session.run.call_args_list:
             query = call[0][0]
-            assert "MATCH (t1:Tag {name: $tag1, owner_id: $owner_id})-[r:RELATED_TO]-(t2:Tag {name: $tag2, owner_id: $owner_id})" in query
+            assert "MATCH (t1:Tag {name: $tag1, owner_id: $owner_id})" in query
+            assert "-[r:RELATED_TO]-" in query
+            assert "(t2:Tag {name: $tag2, owner_id: $owner_id})" in query
             assert "SET r.weight = r.weight - 1" in query
             assert "WHERE r.weight <= 0" in query
             assert "DELETE r" in query
 
 
 @pytest.mark.asyncio
-async def test_remove_resource_tags_skips_insufficient_tags(graph_service, mock_neo4j_driver):
+async def test_remove_resource_tags_skips_insufficient_tags(
+    graph_service, mock_neo4j_driver
+):
     """Test that remove_resource_tags skips processing when less than 2 tags."""
     mock_driver, mock_session = mock_neo4j_driver
 
@@ -147,7 +156,9 @@ async def test_remove_resource_tags_skips_insufficient_tags(graph_service, mock_
 
 
 @pytest.mark.asyncio
-async def test_cleanup_orphan_tags_removes_unconnected_tags(graph_service, mock_neo4j_driver):
+async def test_cleanup_orphan_tags_removes_unconnected_tags(
+    graph_service, mock_neo4j_driver
+):
     """Test that cleanup_orphan_tags removes Tag nodes with no relationships."""
     mock_driver, mock_session = mock_neo4j_driver
 
@@ -166,7 +177,10 @@ async def test_cleanup_orphan_tags_removes_unconnected_tags(graph_service, mock_
         assert "MATCH (t:Tag {owner_id: $owner_id})" in query
         assert "WHERE NOT (t)-[:RELATED_TO]-()" in query
         assert "DELETE t" in query
-        assert "RETURN COUNT(*) AS deleted_count, COLLECT(tag_name) AS deleted_tags" in query
+        expected_return = (
+            "RETURN COUNT(*) AS deleted_count, COLLECT(tag_name) AS deleted_tags"
+        )
+        assert expected_return in query
 
 
 @pytest.mark.asyncio
@@ -188,7 +202,9 @@ async def test_cleanup_orphan_tags_handles_no_orphans(graph_service, mock_neo4j_
 
 
 @pytest.mark.asyncio
-async def test_get_tag_relationships_returns_formatted_results(graph_service, mock_neo4j_driver):
+async def test_get_tag_relationships_returns_formatted_results(
+    graph_service, mock_neo4j_driver
+):
     """Test that get_tag_relationships returns properly formatted relationship data."""
     mock_driver, mock_session = mock_neo4j_driver
 
@@ -213,14 +229,18 @@ async def test_get_tag_relationships_returns_formatted_results(graph_service, mo
         # Verify query was called
         assert mock_session.run.call_count == 1
         query = mock_session.run.call_args[0][0]
-        assert "MATCH (t1:Tag {owner_id: $owner_id})-[r:RELATED_TO]-(t2:Tag {owner_id: $owner_id})" in query
+        assert "MATCH (t1:Tag {owner_id: $owner_id})" in query
+        assert "-[r:RELATED_TO]-" in query
+        assert "(t2:Tag {owner_id: $owner_id})" in query
         assert "WHERE t1.name < t2.name" in query
         assert "RETURN t1.name AS tag1, t2.name AS tag2, r.weight AS weight" in query
 
         # Verify returned data format
         assert len(relationships) == 3
-        assert relationships[0] == {"tag1": "python", "tag2": "programming", "weight": 3}
-        assert relationships[1] == {"tag1": "programming", "tag2": "tutorial", "weight": 2}
+        expected_rel_0 = {"tag1": "python", "tag2": "programming", "weight": 3}
+        expected_rel_1 = {"tag1": "programming", "tag2": "tutorial", "weight": 2}
+        assert relationships[0] == expected_rel_0
+        assert relationships[1] == expected_rel_1
         assert relationships[2] == {"tag1": "python", "tag2": "tutorial", "weight": 1}
 
 
@@ -231,8 +251,7 @@ async def test_update_from_resource_with_two_tags(graph_service, mock_neo4j_driv
 
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_from_resource(
-            owner_id=1,
-            tags=["python", "programming"]
+            owner_id=1, tags=["python", "programming"]
         )
 
         # Should have 3 calls: 2 tag creations + 1 relationship creation
@@ -249,8 +268,7 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         # Test update_from_resource
         await graph_service.update_from_resource(
-            owner_id=owner_id,
-            tags=["tag1", "tag2"]
+            owner_id=owner_id, tags=["tag1", "tag2"]
         )
 
         # Verify all calls include the correct owner_id
@@ -263,8 +281,7 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
 
         # Test remove_resource_tags
         await graph_service.remove_resource_tags(
-            owner_id=owner_id,
-            old_tags=["tag1", "tag2"]
+            owner_id=owner_id, old_tags=["tag1", "tag2"]
         )
 
         for call in mock_session.run.call_args_list:
