@@ -4,14 +4,14 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-20 (INT-000-e merged PR #73; INT-000-b final review in progress)
+**Last Updated:** 2026-03-21 (INT-000 complete — all 5 subtasks merged PRs #67 #68 #69 #73 #74)
 
 ---
 
 ## Progress Summary
 
-- Total: 60 tasks (55 DEV + 5 DEMO)
-- ✅ Completed: 32
+- Total: 61 tasks (55 DEV + 5 DEMO + 1 INT)
+- ✅ Completed: 33
 - 🔄 Active: 0
 - ⏳ Pending: 28
 - ⚠️ Stuck: 0
@@ -87,7 +87,7 @@
 
 ## 🛠️ Integration Test Framework
 
-- [~] INT-000: Build integration test framework — BDD scenarios, dependency mocking, CI infrastructure (INT-000-d complete PR #67, wave 1 continues)
+- [x] INT-000: Build integration test framework — Python mocks, pytest fixtures, MSW frontend mocks, CI infra, Playwright E2E (PRs #67 #68 #69 #73 #74 ✅)
 
 ## 🎬 Demos
 
