@@ -2,16 +2,22 @@
 Integration tests for resources API.
 
 Tests:
-- INT-013: Authenticated user POST /resources with a URL → 202, resource created with status PENDING or PROCESSING
-- INT-014: Authenticated user POST /resources with text content → 202, resource created
+- INT-013: Authenticated user POST /resources with a URL → 202, resource created
+  with status PENDING or PROCESSING
+- INT-014: Authenticated user POST /resources with text content → 202, resource
+  created
 - INT-015: Unauthenticated POST /resources → 401
-- INT-016: POST /resources with prefer_provider hint → resource row has prefer_provider stored
-- INT-017: GET /resources → paginated list, only own resources (not another user's)
+- INT-016: POST /resources with prefer_provider hint → resource row has
+  prefer_provider stored
+- INT-017: GET /resources → paginated list, only own resources (not another
+  user's)
 - INT-018: GET /resources?tag=AI → filters by tag
 - INT-019: GET /resources?status=READY → filters by status
 - INT-020: GET /resources/{id} → full resource detail
-- INT-021: PATCH /resources/{id} with new title → title updated, updated_at changes
-- INT-022: PATCH /resources/{id} with new original_content → re-triggers PROCESSING + enqueues new job
+- INT-021: PATCH /resources/{id} with new title → title updated, updated_at
+  changes
+- INT-022: PATCH /resources/{id} with new original_content → re-triggers
+  PROCESSING + enqueues new job
 - INT-023: DELETE /resources/{id} → resource removed, graph sync job enqueued
 """
 
@@ -32,10 +38,7 @@ async def test_create_resource_with_url_returns_202_pending(client, auth_headers
     INT-013: Authenticated user POST /resources with a URL → 202, resource created
     with status PENDING or PROCESSING
     """
-    payload = {
-        "content_type": "url",
-        "original_content": "https://example.com/article"
-    }
+    payload = {"content_type": "url", "original_content": "https://example.com/article"}
 
     response = await client.post("/resources/", json=payload, headers=auth_headers)
 
@@ -56,11 +59,12 @@ async def test_create_resource_with_url_returns_202_pending(client, auth_headers
 @pytest.mark.int_resources
 async def test_create_resource_with_text_returns_202(client, auth_headers):
     """
-    INT-014: Authenticated user POST /resources with text content → 202, resource created
+    INT-014: Authenticated user POST /resources with text content → 202,
+    resource created
     """
     payload = {
         "content_type": "text",
-        "original_content": "This is some text content to process"
+        "original_content": "This is some text content to process",
     }
 
     response = await client.post("/resources/", json=payload, headers=auth_headers)
@@ -81,10 +85,7 @@ async def test_create_resource_unauthenticated_returns_401(client):
     """
     INT-015: Unauthenticated POST /resources → 401
     """
-    payload = {
-        "content_type": "url",
-        "original_content": "https://example.com/article"
-    }
+    payload = {"content_type": "url", "original_content": "https://example.com/article"}
 
     response = await client.post("/resources/", json=payload)
 
@@ -93,14 +94,17 @@ async def test_create_resource_unauthenticated_returns_401(client):
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_create_resource_with_prefer_provider_stores_hint(client, auth_headers, db_session):
+async def test_create_resource_with_prefer_provider_stores_hint(
+    client, auth_headers, db_session
+):
     """
-    INT-016: POST /resources with prefer_provider hint → resource row has prefer_provider stored
+    INT-016: POST /resources with prefer_provider hint → resource row has
+    prefer_provider stored
     """
     payload = {
         "content_type": "url",
         "original_content": "https://example.com/article",
-        "prefer_provider": "anthropic"
+        "prefer_provider": "anthropic",
     }
 
     response = await client.post("/resources/", json=payload, headers=auth_headers)
@@ -119,9 +123,12 @@ async def test_create_resource_with_prefer_provider_stores_hint(client, auth_hea
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_list_resources_returns_paginated_own_resources_only(client, auth_headers, db_session, test_user):
+async def test_list_resources_returns_paginated_own_resources_only(
+    client, auth_headers, db_session, test_user
+):
     """
-    INT-017: GET /resources → paginated list, only own resources (not another user's)
+    INT-017: GET /resources → paginated list, only own resources (not another
+    user's)
     """
     # Create a second user and their resource
     other_user = User(display_name="Other User", email="other@example.com")
@@ -129,8 +136,8 @@ async def test_list_resources_returns_paginated_own_resources_only(client, auth_
     await db_session.flush()
 
     # Create resources for both users
-    own_resource = await make_resource(db_session, test_user.id, title="Own Resource")
-    other_resource = await make_resource(db_session, other_user.id, title="Other's Resource")
+    await make_resource(db_session, test_user.id, title="Own Resource")
+    await make_resource(db_session, other_user.id, title="Other's Resource")
     await db_session.commit()
 
     response = await client.get("/resources/", headers=auth_headers)
@@ -156,17 +163,27 @@ async def test_list_resources_returns_paginated_own_resources_only(client, auth_
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_list_resources_filter_by_tag(client, auth_headers, db_session, test_user):
+async def test_list_resources_filter_by_tag(
+    client, auth_headers, db_session, test_user
+):
     """
     INT-018: GET /resources?tag=AI → filters by tag
 
     Note: This test assumes tag filtering is implemented in the router.
-    If not implemented yet, this test will need to be updated when DEV task adds the feature.
+    If not implemented yet, this test will need to be updated when DEV task
+    adds the feature.
     """
     # Create resources with different tags
-    ai_resource = await make_resource(db_session, test_user.id, title="AI Article", tags=["AI", "ML"])
-    tech_resource = await make_resource(db_session, test_user.id, title="Tech Article", tags=["Technology"])
-    mixed_resource = await make_resource(db_session, test_user.id, title="Mixed Article", tags=["AI", "Technology"])
+    await make_resource(db_session, test_user.id, title="AI Article", tags=["AI", "ML"])
+    await make_resource(
+        db_session, test_user.id, title="Tech Article", tags=["Technology"]
+    )
+    await make_resource(
+        db_session,
+        test_user.id,
+        title="Mixed Article",
+        tags=["AI", "Technology"],
+    )
     await db_session.commit()
 
     # Test tag filter for "AI"
@@ -192,14 +209,31 @@ async def test_list_resources_filter_by_tag(client, auth_headers, db_session, te
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_list_resources_filter_by_status(client, auth_headers, db_session, test_user):
+async def test_list_resources_filter_by_status(
+    client, auth_headers, db_session, test_user
+):
     """
     INT-019: GET /resources?status=READY → filters by status
     """
     # Create resources with different statuses
-    ready_resource = await make_resource(db_session, test_user.id, title="Ready Resource", status=ResourceStatus.READY)
-    pending_resource = await make_resource(db_session, test_user.id, title="Pending Resource", status=ResourceStatus.PENDING)
-    failed_resource = await make_resource(db_session, test_user.id, title="Failed Resource", status=ResourceStatus.FAILED)
+    await make_resource(
+        db_session,
+        test_user.id,
+        title="Ready Resource",
+        status=ResourceStatus.READY,
+    )
+    await make_resource(
+        db_session,
+        test_user.id,
+        title="Pending Resource",
+        status=ResourceStatus.PENDING,
+    )
+    await make_resource(
+        db_session,
+        test_user.id,
+        title="Failed Resource",
+        status=ResourceStatus.FAILED,
+    )
     await db_session.commit()
 
     # Test status filter for "READY"
@@ -217,7 +251,9 @@ async def test_list_resources_filter_by_status(client, auth_headers, db_session,
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_get_resource_by_id_returns_full_detail(client, auth_headers, db_session, test_user):
+async def test_get_resource_by_id_returns_full_detail(
+    client, auth_headers, db_session, test_user
+):
     """
     INT-020: GET /resources/{id} → full resource detail
     """
@@ -227,7 +263,7 @@ async def test_get_resource_by_id_returns_full_detail(client, auth_headers, db_s
         title="Test Resource",
         summary="A test summary",
         tags=["AI", "Testing"],
-        prefer_provider="anthropic"
+        prefer_provider="anthropic",
     )
     await db_session.commit()
 
@@ -274,7 +310,9 @@ async def test_get_resource_not_owned_returns_404(client, auth_headers, db_sessi
     db_session.add(other_user)
     await db_session.flush()
 
-    other_resource = await make_resource(db_session, other_user.id, title="Other's Resource")
+    other_resource = await make_resource(
+        db_session, other_user.id, title="Other's Resource"
+    )
     await db_session.commit()
 
     response = await client.get(f"/resources/{other_resource.id}", headers=auth_headers)
@@ -284,7 +322,9 @@ async def test_get_resource_not_owned_returns_404(client, auth_headers, db_sessi
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_patch_resource_title_updates_title_and_timestamp(client, auth_headers, db_session, test_user):
+async def test_patch_resource_title_updates_title_and_timestamp(
+    client, auth_headers, db_session, test_user
+):
     """
     INT-021: PATCH /resources/{id} with new title → title updated, updated_at changes
     """
@@ -294,10 +334,13 @@ async def test_patch_resource_title_updates_title_and_timestamp(client, auth_hea
 
     # Small delay to ensure updated_at changes
     import asyncio
+
     await asyncio.sleep(0.1)
 
     patch_data = {"title": "Updated Title"}
-    response = await client.patch(f"/resources/{resource.id}", json=patch_data, headers=auth_headers)
+    response = await client.patch(
+        f"/resources/{resource.id}", json=patch_data, headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -306,26 +349,33 @@ async def test_patch_resource_title_updates_title_and_timestamp(client, auth_hea
     assert data["title"] == "Updated Title"
 
     # Verify updated_at changed
-    updated_updated_at = datetime.fromisoformat(data["updated_at"].replace('Z', '+00:00'))
+    updated_updated_at = datetime.fromisoformat(
+        data["updated_at"].replace("Z", "+00:00")
+    )
     assert updated_updated_at > original_updated_at
 
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_patch_resource_original_content_triggers_reprocessing(client, auth_headers, db_session, test_user):
+async def test_patch_resource_original_content_triggers_reprocessing(
+    client, auth_headers, db_session, test_user
+):
     """
-    INT-022: PATCH /resources/{id} with new original_content → re-triggers PROCESSING + enqueues new job
+    INT-022: PATCH /resources/{id} with new original_content → re-triggers
+    PROCESSING + enqueues new job
     """
     resource = await make_resource(
         db_session,
         test_user.id,
         original_content="https://example.com/old-article",
-        status=ResourceStatus.READY
+        status=ResourceStatus.READY,
     )
     await db_session.commit()
 
     patch_data = {"original_content": "https://example.com/new-article"}
-    response = await client.patch(f"/resources/{resource.id}", json=patch_data, headers=auth_headers)
+    response = await client.patch(
+        f"/resources/{resource.id}", json=patch_data, headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -342,7 +392,9 @@ async def test_patch_resource_not_found_returns_404(client, auth_headers):
     INT-021/022 variant: PATCH /resources/{nonexistent_id} → 404
     """
     patch_data = {"title": "New Title"}
-    response = await client.patch("/resources/99999", json=patch_data, headers=auth_headers)
+    response = await client.patch(
+        "/resources/99999", json=patch_data, headers=auth_headers
+    )
 
     assert response.status_code == 404
 
@@ -362,14 +414,18 @@ async def test_patch_resource_not_owned_returns_404(client, auth_headers, db_ses
     await db_session.commit()
 
     patch_data = {"title": "New Title"}
-    response = await client.patch(f"/resources/{other_resource.id}", json=patch_data, headers=auth_headers)
+    response = await client.patch(
+        f"/resources/{other_resource.id}", json=patch_data, headers=auth_headers
+    )
 
     assert response.status_code == 404
 
 
 @pytest.mark.integration
 @pytest.mark.int_resources
-async def test_delete_resource_removes_resource(client, auth_headers, db_session, test_user):
+async def test_delete_resource_removes_resource(
+    client, auth_headers, db_session, test_user
+):
     """
     INT-023: DELETE /resources/{id} → resource removed, graph sync job enqueued
     """
@@ -413,6 +469,8 @@ async def test_delete_resource_not_owned_returns_404(client, auth_headers, db_se
     other_resource = await make_resource(db_session, other_user.id)
     await db_session.commit()
 
-    response = await client.delete(f"/resources/{other_resource.id}", headers=auth_headers)
+    response = await client.delete(
+        f"/resources/{other_resource.id}", headers=auth_headers
+    )
 
     assert response.status_code == 404
