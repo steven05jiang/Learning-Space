@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Implements a single assigned task or fixes review feedback: reads task context from memory/active/<task-id>.md, writes code, commits, and pushes. Used by pm-dispatch for both initial implementation and fix rounds.
+description: Implements a single assigned task or fixes review feedback: reads task context from memory/active/<task-id>.md, writes code, commits, and pushes.
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: claude-sonnet-4-20250514
 ---
