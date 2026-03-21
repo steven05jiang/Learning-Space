@@ -357,6 +357,62 @@ class GraphService:
 
             return {"nodes": nodes, "edges": edges}
 
+    async def get_neighbors(self, owner_id: int, node_id: str, direction: str = "out") -> dict:
+        """
+        Get direct neighbors of a specific node.
+
+        Args:
+            owner_id: User ID to scope the query to
+            node_id: Name of the tag node to expand
+            direction: Direction of relationships ("out", "in", "both") - currently unused
+
+        Returns:
+            Dictionary with nodes and edges lists for the expanded node's neighbors
+        """
+        neo4j_driver = await get_neo4j_driver()
+
+        async with neo4j_driver.get_session() as session:
+            # Query to get direct neighbors of the specified node
+            result = await session.run(
+                """
+                MATCH (root:Tag {name: $node_id, owner_id: $owner_id})-[r:RELATED_TO]-(neighbor:Tag {owner_id: $owner_id})
+                RETURN root, neighbor, r
+                """,
+                node_id=node_id,
+                owner_id=owner_id,
+            )
+
+            nodes = []
+            edges = []
+            nodes_set = set()
+
+            async for record in result:
+                root_tag = record["root"]
+                neighbor = record["neighbor"]
+                relationship = record["r"]
+
+                # Add neighbor as a child node (root is not included in response)
+                if neighbor["name"] not in nodes_set:
+                    nodes.append(
+                        {
+                            "id": neighbor["name"],
+                            "label": neighbor["name"],
+                            "level": "child",
+                        }
+                    )
+                    nodes_set.add(neighbor["name"])
+
+                # Add edge from root to neighbor
+                edges.append(
+                    {
+                        "source": root_tag["name"],
+                        "target": neighbor["name"],
+                        "weight": relationship["weight"],
+                    }
+                )
+
+            return {"nodes": nodes, "edges": edges}
+
 
 # Global instance
 graph_service = GraphService()
