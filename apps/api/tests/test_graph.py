@@ -1,5 +1,8 @@
 """Tests for graph endpoints."""
 
+import contextlib
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -451,3 +454,224 @@ class TestGetNodeResources:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         data = response.json()
         assert "detail" in data
+
+
+@pytest.fixture
+def mock_neo4j_driver():
+    """Create a mock Neo4j driver."""
+    mock_driver = AsyncMock()
+    mock_session = AsyncMock()
+
+    @contextlib.asynccontextmanager
+    async def mock_session_context():
+        yield mock_session
+
+    mock_driver.get_session = lambda: mock_session_context()
+    return mock_driver, mock_session
+
+
+class TestGetGraph:
+    """Test cases for GET /graph."""
+
+    async def test_get_graph_all_nodes_success(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test successful retrieval of all graph nodes and edges."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        # Mock the graph service's get_neo4j_driver call
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            # Mock the Neo4j query result for all nodes
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock the async iterator for records
+            async def mock_records(self):
+                yield {
+                    "t": {"name": "AI"},
+                    "t2": {"name": "Python"},
+                    "r": {"weight": 3},
+                }
+                yield {"t": {"name": "Machine Learning"}, "t2": None, "r": None}
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.get("/graph", headers=auth_headers)
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            assert "nodes" in data
+            assert "edges" in data
+            assert isinstance(data["nodes"], list)
+            assert isinstance(data["edges"], list)
+
+            # Verify that the query was called with correct parameters
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            assert "owner_id" in kwargs
+            assert kwargs["owner_id"] == test_user.id
+
+    async def test_get_graph_with_root_success(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test successful retrieval of three-level rooted subgraph."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock the async iterator for three-level rooted graph
+            # Structure: DeepLearning -> AI -> Python (parent -> current -> child)
+            async def mock_records(self):
+                # Root with child Python
+                yield {
+                    "root": {"name": "AI"},
+                    "child": {"name": "Python"},
+                    "r1": {"weight": 3},
+                    "parent": None,
+                    "r2": None,
+                }
+                # Root with child Machine Learning
+                yield {
+                    "root": {"name": "AI"},
+                    "child": {"name": "Machine Learning"},
+                    "r1": {"weight": 2},
+                    "parent": None,
+                    "r2": None,
+                }
+                # Child Python with parent Deep Learning
+                yield {
+                    "root": {"name": "AI"},
+                    "child": {"name": "Python"},
+                    "r1": {"weight": 3},
+                    "parent": {"name": "Deep Learning"},
+                    "r2": {"weight": 4},
+                }
+                # Child Machine Learning with parent Neural Networks
+                yield {
+                    "root": {"name": "AI"},
+                    "child": {"name": "Machine Learning"},
+                    "r1": {"weight": 2},
+                    "parent": {"name": "Neural Networks"},
+                    "r2": {"weight": 1},
+                }
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.get("/graph?root=AI", headers=auth_headers)
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            assert "nodes" in data
+            assert "edges" in data
+
+            # Verify three-level structure
+            node_levels = {node["id"]: node["level"] for node in data["nodes"]}
+
+            # Root node should be "current"
+            assert "AI" in node_levels
+            assert node_levels["AI"] == "current"
+
+            # Direct neighbors should be "child"
+            assert "Python" in node_levels
+            assert node_levels["Python"] == "child"
+            assert "Machine Learning" in node_levels
+            assert node_levels["Machine Learning"] == "child"
+
+            # Neighbors of neighbors should be "parent"
+            assert "Deep Learning" in node_levels
+            assert node_levels["Deep Learning"] == "parent"
+            assert "Neural Networks" in node_levels
+            assert node_levels["Neural Networks"] == "parent"
+
+            # Should have edges between all levels
+            assert len(data["edges"]) >= 2  # At least root-child and child-parent edges
+
+            # Verify the query was called with root parameter
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            assert "root" in kwargs
+            assert kwargs["root"] == "AI"
+            assert kwargs["owner_id"] == test_user.id
+
+    async def test_get_graph_empty_result(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test retrieval when user has no tags."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock empty result
+            async def mock_records(self):
+                return
+                yield  # No records
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.get("/graph", headers=auth_headers)
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            assert data["nodes"] == []
+            assert data["edges"] == []
+
+    async def test_get_graph_unauthenticated(self, client: AsyncClient):
+        """Test that unauthenticated requests are rejected."""
+        response = await client.get("/graph")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_get_graph_with_nonexistent_root(
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        mock_neo4j_driver,
+    ):
+        """Test retrieval with a root tag that doesn't exist."""
+        mock_driver, mock_session = mock_neo4j_driver
+
+        with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+            mock_result = AsyncMock()
+            mock_session.run.return_value = mock_result
+
+            # Mock empty result for nonexistent root
+            async def mock_records(self):
+                return
+                yield  # No records
+
+            mock_result.__aiter__ = mock_records
+
+            response = await client.get(
+                "/graph?root=NonexistentTag", headers=auth_headers
+            )
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+
+            assert data["nodes"] == []
+            assert data["edges"] == []
+
+            # Verify the query was called with the nonexistent root
+            mock_session.run.assert_called_once()
+            args, kwargs = mock_session.run.call_args
+            assert kwargs["root"] == "NonexistentTag"

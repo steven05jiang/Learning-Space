@@ -12,7 +12,9 @@ from core.deps import get_current_user
 from models.database import get_db
 from models.resource import Resource
 from models.user import User
+from schemas.graph import GraphResponse
 from schemas.resource import ResourceNodeItem, ResourceNodeResponse
+from services.graph_service import get_graph_service
 
 logger = logging.getLogger(__name__)
 
@@ -101,4 +103,39 @@ async def get_node_resources(
         total=total,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get("", response_model=GraphResponse)
+async def get_graph(
+    root: str | None = Query(None, description="Root tag to scope the graph"),
+    current_user: User = Depends(get_current_user),
+    graph_service=Depends(get_graph_service),
+) -> GraphResponse:
+    """
+    Get knowledge graph data for the authenticated user.
+
+    - Without **root**: Returns all tag nodes with level "root" and all edges
+    - With **root**: Returns the root tag as "current", its direct neighbors as "child",
+      and the neighbors' neighbors as "parent", with edges between all levels
+    - Empty graph: Returns {nodes: [], edges: []}
+
+    The response contains nodes with id, label, and level fields
+    ("current", "child", "parent"), and edges with source, target, and weight fields.
+    """
+    graph_data = await graph_service.get_graph(current_user.id, root)
+
+    return GraphResponse(
+        nodes=[
+            {"id": node["id"], "label": node["label"], "level": node["level"]}
+            for node in graph_data["nodes"]
+        ],
+        edges=[
+            {
+                "source": edge["source"],
+                "target": edge["target"],
+                "weight": edge["weight"],
+            }
+            for edge in graph_data["edges"]
+        ],
     )

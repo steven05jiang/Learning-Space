@@ -208,6 +208,155 @@ class GraphService:
 
             return relationships
 
+    async def get_graph(self, owner_id: int, root: str | None = None) -> dict:
+        """
+        Get graph data for the authenticated user.
+
+        Args:
+            owner_id: User ID to get graph data for
+            root: Optional root tag name to scope the graph
+
+        Returns:
+            Dictionary with nodes and edges lists for the knowledge graph
+        """
+        neo4j_driver = await get_neo4j_driver()
+
+        async with neo4j_driver.get_session() as session:
+            if root is None:
+                # Get all nodes and edges for the user
+                result = await session.run(
+                    """
+                    MATCH (t:Tag {owner_id: $owner_id})
+                    OPTIONAL MATCH (t)-[r:RELATED_TO]-(t2:Tag {owner_id: $owner_id})
+                    WHERE t.name < t2.name  // avoid duplicates
+                    RETURN t, t2, r
+                    """,
+                    owner_id=owner_id,
+                )
+            else:
+                # Get rooted subgraph with three levels: root, children, and parents
+                result = await session.run(
+                    """
+                    MATCH (root:Tag {name: $root, owner_id: $owner_id})
+                    OPTIONAL MATCH (root)-[r1:RELATED_TO]-(child:Tag
+                        {owner_id: $owner_id})
+                    OPTIONAL MATCH (child)-[r2:RELATED_TO]-(parent:Tag
+                        {owner_id: $owner_id})
+                    WHERE parent.name <> root.name
+                    RETURN root, child, r1, parent, r2
+                    """,
+                    root=root,
+                    owner_id=owner_id,
+                )
+
+            nodes = []
+            edges = []
+            nodes_set = set()
+            edges_set = set()  # Track edges to avoid duplicates
+
+            async for record in result:
+                if root is None:
+                    # All nodes mode
+                    tag = record["t"]
+                    tag2 = record.get("t2")
+                    relationship = record.get("r")
+
+                    # Add main tag
+                    if tag["name"] not in nodes_set:
+                        nodes.append(
+                            {"id": tag["name"], "label": tag["name"], "level": "root"}
+                        )
+                        nodes_set.add(tag["name"])
+
+                    # Add related tag and edge if exists
+                    if tag2 and relationship:
+                        if tag2["name"] not in nodes_set:
+                            nodes.append(
+                                {
+                                    "id": tag2["name"],
+                                    "label": tag2["name"],
+                                    "level": "root",
+                                }
+                            )
+                            nodes_set.add(tag2["name"])
+
+                        # Add edge (undirected, so we use consistent ordering)
+                        edges.append(
+                            {
+                                "source": tag["name"],
+                                "target": tag2["name"],
+                                "weight": relationship["weight"],
+                            }
+                        )
+                else:
+                    # Rooted subgraph mode with three levels
+                    root_tag = record["root"]
+                    child = record.get("child")
+                    r1 = record.get("r1")
+                    parent = record.get("parent")
+                    r2 = record.get("r2")
+
+                    # Add root tag
+                    if root_tag["name"] not in nodes_set:
+                        nodes.append(
+                            {
+                                "id": root_tag["name"],
+                                "label": root_tag["name"],
+                                "level": "current",
+                            }
+                        )
+                        nodes_set.add(root_tag["name"])
+
+                    # Add child node and edge if exists
+                    if child and r1:
+                        if child["name"] not in nodes_set:
+                            nodes.append(
+                                {
+                                    "id": child["name"],
+                                    "label": child["name"],
+                                    "level": "child",
+                                }
+                            )
+                            nodes_set.add(child["name"])
+
+                        # Add edge between root and child
+                        edge_key = tuple(sorted([root_tag["name"], child["name"]]))
+                        if edge_key not in edges_set:
+                            edges.append(
+                                {
+                                    "source": root_tag["name"],
+                                    "target": child["name"],
+                                    "weight": r1["weight"],
+                                }
+                            )
+                            edges_set.add(edge_key)
+
+                    # Add parent node and edge if exists
+                    if parent and r2 and child:
+                        if parent["name"] not in nodes_set:
+                            nodes.append(
+                                {
+                                    "id": parent["name"],
+                                    "label": parent["name"],
+                                    "level": "parent",
+                                }
+                            )
+                            nodes_set.add(parent["name"])
+
+                        # Add edge between child and parent
+                        edge_key = tuple(sorted([child["name"], parent["name"]]))
+                        if edge_key not in edges_set:
+                            edges.append(
+                                {
+                                    "source": child["name"],
+                                    "target": parent["name"],
+                                    "weight": r2["weight"],
+                                }
+                            )
+                            edges_set.add(edge_key)
+
+            return {"nodes": nodes, "edges": edges}
+
 
 # Global instance
 graph_service = GraphService()
