@@ -22,8 +22,13 @@ jobs:
           filters: |
             api:
               - 'apps/api/**'
+              - 'docker-compose.yml'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
             web:
               - 'apps/web/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
 
   # ── API ──────────────────────────────────────────────────────────────────
 
