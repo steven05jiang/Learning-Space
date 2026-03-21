@@ -1,7 +1,7 @@
 """Task definitions for the job queue."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict
 
 from sqlalchemy import select
@@ -64,7 +64,7 @@ async def process_resource(
             # Set status to PROCESSING
             resource.status = ResourceStatus.PROCESSING
             resource.status_message = None
-            resource.updated_at = datetime.now(timezone.utc)
+            resource.updated_at = datetime.utcnow()
             await session.commit()
 
             # Step 2: Fetch content
@@ -129,7 +129,7 @@ async def process_resource(
             resource.tags = llm_result.tags or []
             resource.status = ResourceStatus.READY
             resource.status_message = None
-            resource.updated_at = datetime.now(timezone.utc)
+            resource.updated_at = datetime.utcnow()
             await session.commit()
 
             # Step 5: Graph update hook (placeholder for DEV-026)
@@ -158,7 +158,7 @@ async def process_resource(
             processing_result = {
                 "resource_id": resource_id,
                 "status": "ready",
-                "processed_at": datetime.now(timezone.utc).isoformat(),
+                "processed_at": datetime.utcnow().isoformat(),
                 "title": llm_result.title,
                 "summary_length": len(llm_result.summary) if llm_result.summary else 0,
                 "tags_count": len(llm_result.tags) if llm_result.tags else 0,
@@ -205,7 +205,7 @@ async def _set_resource_failed(
     """Set resource status to FAILED with error message."""
     resource.status = ResourceStatus.FAILED
     resource.status_message = error_message
-    resource.updated_at = datetime.now(timezone.utc)
+    resource.updated_at = datetime.utcnow()
     await session.commit()
     logger.error(f"Resource {resource.id} marked as FAILED: {error_message}")
 
