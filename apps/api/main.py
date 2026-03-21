@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from core.errors import (
     APIError,
@@ -38,6 +39,7 @@ app.add_middleware(
 
 # Register exception handlers in order of specificity
 app.add_exception_handler(APIError, api_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_wrapper)
 app.add_exception_handler(HTTPException, http_exception_wrapper)
 app.add_exception_handler(Exception, generic_exception_handler)
 

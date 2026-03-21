@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -211,10 +210,9 @@ class AuthService:
         )
 
         if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"This {provider} account is already linked to another user",
-            )
+            from core.errors import account_already_linked
+
+            raise account_already_linked()
 
         if existing_user and existing_user.id == current_user.id:
             # Account already linked to this user, just update tokens

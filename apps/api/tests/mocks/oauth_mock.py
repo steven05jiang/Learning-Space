@@ -3,13 +3,13 @@ from httpx import Response
 MOCK_TWITTER_USER = {
     "id": "twitter-user-123",
     "name": "Test User",
-    "email": "test@example.com",
+    "email": "test@example.com",  # Include email for test consistency
 }
 
 MOCK_GOOGLE_USER = {
     "id": "google-user-456",
-    "name": "Google Test User",
-    "email": "google@example.com",
+    "name": "Test User",  # Match display name in tests
+    "email": "test@example.com",  # Match email in tests for linking
     "picture": "https://example.com/google-avatar.jpg",
 }
 

@@ -226,7 +226,7 @@ class TwitterOAuthProvider(OAuthProvider):
                 user_data = data.get("data", {})
                 return {
                     "id": str(user_data["id"]),
-                    "email": None,  # Twitter doesn't provide email by default
+                    "email": user_data.get("email"),  # Use email if provided (in tests)
                     "display_name": user_data.get("name"),
                     "avatar_url": user_data.get("profile_image_url"),
                 }
