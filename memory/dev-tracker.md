@@ -4,15 +4,15 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (DEV-028 complete PR #99)
+**Last Updated:** 2026-03-21 (DEV-029 complete PR #101)
 
 ---
 
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 61
-- 🔄 Active: 1
+- ✅ Completed: 62
+- 🔄 Active: 0
 - ⏳ Pending: 54
 - ⚠️ Stuck: 0
 
@@ -56,7 +56,7 @@
 - [x] DEV-026: Integrate graph update into worker pipeline — Resources update graph on processing (PR #97 ✅)
 - [ ] DEV-027: Implement graph sync job for resource deletion — Graph consistency on deletion
 - [x] DEV-028: Implement GET /graph (graph view) — Core graph exploration API (PR #99 ✅)
-- [~] DEV-029: Implement POST /graph/expand — Graph drill-down
+- [x] DEV-029: Implement POST /graph/expand — Graph drill-down (PR #101 ✅)
 - [x] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph (PR #94 ✅)
 - [ ] DEV-035: Implement conversation storage (DB schema) — Chat persistence
 - [ ] DEV-032: Implement LangGraph agent with tools — Core chat intelligence
