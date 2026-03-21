@@ -13,7 +13,7 @@ import pytest
 @pytest.mark.int_health
 async def test_get_health_returns_ok(client):
     """INT-001: GET /health → 200 OK; body contains {"status": "ok"} or similar"""
-    response = await client.get("/health")
+    response = await client.get("/health/")
 
     assert response.status_code == 200
     data = response.json()

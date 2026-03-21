@@ -1,5 +1,6 @@
+import asyncio
 import os
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Generator
 from unittest.mock import patch
 
 import httpx
@@ -12,6 +13,14 @@ from main import app
 from models.account import Account
 from models.database import Base, get_db
 from models.user import User
+
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator:
+    """Session-scoped event loop so session-scoped async fixtures share one loop."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="session")
