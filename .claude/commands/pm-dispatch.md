@@ -235,6 +235,8 @@ Exclude any that already have an active file in `memory/active/`.
 
 Respect priority order: dispatch 🔴 High before 🟡 Medium before 🟢 Low.
 
+**Dependency gate:** Before dispatching any task, check whether its source files import from another task that is still in-flight (branch not yet merged to main). If so, do not dispatch it — hold it until the dependency PR is merged and confirmed on `origin/main`. A task that imports from an unmerged peer will fail the implementer's import check and require an extra review round.
+
 Take up to `max-agents` tasks. Log your dispatch plan:
 
 ```
@@ -411,21 +413,23 @@ N rounds before approval
    - Update Progress Summary counts
    - Update `Last Updated`
 
-4. Persist memory state changes via the implementer → pr-reviewer flow:
+4. Persist memory state — **PM does this directly** (no implementer involved):
 
-   **Dispatch the `implementer` subagent** with instruction "Persist memory state":
-   - Check out a new branch: `chore/tracker-TASK-XXX-complete`
-   - Stage and commit **only** the already-written files: `memory/completed/TASK-XXX.md`, and the relevant tracker file (e.g. `memory/dev-tracker.md`)
-   - Commit message: `chore: mark TASK-XXX complete (PR #N merged)`
-   - Push the branch and open a PR with `GH_TOKEN=$GH_TOKEN_IMPLEMENTER`
-   - **Do NOT update any task status files** — the files are already final; writing to them again would create a new unpersisted change.
-   - Return `PR_READY` with the new PR number
+   ```bash
+   git checkout main && git pull origin/main
+   git checkout -b chore/tracker-TASK-XXX-complete
+   # (tracker file and completed/ file already written above — stage them now)
+   git add memory/completed/TASK-XXX.md memory/dev-tracker.md
+   git commit -m "chore: mark TASK-XXX complete (PR #N merged)"
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/tracker-TASK-XXX-complete
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX complete" --body "..."
+   ```
 
    **Dispatch the `pr-reviewer` subagent** against that PR:
    - Review only for accuracy of the committed content (correct status, counts, PR refs)
    - **Do NOT write to any memory files** as part of the review — post findings as a PR comment only
-   - If `APPROVED` → dispatch `implementer` to merge the PR (`GH_TOKEN=$GH_TOKEN_IMPLEMENTER`) with no further file edits
-   - If `CHANGES REQUESTED` → dispatch `implementer` to amend the committed files and re-push; loop back to review
+   - If `APPROVED` → PM merges directly: `GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr merge <PR> --squash`
+   - If `CHANGES REQUESTED` → PM amends the committed files, re-pushes, loops back to review
 
 ### On STUCK:
 
@@ -437,21 +441,23 @@ N rounds before approval
    - Change `- [~] TASK-001: ...` → `- [!] TASK-001: ... (⚠️ STUCK)`
    - Update Progress Summary counts
 
-3. Persist memory state changes via the implementer → pr-reviewer flow:
+3. Persist memory state — **PM does this directly** (no implementer involved):
 
-   **Dispatch the `implementer` subagent** with instruction "Persist memory state":
-   - Check out a new branch: `chore/tracker-TASK-XXX-stuck`
-   - Stage and commit **only** the already-written files: `memory/active/TASK-XXX.md`, and the relevant tracker file
-   - Commit message: `chore: mark TASK-XXX stuck — <brief reason>`
-   - Push the branch and open a PR with `GH_TOKEN=$GH_TOKEN_IMPLEMENTER`
-   - **Do NOT update any task status files** — the files are already final; writing to them again would create a new unpersisted change.
-   - Return `PR_READY` with the new PR number
+   ```bash
+   git checkout main && git pull origin/main
+   git checkout -b chore/tracker-TASK-XXX-stuck
+   # (active/ file and tracker already written above — stage them now)
+   git add memory/active/TASK-XXX.md memory/dev-tracker.md
+   git commit -m "chore: mark TASK-XXX stuck — <brief reason>"
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/tracker-TASK-XXX-stuck
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX stuck" --body "..."
+   ```
 
    **Dispatch the `pr-reviewer` subagent** against that PR:
    - Review only for accuracy of the committed content (correct status, reason, counts)
    - **Do NOT write to any memory files** as part of the review — post findings as a PR comment only
-   - If `APPROVED` → dispatch `implementer` to merge the PR with no further file edits
-   - If `CHANGES REQUESTED` → dispatch `implementer` to amend the committed files and re-push; loop back to review
+   - If `APPROVED` → PM merges directly: `GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr merge <PR> --squash`
+   - If `CHANGES REQUESTED` → PM amends the committed files, re-pushes, loops back to review
 
 ---
 
