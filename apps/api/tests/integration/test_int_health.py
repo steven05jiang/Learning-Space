@@ -7,17 +7,13 @@ Tests:
 """
 
 import pytest
-from httpx import AsyncClient
-
-from main import app
 
 
 @pytest.mark.integration
 @pytest.mark.int_health
-async def test_get_health_returns_ok():
+async def test_get_health_returns_ok(client):
     """INT-001: GET /health → 200 OK; body contains {"status": "ok"} or similar"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/health")
+    response = await client.get("/health")
 
     assert response.status_code == 200
     data = response.json()
@@ -28,14 +24,13 @@ async def test_get_health_returns_ok():
 
 @pytest.mark.integration
 @pytest.mark.int_health
-async def test_bad_request_returns_standard_error_format():
+async def test_bad_request_returns_standard_error_format(client):
     """
     INT-002: Any endpoint hit with a bad request returns the standard error
     response schema
     """
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Send a malformed request to trigger error handling
-        response = await client.get("/health/nonexistent-endpoint")
+    # Send a malformed request to trigger error handling
+    response = await client.get("/health/nonexistent-endpoint")
 
     assert response.status_code == 404
     data = response.json()

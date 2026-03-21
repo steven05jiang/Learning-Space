@@ -1,12 +1,16 @@
 import os
+from typing import AsyncGenerator
 from unittest.mock import patch
 
+import httpx
 import pytest
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from core.jwt import create_access_token
+from main import app
 from models.account import Account
-from models.database import Base
+from models.database import Base, get_db
 from models.user import User
 
 
@@ -28,6 +32,23 @@ async def db_session(pg_engine):
         session = AsyncSession(bind=conn)
         yield session
         await session.rollback()
+
+
+@pytest.fixture
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """Create a test client with database override."""
+
+    def get_test_db():
+        return db_session
+
+    app.dependency_overrides[get_db] = get_test_db
+
+    async with AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        yield client
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
