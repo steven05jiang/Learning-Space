@@ -24,6 +24,9 @@ out/
 .idea/
 .vscode/
 
+# Claude Code
+.claude/worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
