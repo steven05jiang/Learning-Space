@@ -109,11 +109,13 @@ class MockLLMClient:
 
         Returns a JSON string with title, summary, and tags.
         """
-        return json.dumps({
-            "title": "Mock Resource Title",
-            "summary": "This is a mock summary for integration testing.",
-            "tags": ["AI", "Testing", "Mock"],
-        })
+        return json.dumps(
+            {
+                "title": "Mock Resource Title",
+                "summary": "This is a mock summary for integration testing.",
+                "tags": ["AI", "Testing", "Mock"],
+            }
+        )
 
     def _create_mock_message(self, content: Dict) -> Mock:
         """Create a mock message object that mimics Anthropic's response format."""
