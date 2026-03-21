@@ -72,33 +72,29 @@ web-dev-mock:
 
 # ── Integration Tests ──────────────────────────────────────────────────────
 
+INT_GROUPS ?= auth,resources
+
 int-test-ci:
-	@echo "── Integration: CI tests (no external deps) ───────────"
-	cd apps/api && uv sync --frozen --extra dev -q
-	cd apps/api && uv run pytest -m "int_ci" -v
+	@echo "-- API integration tests (CI groups: $(INT_GROUPS)) ----"
+	$(eval MARKERS := $(shell echo "$(INT_GROUPS)" | tr ',' '\n' | sed 's/^/int_/' | tr '\n' ' ' | sed 's/ / or /g' | sed 's/ or $$//'))
+	cd apps/api && uv run pytest -m "integration and ($(MARKERS))" -v
 
 int-test:
 	@echo "── Integration: all backend tests ─────────────────────"
 	@echo "   (requires: make infra-up)"
 	cd apps/api && uv sync --frozen --extra dev -q
-	cd apps/api && uv run pytest -m "int_auth or int_resources or int_knowledge or int_sharing or int_analytics" -v
+	cd apps/api && uv run pytest -m "integration" -v
 
 int-test-web:
 	@echo "── Integration: web component tests ───────────────────"
-	cd apps/web && npm test
+	cd apps/web && npm test -- --testPathPattern="integration" --watchAll=false
 
 int-test-e2e:
 	@echo "── Integration: end-to-end tests ──────────────────────"
 	@echo "   (requires: docker-compose -f docker-compose.e2e.yml up -d)"
-	cd apps/api && uv sync --frozen --extra dev -q
-	cd apps/api && uv run pytest -m "int_e2e" -v
+	cd tests/e2e && npx playwright test
 
-int-test-full:
-	@echo "── Integration: full test suite ───────────────────────"
-	@echo "   (requires: docker-compose -f docker-compose.e2e.yml up -d)"
-	cd apps/api && uv sync --frozen --extra dev -q
-	cd apps/api && uv run pytest -m "int_ci or int_auth or int_resources or int_knowledge or int_sharing or int_analytics or int_e2e" -v
-	cd apps/web && npm test
+int-test-full: int-test int-test-web int-test-e2e
 
 # ── Infrastructure ─────────────────────────────────────────────────────────
 

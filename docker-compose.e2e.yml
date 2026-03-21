@@ -40,6 +40,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=test
       - LOG_LEVEL=WARNING
+      - LLM_MOCK=true
+      - OAUTH_MOCK=true
     ports:
       - "8001:8000"  # Different port to avoid conflicts
     depends_on:

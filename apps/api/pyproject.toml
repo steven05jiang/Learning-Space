@@ -53,16 +53,15 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
 markers = [
-    "integration: marks tests as integration tests requiring real databases (deselect with '-m not integration')",
-    "int_ci: CI-safe integration tests (no external deps, mocked services)",
-    "int_auth: Authentication and authorization integration tests",
-    "int_resources: Resource management integration tests",
-    "int_knowledge: Knowledge base integration tests",
-    "int_sharing: Content sharing integration tests",
-    "int_analytics: Analytics and reporting integration tests",
-    "int_e2e: End-to-end tests requiring full stack",
-    "int_performance: Performance and load integration tests",
-    "int_security: Security-focused integration tests",
+    "integration: requires real PostgreSQL + Neo4j (run make infra-up first)",
+    "int_health: INT-001-002: health check and error format",
+    "int_auth: INT-003-012: OAuth login, account linking, /auth/me",
+    "int_resources: INT-013-023: resource CRUD",
+    "int_worker: INT-024-028: async worker pipeline",
+    "int_graph: INT-029-035: knowledge graph update and exploration",
+    "int_chat: INT-036-040: chat agent and conversation history",
+    "int_e2e: Layer 3 Playwright E2E tests (full stack)",
+    "int_deploy: INT-053-055: Docker, Helm, ArgoCD",
 ]
 
 [tool.bandit]
