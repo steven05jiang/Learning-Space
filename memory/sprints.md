@@ -23,7 +23,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 |------|-------------|--------|
 | DEV-025 | Graph service (Neo4j operations) | ✅ Completed (PR #90) |
 | DEV-023 | process_resource job (unauthenticated fetch only) | ✅ Completed (PR #92) |
-| DEV-030 | GET /graph/nodes/{id}/resources | 🔄 Active |
+| DEV-030 | GET /graph/nodes/{id}/resources | ✅ Completed (PR #94) |
 | DEV-027 | Graph sync job for resource deletion | ⏳ Pending (needs DEV-025) |
 | DEV-028 | GET /graph | ⏳ Pending (needs DEV-025) |
 | DEV-029 | POST /graph/expand | ⏳ Pending (needs DEV-025) |
