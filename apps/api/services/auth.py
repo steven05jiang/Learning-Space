@@ -50,9 +50,8 @@ class AuthService:
         """Create a new user with associated OAuth account."""
         # Create user
         user = User(
-            email=user_info.get(
-                "email", f"{provider}_{provider_account_id}@example.com"
-            ),
+            email=user_info.get("email")
+            or f"{provider}_{provider_account_id}@example.com",
             display_name=user_info.get("display_name", "Unknown User"),
             avatar_url=user_info.get("avatar_url"),
         )
