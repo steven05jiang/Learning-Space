@@ -27,7 +27,11 @@ class TestGetNodeResources:
     """Test cases for GET /graph/nodes/{node_id}/resources."""
 
     async def test_get_node_resources_success(
-        self, client: AsyncClient, test_user: User, auth_headers: dict, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
     ):
         """Test successful retrieval of resources for a node."""
         # Create test resources with tags
@@ -94,7 +98,11 @@ class TestGetNodeResources:
             assert "python" in item["tags"]
 
     async def test_get_node_resources_empty_result(
-        self, client: AsyncClient, test_user: User, auth_headers: dict, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
     ):
         """Test retrieval when no resources match the tag."""
         # Create a resource without the searched tag
@@ -124,7 +132,12 @@ class TestGetNodeResources:
         assert data["offset"] == 0
 
     async def test_get_node_resources_owner_scoped(
-        self, client: AsyncClient, test_user: User, other_user: User, auth_headers: dict, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user: User,
+        other_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
     ):
         """Test that resources are scoped to the authenticated user."""
         # Create resources for both users with same tag
@@ -163,7 +176,11 @@ class TestGetNodeResources:
         assert data["items"][0]["title"] == "User Resource"
 
     async def test_get_node_resources_url_field(
-        self, client: AsyncClient, test_user: User, auth_headers: dict, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
     ):
         """Test that url field is populated correctly for URL content type."""
         # Create URL and text resources
@@ -198,8 +215,12 @@ class TestGetNodeResources:
         assert data["total"] == 2
 
         # Find the URL resource in response
-        url_item = next(item for item in data["items"] if item["id"] == str(url_resource.id))
-        text_item = next(item for item in data["items"] if item["id"] == str(text_resource.id))
+        url_item = next(
+            item for item in data["items"] if item["id"] == str(url_resource.id)
+        )
+        text_item = next(
+            item for item in data["items"] if item["id"] == str(text_resource.id)
+        )
 
         # URL resource should have url field populated
         assert url_item["url"] == "https://example.com"
@@ -216,7 +237,11 @@ class TestGetNodeResources:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_get_node_resources_partial_tag_match(
-        self, client: AsyncClient, test_user: User, auth_headers: dict, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
     ):
         """Test that partial tag matches are not returned (exact match required)."""
         resource = Resource(
@@ -242,7 +267,11 @@ class TestGetNodeResources:
         assert len(data["items"]) == 0
 
     async def test_get_node_resources_ordering(
-        self, client: AsyncClient, test_user: User, auth_headers: dict, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user: User,
+        auth_headers: dict,
+        db_session: AsyncSession,
     ):
         """Test that resources are ordered by created_at descending."""
         # Create resources with explicit ordering (newer first)
