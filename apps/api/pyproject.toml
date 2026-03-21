@@ -72,4 +72,5 @@ skips = ["B105"]
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
+    "respx>=0.22.0",
 ]
