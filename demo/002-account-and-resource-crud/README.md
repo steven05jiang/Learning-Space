@@ -128,7 +128,7 @@ POST /auth/link  Authorization: Bearer <token>
 ### Step 10 — Start the frontend
 
 ```bash
-cd apps/web && npm run dev -- --port 3001
+cd apps/web && npm run dev -- --port 3000
 ```
 
 ### Step 11 — Capture Settings UI
@@ -196,7 +196,7 @@ Click delete on a resource — confirm dialog → resource removed from list.
 
 ## Bugs Found
 
-- **BUG-005**: CORS `allow_origins` only includes `http://localhost:3000` — port 3001 blocked. Workaround: run web dev server on port 3000. Fix: add `http://localhost:3001` (or use env var for allowed origins).
+- **BUG-005**: ~~CORS `allow_origins` only includes `http://localhost:3000` — port 3001 blocked.~~ Not applicable — web dev server runs on port 3000, which is already in CORS `allow_origins`. No action needed.
 - **Note**: `GET /auth/accounts` (list) returns 404 — only `/auth/accounts/{id}` (delete) exists. Settings UI fetches from `/auth/me` for profile; account listing is derived from `/auth/providers`. Minor mismatch but UI renders correctly with fallback.
 
 ---
