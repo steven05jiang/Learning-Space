@@ -7,10 +7,10 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ## Sprint 2026-03-22-A — AI Chat Backend Foundation
 
-**Status:** 🔄 Active
+**Status:** ✅ Complete
 **Cycle Goal:** Start AI chat backend — lay conversation storage and LangGraph agent foundation
 **Started:** 2026-03-22
-**Completed:** (pending)
+**Completed:** 2026-03-22
 
 ### Notes
 
@@ -22,7 +22,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | Task | Description | Status |
 |------|-------------|--------|
 | DEV-035 | Conversation storage (DB schema) | ✅ Completed (PR #117) |
-| DEV-032 | LangGraph agent with tools | 🔄 Active (waiting on DEV-035) |
+| DEV-032 | LangGraph agent with tools | ✅ Completed (PR #119) |
 
 ---
 
