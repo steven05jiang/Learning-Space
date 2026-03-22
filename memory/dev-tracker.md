@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (DEV-024 PR #108 complete)
+**Last Updated:** 2026-03-21 (DEV-031 PR #110 complete)
 
 ---
 
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 65
+- ✅ Completed: 66
 - 🔄 Active: 0
-- ⏳ Pending: 51
+- ⏳ Pending: 50
 - ⚠️ Stuck: 0
 
 ---
@@ -70,7 +70,7 @@
 - [x] DEV-052: Wire graph visualization to real API — connect existing UI to GET /graph, POST /graph/expand, GET /graph/nodes/{id}/resources (PR #105 ✅)
 - [ ] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations
 - [x] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline (PR #108 ✅)
-- [ ] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints
+- [x] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints (PR #110 ✅)
 - [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
 - [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)

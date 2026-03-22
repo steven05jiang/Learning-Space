@@ -30,7 +30,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-029 | POST /graph/expand | ✅ Completed (PR #101) |
 | DEV-026 | Graph update in worker pipeline | ✅ Completed (PR #97) |
 | DEV-024 | Unit tests — Worker | ✅ Completed (PR #108) |
-| DEV-031 | Unit tests — Graph API | ⏳ Pending (needs DEV-028+029+030) |
+| DEV-031 | Unit tests — Graph API | ✅ Completed (PR #110) |
 | INT-024–028 | Worker integration tests | ⏳ Pending (needs DEV-023) |
 | INT-029–035 | Graph integration tests | ⏳ Pending (needs DEV-025–030) |
 | DEMO-003+004 | Combined pipeline + graph demo | ⏳ Pending (all above) |
