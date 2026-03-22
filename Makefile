@@ -2,7 +2,8 @@
         api-lint api-test api-security api-integration \
         web-lint web-build web-security web-dev web-dev-mock \
         int-test-ci int-test int-test-web int-test-e2e int-test-full \
-        infra-up infra-down
+        infra-up infra-down \
+        dev-stack-up dev-stack-down
 
 # ── Full CI (requires `make infra-up` first for integration tests) ────────
 
@@ -107,3 +108,29 @@ infra-up:
 
 infra-down:
 	docker compose down
+
+# ── Development Stack ──────────────────────────────────────────────────────
+
+dev-stack-up:
+	@echo "── Starting full development stack ───────────────────"
+	@echo "   1. Starting infrastructure (Docker)..."
+	$(MAKE) infra-up
+	@echo "   2. Starting API (uvicorn)..."
+	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
+	@echo "   3. Starting web (Next.js)..."
+	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
+	@echo ""
+	@echo "Development stack started:"
+	@echo "   API:  http://localhost:8000"
+	@echo "   Web:  http://localhost:3000"
+	@echo "   Logs: /tmp/api.log, /tmp/web.log"
+
+dev-stack-down:
+	@echo "── Stopping full development stack ───────────────────"
+	@echo "   1. Stopping infrastructure (Docker)..."
+	docker compose down
+	@echo "   2. Killing API process on port 8000..."
+	lsof -ti :8000 | xargs kill -9 || true
+	@echo "   3. Killing web process on port 3000..."
+	lsof -ti :3000 | xargs kill -9 || true
+	@echo "   Development stack stopped."
