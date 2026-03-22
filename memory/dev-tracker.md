@@ -11,8 +11,8 @@
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 81
-- 🔄 Active: 2
+- ✅ Completed: 82
+- 🔄 Active: 1
 - ⏳ Pending: 33
 - ⚠️ Stuck: 0
 
@@ -58,7 +58,7 @@
 - [x] DEV-028: Implement GET /graph (graph view) — Core graph exploration API (PR #99 ✅)
 - [x] DEV-029: Implement POST /graph/expand — Graph drill-down (PR #101 ✅)
 - [x] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph (PR #94 ✅)
-- [~] DEV-035: Implement conversation storage (DB schema) — Chat persistence
+- [x] DEV-035: Implement conversation storage (DB schema) — Chat persistence (PR #117 ✅)
 - [~] DEV-032: Implement LangGraph agent with tools — Core chat intelligence
 - [ ] DEV-033: Implement POST /chat endpoint — Chat API
 - [ ] DEV-034: Implement GET /chat/conversations and messages — Chat history
