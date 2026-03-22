@@ -21,7 +21,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 | Task | Description | Status |
 |------|-------------|--------|
-| DEV-035 | Conversation storage (DB schema) | 🔄 Active |
+| DEV-035 | Conversation storage (DB schema) | ✅ Completed (PR #117) |
 | DEV-032 | LangGraph agent with tools | 🔄 Active (waiting on DEV-035) |
 
 ---
