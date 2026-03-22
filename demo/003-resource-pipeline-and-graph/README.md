@@ -1,7 +1,7 @@
 # Demo 003 — Resource Processing Pipeline + Knowledge Graph
 
 **Date:** 2026-03-22
-**Status:** ✅ Executed (run-1: 2026-03-22)
+**Status:** ✅ Executed (run-1: 2026-03-22, run-2: 2026-03-22)
 **Scenario:** Submit a URL resource, watch it get processed (LLM title/summary/tags), then explore the resulting knowledge graph.
 
 ---
@@ -54,7 +54,7 @@ This is the core value proposition of Learning Space: automatic categorization a
 1. Start infrastructure: `docker compose up -d`
 2. Run migrations: `cd apps/api && uv run alembic upgrade head`
 3. Start API server: `uv run uvicorn main:app --port 8000`
-4. Start web server: `cd apps/web && npm run dev -- --port 3001`
+4. Start web server: `cd apps/web && npm run dev -- --port 3000`
 5. Verify health: `GET /health`
 6. Authenticate as demo user: `GET /auth/me`
 7. Submit a URL resource: `POST /resources` with a real public URL
@@ -89,6 +89,7 @@ This is the core value proposition of Learning Space: automatic categorization a
 | Run   | Date       | Status | Artifacts |
 | ----- | ---------- | ------ | --------- |
 | run-1 | 2026-03-22 | ✅     | [artifacts/run-1/](./artifacts/run-1/) |
+| run-2 | 2026-03-22 | ✅     | [artifacts/run-2/](./artifacts/run-2/) |
 
 ---
 
@@ -112,6 +113,30 @@ This is the core value proposition of Learning Space: automatic categorization a
 | Frontend /resources | ✅ Resource list with READY resource + tags | [16-frontend-resources-list.png](./artifacts/run-1/16-frontend-resources-list.png) |
 | Frontend /graph | ✅ Live knowledge graph renders with nodes/edges | [17-frontend-graph.png](./artifacts/run-1/17-frontend-graph.png) |
 | Frontend /resources/1 | ✅ Resource detail with title, summary, tags | [18-frontend-resource-detail.png](./artifacts/run-1/18-frontend-resource-detail.png) |
+
+---
+
+### Run 2 — 2026-03-22
+
+| Step | Result | Artifact |
+| ---- | ------ | -------- |
+| infra-up (PostgreSQL, Neo4j, Redis) | ✅ All containers healthy | [01-infra-start.txt](./artifacts/run-2/01-infra-start.txt) |
+| DB migrations | ✅ Up to date | [02-migrations.txt](./artifacts/run-2/02-migrations.txt) |
+| GET /health | ✅ 200 `{"status":"healthy"}` | [03-health.json](./artifacts/run-2/03-health.json) |
+| GET /auth/me | ✅ 200 + user profile | [06-auth-me.json](./artifacts/run-2/06-auth-me.json) |
+| POST /resources (Wikipedia Machine Learning URL) | ✅ 202 status=PENDING | [07-create-resource.json](./artifacts/run-2/07-create-resource.json) |
+| Worker process_resource (URL fetch + LLM) | ✅ READY — title extracted, 8 tags, 1385-char summary | [08-worker-process.txt](./artifacts/run-2/08-worker-process.txt) |
+| GET /resources/2 | ✅ status=READY, tags=["machine-learning","artificial-intelligence",...] | [09-resource-ready.json](./artifacts/run-2/09-resource-ready.json) |
+| Graph seed (8 tags → Neo4j) | ✅ 8 nodes, 28 edges | [10-graph-seed.txt](./artifacts/run-2/10-graph-seed.txt) |
+| GET /graph | ✅ 15 nodes + 49 edges returned (cumulative from both runs) | [11-graph-view.json](./artifacts/run-2/11-graph-view.json) |
+| POST /graph/expand (machine-learning) | ✅ 7 neighboring nodes + edges | [12-graph-expand.json](./artifacts/run-2/12-graph-expand.json) |
+| GET /graph/nodes/machine-learning/resources | ✅ 1 resource returned | [13-graph-node-resources.json](./artifacts/run-2/13-graph-node-resources.json) |
+| Frontend /login | ✅ Login page renders | [14-frontend-login.png](./artifacts/run-2/14-frontend-login.png) |
+| Frontend /dashboard | ✅ "Dashboard" visible, no errors | [15-frontend-dashboard.png](./artifacts/run-2/15-frontend-dashboard.png) |
+| Frontend /resources | ✅ "My Resources" visible, no errors | [16-frontend-resources-list.png](./artifacts/run-2/16-frontend-resources-list.png) |
+| Frontend /knowledge-graph | ✅ "Knowledge Graph" visible, nodes/edges rendered | [17-frontend-graph.png](./artifacts/run-2/17-frontend-graph.png) |
+| Frontend /resources/2 | ✅ "Machine Learning" title visible | [18-frontend-resource-detail.png](./artifacts/run-2/18-frontend-resource-detail.png) |
+| UI validation report | ✅ 33 passed, 0 failed | [12-ui-validation.json](./artifacts/run-2/12-ui-validation.json) |
 
 ---
 
