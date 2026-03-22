@@ -4,15 +4,15 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (DEV-027/052 dispatched)
+**Last Updated:** 2026-03-21 (DEV-027 complete PR #103, DEV-052 in progress)
 
 ---
 
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 62
-- 🔄 Active: 2
+- ✅ Completed: 63
+- 🔄 Active: 1
 - ⏳ Pending: 52
 - ⚠️ Stuck: 0
 
@@ -54,7 +54,7 @@
 - [x] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update (PR #92 ✅)
 - [x] DEV-025: Implement graph service (Neo4j operations) — Foundation for all graph features (PR #90 ✅)
 - [x] DEV-026: Integrate graph update into worker pipeline — Resources update graph on processing (PR #97 ✅)
-- [~] DEV-027: Implement graph sync job for resource deletion — Graph consistency on deletion
+- [x] DEV-027: Implement graph sync job for resource deletion — Graph consistency on deletion (PR #103 ✅)
 - [x] DEV-028: Implement GET /graph (graph view) — Core graph exploration API (PR #99 ✅)
 - [x] DEV-029: Implement POST /graph/expand — Graph drill-down (PR #101 ✅)
 - [x] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph (PR #94 ✅)
