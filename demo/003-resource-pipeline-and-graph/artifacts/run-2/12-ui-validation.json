@@ -1,0 +1,67 @@
+{
+  "pages": [
+    {
+      "url": "/dashboard",
+      "file": "15-frontend-dashboard.png",
+      "passed": [
+        "EXPECT \"Dashboard\" present",
+        "FORBID \"Failed to fetch\" absent",
+        "FORBID \"Something went wrong\" absent",
+        "FORBID \"Error loading\" absent",
+        "FORBID \"Network Error\" absent",
+        "FORBID \"Unexpected error\" absent",
+        "FORBID \"500\" absent",
+        "FORBID \"404\" absent"
+      ],
+      "failed": []
+    },
+    {
+      "url": "/resources",
+      "file": "16-frontend-resources-list.png",
+      "passed": [
+        "EXPECT \"My Resources\" present",
+        "FORBID \"Failed to fetch\" absent",
+        "FORBID \"Something went wrong\" absent",
+        "FORBID \"Error loading\" absent",
+        "FORBID \"Network Error\" absent",
+        "FORBID \"Unexpected error\" absent",
+        "FORBID \"500\" absent",
+        "FORBID \"404\" absent",
+        "FORBID \"No resources found\" absent"
+      ],
+      "failed": []
+    },
+    {
+      "url": "/knowledge-graph",
+      "file": "17-frontend-graph.png",
+      "passed": [
+        "EXPECT \"Knowledge Graph\" present",
+        "FORBID \"Failed to fetch\" absent",
+        "FORBID \"Something went wrong\" absent",
+        "FORBID \"Error loading\" absent",
+        "FORBID \"Network Error\" absent",
+        "FORBID \"Unexpected error\" absent",
+        "FORBID \"500\" absent",
+        "FORBID \"404\" absent"
+      ],
+      "failed": []
+    },
+    {
+      "url": "/resources/2",
+      "file": "18-frontend-resource-detail.png",
+      "passed": [
+        "EXPECT \"Machine Learning\" present",
+        "FORBID \"Failed to fetch\" absent",
+        "FORBID \"Something went wrong\" absent",
+        "FORBID \"Error loading\" absent",
+        "FORBID \"Network Error\" absent",
+        "FORBID \"Unexpected error\" absent",
+        "FORBID \"500\" absent",
+        "FORBID \"404\" absent"
+      ],
+      "failed": []
+    }
+  ],
+  "totalPassed": 33,
+  "totalFailed": 0
+}

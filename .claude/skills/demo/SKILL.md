@@ -269,11 +269,11 @@ curl -s http://localhost:8000/db-health >> $ARTIFACTS/03-health.json
 
 ### B8 — Start the web server
 
-Kill any existing process on port 3001 first:
+Kill any existing process on port 3000 first:
 
 ```bash
-lsof -ti:3001 | xargs kill -9 2>/dev/null || true
-cd apps/web && npm run dev -- --port 3001 &
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+cd apps/web && npm run dev -- --port 3000 &
 sleep 6
 ```
 
@@ -323,7 +323,9 @@ Then add scenario-specific calls per the Procedure in the README.
 
 ### B12 — Capture frontend screenshots and validate UI with Playwright
 
-Write `demo/<NNN>-<slug>/screenshot.mjs` (overwrite each run — it's a script, not an artifact):
+**ALWAYS overwrite `demo/<NNN>-<slug>/screenshot.mjs` with the current template before running** — it is a script, not an artifact. Do not reuse an existing screenshot.mjs as it may predate the validation framework.
+
+Write `demo/<NNN>-<slug>/screenshot.mjs`:
 
 ```javascript
 import { chromium } from "playwright";
@@ -337,7 +339,7 @@ if (!TOKEN || !OUT) {
 }
 
 const browser = await chromium.launch();
-const base = "http://localhost:3001";
+const base = "http://localhost:3000";
 
 // ── Login page (unauthenticated) ──────────────────────────────────────────────
 const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -421,7 +423,7 @@ for (const { url, file, expectText = [], forbidText = [] } of pages) {
   const entry = { url, file, passed: [], failed: [] };
 
   for (const text of expectText) {
-    const visible = await page.getByText(text, { exact: false }).isVisible().catch(() => false);
+    const visible = await page.getByText(text, { exact: false }).first().isVisible().catch(() => false);
     if (visible) {
       entry.passed.push(`EXPECT "${text}" present`);
     } else {
@@ -430,7 +432,7 @@ for (const { url, file, expectText = [], forbidText = [] } of pages) {
   }
 
   for (const text of forbidText) {
-    const visible = await page.getByText(text, { exact: false }).isVisible().catch(() => false);
+    const visible = await page.getByText(text, { exact: false }).first().isVisible().catch(() => false);
     if (visible) {
       entry.failed.push(`FORBID "${text}" FOUND`);
     } else {

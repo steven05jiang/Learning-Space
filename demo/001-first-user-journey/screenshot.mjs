@@ -8,7 +8,7 @@ if (!TOKEN || !OUT) {
 }
 
 const browser = await chromium.launch();
-const base = "http://localhost:3001";
+const base = "http://localhost:3000";
 
 // Login page (unauthenticated context)
 const anonCtx = await browser.newContext({

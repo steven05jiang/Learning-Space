@@ -1,0 +1,13 @@
+2026-03-22 09:21:19,706 - workers.tasks - INFO - Starting resource processing for resource_id=2
+2026-03-22 09:21:19,742 - workers.tasks - INFO - Processing resource 2: content_type=url, status=PENDING
+2026-03-22 09:21:19,744 - services.url_fetcher - INFO - Fetching content from URL: https://en.wikipedia.org/wiki/Machine_learning
+2026-03-22 09:21:20,107 - httpx - INFO - HTTP Request: GET https://en.wikipedia.org/wiki/Machine_learning "HTTP/1.1 200 OK"
+2026-03-22 09:21:20,181 - services.url_fetcher - INFO - Successfully fetched 687953 characters from https://en.wikipedia.org/wiki/Machine_learning (status: 200, type: text/html)
+2026-03-22 09:21:20,182 - workers.tasks - INFO - Fetched content for resource 2: 687953 chars, type: text/html
+2026-03-22 09:21:20,182 - services.llm_processor - INFO - Processing content of type text/html (687953 characters)
+2026-03-22 09:21:23,464 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-03-22 09:21:23,474 - services.llm_processor - INFO - Successfully processed content: title='Machine Learning - Wikipedia...', summary_len=1385, tags_count=8
+2026-03-22 09:21:23,474 - workers.tasks - INFO - LLM processing completed for resource 2: title='Machine Learning - Wikipedia...', summary_len=1385, tags_count=8
+2026-03-22 09:21:23,479 - workers.tasks - WARNING - Graph update failed for resource 2 but resource processing completed: Neo4j driver not connected. Call connect() first.
+2026-03-22 09:21:23,479 - workers.tasks - INFO - Resource processing completed for resource_id=2
+{'resource_id': 2, 'status': 'ready', 'processed_at': '2026-03-22T13:21:23.479660', 'title': 'Machine Learning - Wikipedia', 'summary_length': 1385, 'tags_count': 8, 'stages_completed': ['status_update', 'content_fetch', 'llm_processing', 'db_update', 'graph_update']}
