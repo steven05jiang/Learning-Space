@@ -424,7 +424,7 @@ async def test_worker_graph_update_fails_resource_still_ready(db_session):
     ):
         with patch(
             "workers.tasks.graph_service.update_from_resource",
-            side_effect=Exception("Graph service unavailable")
+            side_effect=Exception("Graph service unavailable"),
         ) as mock_graph:
             with patch(
                 "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
