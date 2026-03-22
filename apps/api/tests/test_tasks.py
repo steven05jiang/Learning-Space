@@ -18,10 +18,7 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123",
-                operation="delete",
-                owner_id=1,
-                tags=["AI", "Python"]
+                entity_id="123", operation="delete", owner_id=1, tags=["AI", "Python"]
             )
 
             # Verify graph service methods were called
@@ -34,7 +31,7 @@ class TestSyncGraph:
             assert result == {
                 "entity_id": "123",
                 "operation": "delete",
-                "status": "synced"
+                "status": "synced",
             }
 
     @pytest.mark.asyncio
@@ -45,10 +42,7 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123",
-                operation="delete",
-                owner_id=1,
-                tags=[]
+                entity_id="123", operation="delete", owner_id=1, tags=[]
             )
 
             # Verify graph service methods were NOT called
@@ -59,7 +53,7 @@ class TestSyncGraph:
             assert result == {
                 "entity_id": "123",
                 "operation": "delete",
-                "status": "noop"
+                "status": "noop",
             }
 
     @pytest.mark.asyncio
@@ -73,7 +67,7 @@ class TestSyncGraph:
                 entity_id="123",
                 operation="delete",
                 owner_id=None,
-                tags=["AI", "Python"]
+                tags=["AI", "Python"],
             )
 
             # Verify graph service methods were NOT called
@@ -84,7 +78,7 @@ class TestSyncGraph:
             assert result == {
                 "entity_id": "123",
                 "operation": "delete",
-                "status": "noop"
+                "status": "noop",
             }
 
     @pytest.mark.asyncio
@@ -95,10 +89,7 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123",
-                operation="create",
-                owner_id=1,
-                tags=["AI", "Python"]
+                entity_id="123", operation="create", owner_id=1, tags=["AI", "Python"]
             )
 
             # Verify graph service methods were NOT called
@@ -109,7 +100,7 @@ class TestSyncGraph:
             assert result == {
                 "entity_id": "123",
                 "operation": "create",
-                "status": "noop"
+                "status": "noop",
             }
 
     @pytest.mark.asyncio
@@ -120,10 +111,7 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123",
-                operation="update",
-                owner_id=1,
-                tags=["AI", "Python"]
+                entity_id="123", operation="update", owner_id=1, tags=["AI", "Python"]
             )
 
             # Verify graph service methods were NOT called
@@ -134,7 +122,7 @@ class TestSyncGraph:
             assert result == {
                 "entity_id": "123",
                 "operation": "update",
-                "status": "noop"
+                "status": "noop",
             }
 
     @pytest.mark.asyncio

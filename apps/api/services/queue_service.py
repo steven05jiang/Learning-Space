@@ -42,7 +42,7 @@ class QueueService:
         entity_id: str,
         operation: str = "update",
         owner_id: int = None,
-        tags: list = None
+        tags: list = None,
     ) -> str:
         """Enqueue a graph synchronization job.
 

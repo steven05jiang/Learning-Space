@@ -498,7 +498,7 @@ class TestDeleteResource:
                 str(resource_id),
                 operation="delete",
                 owner_id=test_user.id,
-                tags=["AI", "Python", "Machine Learning"]
+                tags=["AI", "Python", "Machine Learning"],
             )
 
         # Verify resource is deleted from database
