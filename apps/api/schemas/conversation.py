@@ -3,6 +3,7 @@
 import enum
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -45,7 +46,7 @@ class ConversationUpdate(BaseModel):
 class ConversationResponse(BaseModel):
     """Response schema for conversation data."""
 
-    id: int
+    id: UUID
     user_id: int
     title: Optional[str] = None
     created_at: datetime
@@ -72,8 +73,8 @@ class MessageCreate(BaseModel):
 class MessageResponse(BaseModel):
     """Response schema for message data."""
 
-    id: int
-    conversation_id: int
+    id: UUID
+    conversation_id: UUID
     role: MessageRole
     content: str
     created_at: datetime
@@ -84,7 +85,7 @@ class MessageResponse(BaseModel):
 class ConversationWithMessagesResponse(BaseModel):
     """Response schema for conversation with its messages."""
 
-    id: int
+    id: UUID
     user_id: int
     title: Optional[str] = None
     created_at: datetime

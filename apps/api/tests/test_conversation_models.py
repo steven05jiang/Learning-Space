@@ -1,6 +1,7 @@
 """Tests for conversation and message models."""
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
 import pytest
 
@@ -102,10 +103,11 @@ class TestSchemaResponses:
     def test_conversation_response_creation(self):
         """Test ConversationResponse can be created."""
         now = datetime.now(UTC)
+        test_uuid = uuid4()
         data = ConversationResponse(
-            id=1, user_id=1, title="Test", created_at=now, updated_at=now
+            id=test_uuid, user_id=1, title="Test", created_at=now, updated_at=now
         )
-        assert data.id == 1
+        assert data.id == test_uuid
         assert data.user_id == 1
         assert data.title == "Test"
         assert data.created_at == now
@@ -114,15 +116,17 @@ class TestSchemaResponses:
     def test_message_response_creation(self):
         """Test MessageResponse can be created."""
         now = datetime.now(UTC)
+        message_uuid = uuid4()
+        conversation_uuid = uuid4()
         data = MessageResponse(
-            id=1,
-            conversation_id=1,
+            id=message_uuid,
+            conversation_id=conversation_uuid,
             role=SchemaMessageRole.USER,
             content="Hello!",
             created_at=now,
         )
-        assert data.id == 1
-        assert data.conversation_id == 1
+        assert data.id == message_uuid
+        assert data.conversation_id == conversation_uuid
         assert data.role == SchemaMessageRole.USER
         assert data.content == "Hello!"
         assert data.created_at == now
