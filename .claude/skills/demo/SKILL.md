@@ -133,11 +133,18 @@ Write `demo/<NNN>-<slug>/README.md`:
 
 ## Expected Outcome
 
-| Step                     | Expected                  |
-| ------------------------ | ------------------------- |
-| infra-up                 | All containers healthy    |
-| API health               | 200 {"status": "healthy"} |
-| <scenario-specific rows> | ...                       |
+| Step                      | Expected                          |
+| ------------------------- | --------------------------------- |
+| infra-up                  | All containers healthy            |
+| API health                | 200 {"status": "healthy"}         |
+| <api scenario-specific>   | ...                               |
+| UI /dashboard             | Renders, no error banners         |
+| UI /resources             | Renders, no "Failed to fetch"     |
+| <ui scenario-specific>    | ...                               |
+| UI validation report      | 0 failures                        |
+
+> **Rule:** for every API step that proves a feature works, add a corresponding UI row
+> that confirms the same feature is visible to the user in the browser.
 
 ---
 
@@ -314,12 +321,13 @@ curl -s http://localhost:8000/auth/me \
 
 Then add scenario-specific calls per the Procedure in the README.
 
-### B12 — Capture frontend screenshots with Playwright
+### B12 — Capture frontend screenshots and validate UI with Playwright
 
 Write `demo/<NNN>-<slug>/screenshot.mjs` (overwrite each run — it's a script, not an artifact):
 
 ```javascript
 import { chromium } from "playwright";
+import { writeFileSync } from "fs";
 
 const TOKEN = process.argv[2];
 const OUT = process.argv[3]; // artifact dir passed in from shell
@@ -331,24 +339,17 @@ if (!TOKEN || !OUT) {
 const browser = await chromium.launch();
 const base = "http://localhost:3001";
 
-// Login page (unauthenticated context)
-const anonCtx = await browser.newContext({
-  viewport: { width: 1280, height: 800 },
-});
+// ── Login page (unauthenticated) ──────────────────────────────────────────────
+const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const anonPage = await anonCtx.newPage();
 await anonPage.goto(`${base}/login`);
 await anonPage.waitForLoadState("networkidle");
-await anonPage.screenshot({
-  path: `${OUT}/08-frontend-login.png`,
-  fullPage: true,
-});
+await anonPage.screenshot({ path: `${OUT}/08-frontend-login.png`, fullPage: true });
 await anonCtx.close();
 console.log("Saved 08-frontend-login.png");
 
-// Authenticated context — seed localStorage
-const authCtx = await browser.newContext({
-  viewport: { width: 1280, height: 800 },
-});
+// ── Authenticated context ─────────────────────────────────────────────────────
+const authCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 await authCtx.addInitScript((token) => {
   localStorage.setItem("auth_token", token);
   localStorage.setItem(
@@ -364,22 +365,100 @@ await authCtx.addInitScript((token) => {
 
 const page = await authCtx.newPage();
 
-// Standard pages — extend this list per demo scenario
-const pages = [
-  { url: "/dashboard", file: "09-frontend-dashboard.png" },
-  { url: "/resources/new", file: "10-frontend-resources-new.png" },
-  { url: "/resources", file: "11-frontend-resources-list.png" },
+// ── Page definitions ──────────────────────────────────────────────────────────
+// Each entry:
+//   url         - route to visit
+//   file        - screenshot filename
+//   expectText  - strings that MUST be visible (proves the feature rendered correctly)
+//   forbidText  - strings that must NOT be visible (detects error/broken states)
+//
+// IMPORTANT when customising per demo:
+//   - expectText should match real UI copy or data that proves the feature is working
+//     (e.g. a resource title after seeding, a graph node label, a status badge)
+//   - forbidText must always include STANDARD_ERRORS plus any domain-specific errors
+//     (e.g. "No resources found" when you expect seeded data to appear)
+//   - Every API-validated feature must have a corresponding UI page check here
+
+const STANDARD_ERRORS = [
+  "Failed to fetch",
+  "Something went wrong",
+  "Error loading",
+  "Network Error",
+  "Unexpected error",
+  "500",
+  "404",
 ];
 
-for (const { url, file } of pages) {
+const pages = [
+  {
+    url: "/dashboard",
+    file: "09-frontend-dashboard.png",
+    expectText: ["Dashboard"],
+    forbidText: [...STANDARD_ERRORS],
+  },
+  {
+    url: "/resources/new",
+    file: "10-frontend-resources-new.png",
+    expectText: ["Add Resource", "URL"],
+    forbidText: [...STANDARD_ERRORS],
+  },
+  {
+    url: "/resources",
+    file: "11-frontend-resources-list.png",
+    expectText: ["My Resources"],
+    forbidText: [...STANDARD_ERRORS],
+  },
+  // Add scenario-specific pages here per the demo's Procedure
+];
+
+// ── Validation + screenshots ──────────────────────────────────────────────────
+const report = { pages: [], totalPassed: 0, totalFailed: 0 };
+
+for (const { url, file, expectText = [], forbidText = [] } of pages) {
   await page.goto(`${base}${url}`);
   await page.waitForLoadState("networkidle");
+
+  const entry = { url, file, passed: [], failed: [] };
+
+  for (const text of expectText) {
+    const visible = await page.getByText(text, { exact: false }).isVisible().catch(() => false);
+    if (visible) {
+      entry.passed.push(`EXPECT "${text}" present`);
+    } else {
+      entry.failed.push(`EXPECT "${text}" MISSING`);
+    }
+  }
+
+  for (const text of forbidText) {
+    const visible = await page.getByText(text, { exact: false }).isVisible().catch(() => false);
+    if (visible) {
+      entry.failed.push(`FORBID "${text}" FOUND`);
+    } else {
+      entry.passed.push(`FORBID "${text}" absent`);
+    }
+  }
+
   await page.screenshot({ path: `${OUT}/${file}`, fullPage: true });
-  console.log(`Saved ${file}`);
+
+  const status = entry.failed.length === 0 ? "PASS" : "FAIL";
+  console.log(`[${status}] ${url} -> ${file}`);
+  entry.failed.forEach((f) => console.log(`       FAIL: ${f}`));
+
+  report.pages.push(entry);
+  report.totalPassed += entry.passed.length;
+  report.totalFailed += entry.failed.length;
 }
 
+writeFileSync(`${OUT}/12-ui-validation.json`, JSON.stringify(report, null, 2));
+console.log(`\nUI Validation: ${report.totalPassed} passed, ${report.totalFailed} failed`);
+
 await browser.close();
-console.log("All screenshots saved.");
+
+if (report.totalFailed > 0) {
+  console.error("UI validation FAILED — see 12-ui-validation.json for details");
+  process.exit(1);
+}
+console.log("All UI checks passed");
 ```
 
 If Playwright is not installed:
@@ -392,7 +471,29 @@ Run:
 
 ```bash
 node demo/<NNN>-<slug>/screenshot.mjs "$TOKEN" "$ARTIFACTS"
+UI_EXIT=$?
 ```
+
+### B12b — Parse UI validation results
+
+Read `$ARTIFACTS/12-ui-validation.json` and surface per-page results:
+
+```bash
+python3 -c "
+import json, sys
+r = json.load(open('$ARTIFACTS/12-ui-validation.json'))
+print(f'UI Validation: {r[\"totalPassed\"]} passed, {r[\"totalFailed\"]} failed')
+for p in r['pages']:
+    status = 'PASS' if not p['failed'] else 'FAIL'
+    print(f'  [{status}] {p[\"url\"]}')
+    for f in p['failed']:
+        print(f'         {f}')
+"
+```
+
+If `UI_EXIT` is non-zero, the run has UI failures. Each failed page check must be logged as a bug in B14 and the run status marked as ⚠️.
+
+**UI validation mirrors API validation — every feature proven by an API call must also be verified visible in the UI. A passing API response that produces a broken or errored page is a failed feature delivery.**
 
 ### B13 — Update the README with actual outcome
 
@@ -407,15 +508,21 @@ Also append an **Actual Outcome** subsection titled `### Run <N> — YYYY-MM-DD`
 ```markdown
 ### Run <N> — YYYY-MM-DD
 
-| Step                | Result                    | Artifact                                             |
-| ------------------- | ------------------------- | ---------------------------------------------------- |
-| infra-up            | ✅ All containers healthy | —                                                    |
-| GET /health         | ✅ 200                    | [03-health.json](./artifacts/run-N/03-health.json) |
-| GET /auth/me        | ✅ 200 + user profile     | [06-auth-me.json](...)                               |
-| POST /resources     | ✅ 202 ACCEPTED           | [07-create-resource.json](...)                       |
-| Frontend /dashboard | ✅ Loads correctly        | [09-frontend-dashboard.png](...)                     |
-| ...                 |                           |                                                      |
+| Step                        | Result                    | Artifact                                              |
+| --------------------------- | ------------------------- | ----------------------------------------------------- |
+| infra-up                    | ✅ All containers healthy | —                                                     |
+| GET /health                 | ✅ 200                    | [03-health.json](./artifacts/run-N/03-health.json)    |
+| GET /auth/me                | ✅ 200 + user profile     | [06-auth-me.json](...)                                |
+| POST /resources             | ✅ 202 ACCEPTED           | [07-create-resource.json](...)                        |
+| GET /resources              | ✅ 200 + list             | [07b-list-resources.json](...)                        |
+| UI /dashboard               | ✅ Renders, no errors     | [09-frontend-dashboard.png](...)                      |
+| UI /resources/new           | ✅ Form visible           | [10-frontend-resources-new.png](...)                  |
+| UI /resources               | ✅ List renders, no errors| [11-frontend-resources-list.png](...)                 |
+| UI validation report        | ✅ N passed, 0 failed     | [12-ui-validation.json](./artifacts/run-N/12-ui-validation.json) |
+| ...                         |                           |                                                       |
 ```
+
+**Rule:** every API step that verifies a feature must have a corresponding UI row. A feature is only ✅ if both the API response and the UI render are correct.
 
 Update the top-level header status:
 
@@ -443,20 +550,28 @@ Update `demo/README.md` — change the demo's status from `📝 Defined` to `✅
 ```
 ✅ Demo <NNN> Run <N> — <Title>
 ================================
-Artifacts: demo/<NNN>-<slug>/artifacts[/run-N]/
-  01-...   02-...   03-health.json
+Artifacts: demo/<NNN>-<slug>/artifacts/run-N/
+  01-...   02-migrations.txt   03-health.json
   05-jwt-minted.txt
   06-auth-me.json   07-create-resource.json
   08-frontend-login.png
   09-frontend-dashboard.png
   10-frontend-resources-new.png
   11-frontend-resources-list.png
+  12-ui-validation.json
 
 API Results:
   GET  /health       → 200 ✅
   GET  /auth/me      → 200 ✅
   POST /resources    → 202 ✅
   GET  /resources    → 200 ✅
+
+UI Validation: N passed, 0 failed
+  ✅ /dashboard         — "Dashboard" visible, no errors
+  ✅ /resources/new     — "Add Resource" visible, no errors
+  ✅ /resources         — "My Resources" visible, no errors
+  (or)
+  ❌ /resources         — FORBID "Failed to fetch" FOUND → BUG-NNN logged
 
 Screenshots: 4 saved
 
