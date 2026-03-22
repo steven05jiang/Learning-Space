@@ -10,9 +10,9 @@
 ## Progress Summary
 
 - Total: 3 tasks
-- ✅ Completed: 2
+- ✅ Completed: 3
 - 🔄 Active: 0
-- ⏳ Pending: 1
+- ⏳ Pending: 0
 - ⚠️ Stuck: 0
 
 ---
@@ -21,4 +21,4 @@
 
 - [x] BUILD-001: Set up CI workflow — GitHub Actions + local Makefile, unit/integration/security stages (PR #22 ✅)
 - [x] BUILD-002: Wire GH_TOKEN_REVIEWER into pr-reviewer agent — enables formal GitHub PR approvals (branch protection compliant) (PR #23 ✅)
-- [ ] BUILD-003: Add dev-stack-up / dev-stack-down make targets — start/stop full local stack (infra + API + web) without Docker for app layers
+- [x] BUILD-003: Add dev-stack-up / dev-stack-down make targets — start/stop full local stack (infra + API + web) without Docker for app layers (PR #123 ✅)

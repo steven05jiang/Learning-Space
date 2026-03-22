@@ -5,6 +5,27 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
+## Sprint 2026-03-22-B — Local Dev Stack Commands
+
+**Status:** ✅ Complete
+**Sprint Goal:** Add make dev-stack-up / dev-stack-down to bring up and tear down the full local dev stack in one command
+**Exit Gate:** `make dev-stack-up` starts infra + API + web; `make dev-stack-down` stops all three cleanly
+**Started:** 2026-03-22
+**Completed:** 2026-03-22
+
+### Notes
+
+- BUILD task (not DEV) — tracked in build-tracker.md
+- Single task sprint — no dependencies
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| BUILD-003 | Add dev-stack-up / dev-stack-down make targets | ✅ Completed (PR #123) |
+
+---
+
 ## Sprint 2026-03-22-A — AI Chat Backend Foundation
 
 **Status:** ✅ Complete
