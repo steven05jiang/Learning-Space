@@ -93,7 +93,7 @@ async def test_worker_processes_url_resource_successfully(db_session, respx_mock
                 "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
             ):
                 # Run the worker task
-                result = await process_resource(str(resource.id))
+                result = await process_resource({}, str(resource.id))
 
     # Verify result
     assert result["status"] == "ready"
@@ -158,7 +158,7 @@ async def test_worker_processes_text_resource_successfully(db_session):
                 "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
             ):
                 # Run the worker task
-                result = await process_resource(str(resource.id))
+                result = await process_resource({}, str(resource.id))
 
     # Verify result
     assert result["status"] == "ready"
@@ -252,7 +252,7 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
                     "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
                 ):
                     # Run the worker task
-                    result = await process_resource(str(resource.id))
+                    result = await process_resource({}, str(resource.id))
 
     # Verify result - should succeed with provider fetch
     assert result["status"] == "ready"
@@ -310,7 +310,7 @@ async def test_worker_url_requires_login_no_linked_account_fails(db_session):
     ):
         with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
             # Run the worker task
-            result = await process_resource(str(resource.id))
+            result = await process_resource({}, str(resource.id))
 
     # Verify result - should fail due to authentication required
     assert result["status"] == "failed"
@@ -363,7 +363,7 @@ async def test_worker_llm_processing_fails(db_session):
     ):
         with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
             # Run the worker task
-            result = await process_resource(str(resource.id))
+            result = await process_resource({}, str(resource.id))
 
     # Verify result - should fail at LLM processing stage
     assert result["status"] == "failed"
@@ -430,7 +430,7 @@ async def test_worker_graph_update_fails_resource_still_ready(db_session):
                 "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
             ):
                 # Run the worker task
-                result = await process_resource(str(resource.id))
+                result = await process_resource({}, str(resource.id))
 
     # Verify result - should still be ready despite graph failure
     assert result["status"] == "ready"

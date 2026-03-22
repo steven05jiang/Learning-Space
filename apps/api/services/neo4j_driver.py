@@ -49,21 +49,25 @@ class Neo4jDriverService:
             logger.info("Disconnected from Neo4j database")
 
     async def _create_constraints(self) -> None:
-        """Create uniqueness constraints for the graph schema."""
-        constraints = [
-            "CREATE CONSTRAINT tag_name_unique IF NOT EXISTS FOR "
-            "(t:Tag) REQUIRE t.name IS UNIQUE"
-        ]
-
+        """Create schema constraints and indexes."""
         async with self._driver.session() as session:
-            for constraint in constraints:
-                try:
-                    await session.run(constraint)
-                    logger.info(f"Applied constraint: {constraint}")
-                except Exception as e:
-                    logger.warning(
-                        f"Constraint may already exist or failed: {constraint} - {e}"
-                    )
+            # Drop the old name-only constraint — tags are per-user so a global
+            # name uniqueness constraint incorrectly blocks MERGE {name, owner_id}
+            try:
+                await session.run("DROP CONSTRAINT tag_name_unique IF EXISTS")
+                logger.info("Dropped stale constraint: tag_name_unique")
+            except Exception as e:
+                logger.warning(f"Could not drop stale constraint: {e}")
+
+            # Composite index for efficient per-user tag lookups
+            try:
+                await session.run(
+                    "CREATE INDEX tag_name_owner_idx IF NOT EXISTS "
+                    "FOR (t:Tag) ON (t.name, t.owner_id)"
+                )
+                logger.info("Applied index: tag_name_owner_idx (name, owner_id)")
+            except Exception as e:
+                logger.warning(f"Index tag_name_owner_idx may already exist: {e}")
 
     def get_session(self):
         """Get a Neo4j session for database operations."""

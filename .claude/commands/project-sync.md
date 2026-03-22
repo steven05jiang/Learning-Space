@@ -89,14 +89,13 @@ For each active task identified as merged in Phase 1:
 
 ## Phase 3 — Collect All Pending Changes
 
-Run `git status` to identify all modified and untracked files under `memory/`.
-
-Stage every changed file explicitly (never use `git add .` or `git add memory/`
-blindly — review the list first):
+Run `git status` to identify all modified and untracked files across the entire repo:
 
 ```bash
-git status --short memory/
+git status --short
 ```
+
+Stage every changed file explicitly (never use `git add .` blindly — review the list first).
 
 Categorize what you see:
 
@@ -104,11 +103,13 @@ Categorize what you see:
 - **New or modified active/ files** — task files updated during audit
 - **New completed/ files** — tasks just promoted
 - **Any other memory/ files** (MEMORY.md, infra.md, etc.)
+- **Code changes** — modified or untracked source files outside memory/
+- **Config / tooling changes** — Makefile, CI config, etc.
 
 If there are **no changes** (nothing to stage), output:
 
 ```
-✅ Nothing to sync — memory/ is clean and up to date with main.
+✅ Nothing to sync — working tree is clean and up to date with main.
 ```
 
 And stop.

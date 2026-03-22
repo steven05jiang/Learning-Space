@@ -2,10 +2,10 @@
 
 import logging
 
-from arq import create_pool
-from arq.worker import Worker
+from arq import run_worker
 
-from core.queue import redis_settings
+from core.queue import QUEUE_NAME, redis_settings
+from services.neo4j_driver import neo4j_driver
 from workers.tasks import job_failed, process_resource, sync_graph
 
 # Configure logging
@@ -34,35 +34,16 @@ class WorkerSettings:
     on_job_failure = job_failed
 
     # Worker name for identification
-    queue_name = "learning_space_queue"
+    queue_name = QUEUE_NAME
 
+    # Lifecycle hooks
+    async def on_startup(ctx):
+        await neo4j_driver.connect()
 
-async def main():
-    """Start the ARQ worker."""
-    logger.info("Starting Learning Space task worker...")
-
-    # Create Redis pool
-    redis_pool = await create_pool(redis_settings)
-
-    # Create and run worker
-    worker = Worker(
-        functions=WorkerSettings.functions,
-        redis_pool=redis_pool,
-        max_jobs=WorkerSettings.max_jobs,
-        job_timeout=WorkerSettings.job_timeout,
-        keep_result=WorkerSettings.keep_result,
-        max_tries=WorkerSettings.max_tries,
-        on_job_failure=WorkerSettings.on_job_failure,
-        queue_name=WorkerSettings.queue_name,
-    )
-
-    try:
-        await worker.main()
-    finally:
-        await redis_pool.close()
+    async def on_shutdown(ctx):
+        await neo4j_driver.disconnect()
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    logger.info("Starting Learning Space task worker...")
+    run_worker(WorkerSettings)

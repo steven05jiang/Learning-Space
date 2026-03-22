@@ -257,7 +257,19 @@ class LLMProcessorService:
 
     def _build_user_message(self, content: str, content_type: str) -> str:
         """Build the user message with content to process."""
-        content_preview = content[:3000] + ("..." if len(content) > 3000 else "")
+        import re
+
+        # For HTML content, strip tags/scripts/styles to plain text first so the
+        # 3000-char window contains actual article text, not <head> boilerplate.
+        if "html" in content_type:
+            text = re.sub(r"<script[^>]*>.*?</script>", " ", content, flags=re.DOTALL)
+            text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.DOTALL)
+            text = re.sub(r"<[^>]+>", " ", text)
+            text = re.sub(r"\s+", " ", text).strip()
+        else:
+            text = content
+
+        content_preview = text[:3000] + ("..." if len(text) > 3000 else "")
 
         return (
             "Please analyze the following content and extract title, summary, tags.\n\n"

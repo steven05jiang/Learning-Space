@@ -148,7 +148,10 @@ export function KnowledgeGraph() {
       try {
         setIsLoading(true);
         const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-        const res = await fetch(`${apiBase}/graph`);
+        const token = localStorage.getItem("auth_token");
+        const res = await fetch(`${apiBase}/graph`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) throw new Error('Failed to load graph');
         const data: ApiGraphResponse = await res.json();
         setGraphData(mapApiToGraphData(data));
@@ -197,7 +200,11 @@ export function KnowledgeGraph() {
     // Fetch real resources for this node
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-      const res = await fetch(`${apiBase}/graph/nodes/${encodeURIComponent(knowledgeNode.id)}/resources`);
+      const token = localStorage.getItem("auth_token");
+      const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${apiBase}/graph/nodes/${encodeURIComponent(knowledgeNode.id)}/resources`, {
+        headers: authHeader,
+      });
       if (res.ok) {
         const data: ApiNodeResourcesResponse = await res.json();
         setNodeResources(data.items);
@@ -213,9 +220,11 @@ export function KnowledgeGraph() {
     // Also call POST /api/graph/expand to get neighbors (merge into graph)
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const token = localStorage.getItem("auth_token");
+      const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
       const expandRes = await fetch(`${apiBase}/graph/expand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ node_id: knowledgeNode.id }),
       });
       if (expandRes.ok) {
