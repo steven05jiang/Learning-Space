@@ -11,9 +11,8 @@ Tests:
 - INT-035: User views resources for a graph node — GET /graph/nodes/{id}/resources
 """
 
-import json
-from unittest.mock import patch
 import uuid
+from unittest.mock import patch
 
 import pytest
 
@@ -22,7 +21,7 @@ from models.user import User
 from services.graph_service import graph_service
 from services.llm_processor import LLMResult
 from services.neo4j_driver import neo4j_driver
-from workers.tasks import process_resource, sync_graph
+from workers.tasks import process_resource
 
 
 @pytest.fixture
@@ -65,7 +64,9 @@ async def mock_session_context(test_session):
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_graph_updated_after_resource_processed(db_session, neo4j_connection, clean_graph):
+async def test_graph_updated_after_resource_processed(
+    db_session, neo4j_connection, clean_graph
+):
     """
     INT-029: Graph updated after resource processed
 
@@ -121,7 +122,8 @@ async def test_graph_updated_after_resource_processed(db_session, neo4j_connecti
     # Verify graph structure by checking relationships directly
     relationships = await graph_service.get_tag_relationships(user.id)
 
-    # Should have 3 relationships for 3 tags: AI-MachineLearning, AI-Technology, MachineLearning-Technology
+    # Should have 3 relationships for 3 tags:
+    # AI-MachineLearning, AI-Technology, MachineLearning-Technology
     assert len(relationships) == 3
 
     # Verify the specific relationships exist
@@ -129,7 +131,7 @@ async def test_graph_updated_after_resource_processed(db_session, neo4j_connecti
     expected_pairs = {
         ("AI", "MachineLearning"),
         ("AI", "Technology"),
-        ("MachineLearning", "Technology")
+        ("MachineLearning", "Technology"),
     }
     assert relationship_pairs == expected_pairs
 
@@ -140,7 +142,9 @@ async def test_graph_updated_after_resource_processed(db_session, neo4j_connecti
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_graph_updated_after_resource_deletion(client, db_session, neo4j_connection, clean_graph):
+async def test_graph_updated_after_resource_deletion(
+    client, db_session, neo4j_connection, clean_graph
+):
     """
     INT-030: Graph updated after resource deletion
 
@@ -185,7 +189,8 @@ async def test_graph_updated_after_resource_deletion(client, db_session, neo4j_c
     assert response.status_code == 204  # No Content is expected for DELETE
 
     # Simulate graph sync job that would run after deletion
-    # Note: Call the graph service methods directly instead of sync_graph to avoid Redis issues
+    # Note: Call graph service methods directly instead of sync_graph
+    # to avoid Redis issues
     await graph_service.remove_resource_tags(user.id, ["Python", "Django", "WebDev"])
     # Skip cleanup_orphan_tags for now due to Cypher syntax issue in that method
 
@@ -196,7 +201,9 @@ async def test_graph_updated_after_resource_deletion(client, db_session, neo4j_c
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_graph_updated_after_resource_reprocessing(db_session, neo4j_connection, clean_graph):
+async def test_graph_updated_after_resource_reprocessing(
+    db_session, neo4j_connection, clean_graph
+):
     """
     INT-031: Graph updated after resource re-processing
 
@@ -275,11 +282,7 @@ async def test_graph_updated_after_resource_reprocessing(db_session, neo4j_conne
     assert len(final_relationships) == 3
 
     relationship_pairs = {(r["tag1"], r["tag2"]) for r in final_relationships}
-    expected_pairs = {
-        ("Academic", "ML"),
-        ("Academic", "Research"),
-        ("ML", "Research")
-    }
+    expected_pairs = {("Academic", "ML"), ("Academic", "Research"), ("ML", "Research")}
     assert relationship_pairs == expected_pairs
 
 
@@ -329,8 +332,12 @@ async def test_user_views_root_graph(client, db_session, neo4j_connection, clean
     await db_session.commit()
 
     # Add graph relationships for both resources
-    await graph_service.update_from_resource(user.id, ["Python", "Programming", "Coding"])
-    await graph_service.update_from_resource(user.id, ["JavaScript", "Programming", "WebDev"])
+    await graph_service.update_from_resource(
+        user.id, ["Python", "Programming", "Coding"]
+    )
+    await graph_service.update_from_resource(
+        user.id, ["JavaScript", "Programming", "WebDev"]
+    )
 
     # Get root graph
     response = await client.get("/graph", headers=auth_headers)
@@ -366,13 +373,18 @@ async def test_user_views_root_graph(client, db_session, neo4j_connection, clean
         assert edge["weight"] > 0
 
     # Verify "Programming" appears in multiple edges (common tag)
-    programming_edges = [e for e in edges if "Programming" in [e["source"], e["target"]]]
-    assert len(programming_edges) >= 2  # Connected to both Python/Coding and JavaScript/WebDev
+    programming_edges = [
+        e for e in edges if "Programming" in [e["source"], e["target"]]
+    ]
+    # Connected to both Python/Coding and JavaScript/WebDev
+    assert len(programming_edges) >= 2
 
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_user_views_graph_centered_on_tag(client, db_session, neo4j_connection, clean_graph):
+async def test_user_views_graph_centered_on_tag(
+    client, db_session, neo4j_connection, clean_graph
+):
     """
     INT-033: User views graph centered on specific tag — GET /graph?root_id=<node_id>
 
@@ -416,8 +428,12 @@ async def test_user_views_graph_centered_on_tag(client, db_session, neo4j_connec
     await db_session.commit()
 
     # Add graph relationships
-    await graph_service.update_from_resource(user.id, ["Python", "Programming", "Backend"])
-    await graph_service.update_from_resource(user.id, ["Programming", "Frontend", "WebDev"])
+    await graph_service.update_from_resource(
+        user.id, ["Python", "Programming", "Backend"]
+    )
+    await graph_service.update_from_resource(
+        user.id, ["Programming", "Frontend", "WebDev"]
+    )
 
     # Get graph centered on "Programming" tag
     response = await client.get("/graph?root=Programming", headers=auth_headers)
@@ -442,20 +458,25 @@ async def test_user_views_graph_centered_on_tag(client, db_session, neo4j_connec
     assert len(child_nodes) > 0
 
     child_ids = {node["id"] for node in child_nodes}
-    # The rooted view returns direct neighbors of Programming, which should be at least Backend and WebDev
+    # The rooted view returns direct neighbors of Programming,
+    # which should be at least Backend and WebDev
     # (depending on the graph structure, Python and Frontend might be at distance 2)
-    assert "Backend" in child_ids or "WebDev" in child_ids  # At least one should be present
+    assert "Backend" in child_ids or "WebDev" in child_ids
     assert len(child_ids) >= 2  # Should have at least 2 neighbors
 
     # Verify edges connect root to children appropriately
     edges = data["edges"]
-    programming_edges = [e for e in edges if "Programming" in [e["source"], e["target"]]]
+    programming_edges = [
+        e for e in edges if "Programming" in [e["source"], e["target"]]
+    ]
     assert len(programming_edges) >= 2  # At least connections to direct neighbors
 
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_user_expands_graph_node(client, db_session, neo4j_connection, clean_graph):
+async def test_user_expands_graph_node(
+    client, db_session, neo4j_connection, clean_graph
+):
     """
     INT-034: User expands a graph node — POST /graph/expand
 
@@ -489,22 +510,24 @@ async def test_user_expands_graph_node(client, db_session, neo4j_connection, cle
     await db_session.commit()
 
     # Add graph relationships
-    await graph_service.update_from_resource(user.id, ["DataScience", "Analytics", "Python", "Statistics"])
+    await graph_service.update_from_resource(
+        user.id, ["DataScience", "Analytics", "Python", "Statistics"]
+    )
 
     # Expand the "DataScience" node
-    expand_request = {
-        "node_id": "DataScience",
-        "direction": "both"
-    }
+    expand_request = {"node_id": "DataScience", "direction": "both"}
 
-    response = await client.post("/graph/expand", headers=auth_headers, json=expand_request)
+    response = await client.post(
+        "/graph/expand", headers=auth_headers, json=expand_request
+    )
     assert response.status_code == 200
 
     data = response.json()
     assert "nodes" in data
     assert "edges" in data
 
-    # Verify nodes structure - should only contain neighboring nodes (not the expanded node itself)
+    # Verify nodes structure - should only contain neighboring nodes
+    # (not the expanded node itself)
     nodes = data["nodes"]
     assert len(nodes) == 3  # Analytics, Python, Statistics
 
@@ -527,7 +550,9 @@ async def test_user_expands_graph_node(client, db_session, neo4j_connection, cle
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_user_views_resources_for_graph_node(client, db_session, neo4j_connection, clean_graph):
+async def test_user_views_resources_for_graph_node(
+    client, db_session, neo4j_connection, clean_graph
+):
     """
     INT-035: User views resources for a graph node — GET /graph/nodes/{id}/resources
 
@@ -611,10 +636,11 @@ async def test_user_views_resources_for_graph_node(client, db_session, neo4j_con
         assert "status" in item
         assert "created_at" in item
         assert "tags" in item
-        assert "Python" in item["tags"]  # All returned items should contain the queried tag
+        assert "Python" in item["tags"]  # Should contain the queried tag
 
     # Test with pagination
-    response = await client.get("/graph/nodes/Python/resources?limit=1&offset=0", headers=auth_headers)
+    python_url = "/graph/nodes/Python/resources?limit=1&offset=0"
+    response = await client.get(python_url, headers=auth_headers)
     assert response.status_code == 200
 
     paginated_data = response.json()
@@ -624,7 +650,8 @@ async def test_user_views_resources_for_graph_node(client, db_session, neo4j_con
     assert len(paginated_data["items"]) == 1
 
     # Test with tag that doesn't exist or has no resources
-    response = await client.get("/graph/nodes/NonExistentTag/resources", headers=auth_headers)
+    nonexistent_url = "/graph/nodes/NonExistentTag/resources"
+    response = await client.get(nonexistent_url, headers=auth_headers)
     assert response.status_code == 200
 
     empty_data = response.json()
@@ -632,7 +659,8 @@ async def test_user_views_resources_for_graph_node(client, db_session, neo4j_con
     assert len(empty_data["items"]) == 0
 
     # Test with "Programming" tag (should return all 3 resources)
-    response = await client.get("/graph/nodes/Programming/resources", headers=auth_headers)
+    programming_url = "/graph/nodes/Programming/resources"
+    response = await client.get(programming_url, headers=auth_headers)
     assert response.status_code == 200
 
     programming_data = response.json()

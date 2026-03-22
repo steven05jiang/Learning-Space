@@ -5,7 +5,7 @@ import logging
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import JSON, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
@@ -51,7 +51,7 @@ async def get_node_resources(
     # Handle both PostgreSQL (production) and SQLite (testing) JSON queries
     if db.bind.dialect.name == "postgresql":
         # Use PostgreSQL JSONB containment operator @> for efficient GIN index usage
-        tag_condition = Resource.tags.op("@>")([node_id])
+        tag_condition = Resource.tags.op("@>")(cast([node_id], JSON))
     else:
         # For SQLite (and other databases), use JSON search
         # This searches for the tag value in the JSON array
