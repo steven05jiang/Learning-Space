@@ -12,7 +12,7 @@ class TestSyncGraph:
 
     @pytest.mark.asyncio
     async def test_sync_graph_delete_with_tags(self):
-        """Test sync_graph with delete operation and tags calls graph service methods."""
+        """Test sync_graph with delete operation calls graph service methods."""
         with patch("workers.tasks.graph_service") as mock_graph_service:
             mock_graph_service.remove_resource_tags = AsyncMock()
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
@@ -25,7 +25,9 @@ class TestSyncGraph:
             )
 
             # Verify graph service methods were called
-            mock_graph_service.remove_resource_tags.assert_called_once_with(1, ["AI", "Python"])
+            mock_graph_service.remove_resource_tags.assert_called_once_with(
+                1, ["AI", "Python"]
+            )
             mock_graph_service.cleanup_orphan_tags.assert_called_once_with(1)
 
             # Verify result

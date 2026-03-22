@@ -12,7 +12,6 @@ from models.database import get_db
 from models.resource import Resource
 from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
-from services.queue_service import queue_service
 from schemas.resource import (
     ContentType,
     ResourceCreate,
@@ -22,6 +21,7 @@ from schemas.resource import (
     ResourceStatus,
     ResourceUpdate,
 )
+from services.queue_service import queue_service
 
 logger = logging.getLogger(__name__)
 
@@ -346,10 +346,15 @@ async def delete_resource(
     # Enqueue graph sync (non-blocking — don't await the job result)
     if tags:
         try:
-            await queue_service.enqueue_graph_sync(str(resource_id), operation="delete", owner_id=owner_id, tags=tags)
+            await queue_service.enqueue_graph_sync(
+                str(resource_id), operation="delete", owner_id=owner_id, tags=tags
+            )
         except Exception as e:
             # Don't fail the delete response for graph sync errors
-            logger.warning(f"Graph sync job enqueueing failed for deleted resource {resource_id}: {e}")
+            logger.warning(
+                f"Graph sync job enqueueing failed for deleted resource "
+                f"{resource_id}: {e}"
+            )
 
     logger.info(f"Deleted resource {resource_id} for user {current_user.id}")
 

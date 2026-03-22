@@ -210,7 +210,9 @@ async def _set_resource_failed(
     logger.error(f"Resource {resource.id} marked as FAILED: {error_message}")
 
 
-async def sync_graph(entity_id: str, operation: str = "update", owner_id: int = None, tags: list = None) -> Dict[str, Any]:
+async def sync_graph(
+    entity_id: str, operation: str = "update", owner_id: int = None, tags: list = None
+) -> Dict[str, Any]:
     """Synchronize entity data with the knowledge graph.
 
     Args:

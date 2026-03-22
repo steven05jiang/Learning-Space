@@ -480,7 +480,9 @@ class TestDeleteResource:
         resource_id = resource.id
 
         # Mock the queue service
-        with patch("routers.resources.queue_service.enqueue_graph_sync") as mock_enqueue:
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
             mock_enqueue.return_value = "job123"
 
             # Delete the resource
@@ -530,7 +532,9 @@ class TestDeleteResource:
         resource_id = resource.id
 
         # Mock the queue service
-        with patch("routers.resources.queue_service.enqueue_graph_sync") as mock_enqueue:
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
             # Delete the resource
             response = await client.delete(
                 f"/resources/{resource_id}", headers=auth_headers
@@ -573,7 +577,9 @@ class TestDeleteResource:
         resource_id = resource.id
 
         # Mock the queue service to raise an exception
-        with patch("routers.resources.queue_service.enqueue_graph_sync") as mock_enqueue:
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
             mock_enqueue.side_effect = Exception("Graph sync failed")
 
             # Delete the resource
