@@ -18,24 +18,24 @@ class TestTaskFunctions:
         # and will fail with ValueError if resource is not found.
         # This test verifies the resource_id parsing behavior.
         with pytest.raises(ValueError):
-            await process_resource("resource123")  # Non-integer ID should fail
+            await process_resource({}, "resource123")  # Non-integer ID should fail
 
     @pytest.mark.asyncio
     async def test_process_resource_empty_id(self):
         """Test process_resource with empty resource_id."""
         with pytest.raises(ValueError, match="resource_id cannot be empty"):
-            await process_resource("")
+            await process_resource({}, "")
 
     @pytest.mark.asyncio
     async def test_process_resource_none_id(self):
         """Test process_resource with None resource_id."""
         with pytest.raises(ValueError, match="resource_id cannot be empty"):
-            await process_resource(None)
+            await process_resource({}, None)
 
     @pytest.mark.asyncio
     async def test_sync_graph_success(self):
         """Test successful graph synchronization."""
-        result = await sync_graph("entity456", "update")
+        result = await sync_graph({}, "entity456", "update")
 
         assert result["entity_id"] == "entity456"
         assert result["operation"] == "update"
@@ -47,7 +47,7 @@ class TestTaskFunctions:
         operations = ["create", "update", "delete"]
 
         for operation in operations:
-            result = await sync_graph("entity123", operation)
+            result = await sync_graph({}, "entity123", operation)
             assert result["operation"] == operation
             assert result["status"] == "noop"
 
@@ -55,13 +55,13 @@ class TestTaskFunctions:
     async def test_sync_graph_invalid_operation(self):
         """Test sync_graph with invalid operation."""
         with pytest.raises(ValueError, match="operation must be one of"):
-            await sync_graph("entity123", "invalid_op")
+            await sync_graph({}, "entity123", "invalid_op")
 
     @pytest.mark.asyncio
     async def test_sync_graph_empty_entity_id(self):
         """Test sync_graph with empty entity_id."""
         with pytest.raises(ValueError, match="entity_id cannot be empty"):
-            await sync_graph("", "update")
+            await sync_graph({}, "", "update")
 
     @pytest.mark.asyncio
     async def test_job_failed_handler(self):

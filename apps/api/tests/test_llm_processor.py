@@ -25,7 +25,7 @@ class TestLLMProcessorService:
     @pytest.fixture
     def processor_no_client(self):
         """Create an LLMProcessorService instance without valid client."""
-        return LLMProcessorService(api_key="")
+        return LLMProcessorService(api_key="test-anthropic-key-for-development")
 
     def test_initialization_with_valid_key(self):
         """Test initialization with valid API key."""

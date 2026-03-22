@@ -7,9 +7,9 @@ from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from models.database import AsyncSessionLocal
 from models.resource import Resource, ResourceStatus
-from core.config import settings
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
 from services.playwright_fetcher import playwright_fetcher_service
@@ -220,7 +220,11 @@ async def _set_resource_failed(
 
 
 async def sync_graph(
-    ctx: Dict[str, Any], entity_id: str, operation: str = "update", owner_id: int = None, tags: list = None
+    ctx: Dict[str, Any],
+    entity_id: str,
+    operation: str = "update",
+    owner_id: int = None,
+    tags: list = None,
 ) -> Dict[str, Any]:
     """Synchronize entity data with the knowledge graph.
 

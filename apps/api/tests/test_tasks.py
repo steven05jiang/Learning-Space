@@ -18,7 +18,11 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123", operation="delete", owner_id=1, tags=["AI", "Python"]
+                {},
+                entity_id="123",
+                operation="delete",
+                owner_id=1,
+                tags=["AI", "Python"],
             )
 
             # Verify graph service methods were called
@@ -42,7 +46,7 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123", operation="delete", owner_id=1, tags=[]
+                {}, entity_id="123", operation="delete", owner_id=1, tags=[]
             )
 
             # Verify graph service methods were NOT called
@@ -64,6 +68,7 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
+                {},
                 entity_id="123",
                 operation="delete",
                 owner_id=None,
@@ -89,7 +94,11 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123", operation="create", owner_id=1, tags=["AI", "Python"]
+                {},
+                entity_id="123",
+                operation="create",
+                owner_id=1,
+                tags=["AI", "Python"],
             )
 
             # Verify graph service methods were NOT called
@@ -111,7 +120,11 @@ class TestSyncGraph:
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
             result = await sync_graph(
-                entity_id="123", operation="update", owner_id=1, tags=["AI", "Python"]
+                {},
+                entity_id="123",
+                operation="update",
+                owner_id=1,
+                tags=["AI", "Python"],
             )
 
             # Verify graph service methods were NOT called
@@ -129,10 +142,10 @@ class TestSyncGraph:
     async def test_sync_graph_empty_entity_id(self):
         """Test sync_graph with empty entity_id raises ValueError."""
         with pytest.raises(ValueError, match="entity_id cannot be empty"):
-            await sync_graph(entity_id="")
+            await sync_graph({}, entity_id="")
 
     @pytest.mark.asyncio
     async def test_sync_graph_invalid_operation(self):
         """Test sync_graph with invalid operation raises ValueError."""
         with pytest.raises(ValueError, match="operation must be one of"):
-            await sync_graph(entity_id="123", operation="invalid")
+            await sync_graph({}, entity_id="123", operation="invalid")

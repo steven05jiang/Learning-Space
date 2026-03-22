@@ -103,7 +103,9 @@ class PlaywrightFetcherService:
 
         except Exception as e:
             error_message = f"Playwright error: {str(e)}"
-            logger.error(f"Playwright fetch failed for {url}: {error_message}", exc_info=True)
+            logger.error(
+                f"Playwright fetch failed for {url}: {error_message}", exc_info=True
+            )
             return FetchResult(
                 success=False,
                 error_type="unknown_error",

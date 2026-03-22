@@ -8,7 +8,6 @@ from arq.connections import RedisSettings
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
-
 QUEUE_NAME = "learning_space_queue"
 
 
