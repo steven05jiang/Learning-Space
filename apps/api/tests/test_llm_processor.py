@@ -36,7 +36,7 @@ class TestLLMProcessorService:
             processor = LLMProcessorService(api_key="test-key")
 
             assert processor.api_key == "test-key"
-            assert processor.model == "claude-3-5-sonnet-20241022"
+            assert processor.model == "claude-haiku-4-5-20251001"
             assert processor.client is not None
 
     def test_initialization_with_test_key(self):

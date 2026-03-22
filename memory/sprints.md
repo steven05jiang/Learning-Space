@@ -7,10 +7,10 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ## Sprint 2026-03-21-A — Resource Pipeline + Graph View
 
-**Status:** 🔄 Active
+**Status:** ✅ Complete
 **Cycle Goal:** Complete the full resource processing pipeline (unauthenticated fetch + LLM worker) and knowledge graph backend + integration tests, then run a combined DEMO-003/004
 **Started:** 2026-03-21
-**Completed:** (pending)
+**Completed:** 2026-03-22
 
 ### Notes
 
@@ -31,6 +31,6 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-026 | Graph update in worker pipeline | ✅ Completed (PR #97) |
 | DEV-024 | Unit tests — Worker | ✅ Completed (PR #108) |
 | DEV-031 | Unit tests — Graph API | ✅ Completed (PR #110) |
-| INT-024–028 | Worker integration tests | ⏳ Pending (needs DEV-023) |
-| INT-029–035 | Graph integration tests | ⏳ Pending (needs DEV-025–030) |
-| DEMO-003+004 | Combined pipeline + graph demo | ⏳ Pending (all above) |
+| INT-024–028 | Worker integration tests | ✅ Completed (PR #112) |
+| INT-029–035 | Graph integration tests | ✅ Completed (PR #113) |
+| DEMO-003+004 | Combined pipeline + graph demo | ✅ Completed (run-1 2026-03-22) |

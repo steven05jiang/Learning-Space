@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-21 (DEV-031 PR #110 complete)
+**Last Updated:** 2026-03-22 (DEMO-003+004 run-1 complete, sprint closed)
 
 ---
 
 ## Progress Summary
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 66
+- ✅ Completed: 81
 - 🔄 Active: 0
-- ⏳ Pending: 50
+- ⏳ Pending: 35
 - ⚠️ Stuck: 0
 
 ---
@@ -126,21 +126,21 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [x] INT-022: User updates original_content — triggers PROCESSING + new job (BDD: Resource Update) (PR #84 ✅)
 - [x] INT-023: User deletes a resource — removed + graph sync enqueued (BDD: Resource Delete) (PR #84 ✅)
 
-**Group: worker** — CI: nightly (blocked: DEV-023)
-- [ ] INT-024: Worker processes URL resource successfully — READY + graph updated (BDD: Async Worker) (blocked: DEV-023)
-- [ ] INT-025: Worker processes text resource successfully — LLM title/summary/tags (BDD: Async Worker) (blocked: DEV-023)
-- [ ] INT-026: URL requires login, user has linked account — provider fetch succeeds (BDD: Async Worker) (blocked: DEV-021, DEV-023)
-- [ ] INT-027: URL requires login, user has no linked account — FAILED + status_message (BDD: Async Worker) (blocked: DEV-021, DEV-023)
-- [ ] INT-028: LLM processing fails — FAILED + status_message (BDD: Async Worker) (blocked: DEV-023)
+**Group: worker** — CI: nightly
+- [x] INT-024: Worker processes URL resource successfully — READY + graph updated (BDD: Async Worker) (PR #112 ✅)
+- [x] INT-025: Worker processes text resource successfully — LLM title/summary/tags (BDD: Async Worker) (PR #112 ✅)
+- [x] INT-026: URL requires login, user has linked account — provider fetch succeeds (BDD: Async Worker) (PR #112 ✅)
+- [x] INT-027: URL requires login, user has no linked account — FAILED + status_message (BDD: Async Worker) (PR #112 ✅)
+- [x] INT-028: LLM processing fails — FAILED + status_message (BDD: Async Worker) (PR #112 ✅)
 
-**Group: graph** — CI: nightly (blocked: DEV-025–030)
-- [ ] INT-029: Graph updated after resource processed — Tag nodes + RELATED_TO edges created (BDD: Graph Update) (blocked: DEV-025, DEV-026)
-- [ ] INT-030: Graph updated after resource deletion — edge weights decremented (BDD: Graph Update) (blocked: DEV-025, DEV-027)
-- [ ] INT-031: Graph updated after resource re-processing — old tags removed, new applied (BDD: Graph Update) (blocked: DEV-025, DEV-026)
-- [ ] INT-032: User views root graph — nodes + edges for personal graph (BDD: Graph Exploration) (blocked: DEV-028)
-- [ ] INT-033: User views graph centered on specific tag (BDD: Graph Exploration) (blocked: DEV-028)
-- [ ] INT-034: User expands a graph node (BDD: Graph Exploration) (blocked: DEV-029)
-- [ ] INT-035: User views resources for a graph node (BDD: Graph Exploration) (blocked: DEV-030)
+**Group: graph** — CI: nightly
+- [x] INT-029: Graph updated after resource processed — Tag nodes + RELATED_TO edges created (BDD: Graph Update) (PR #113 ✅)
+- [x] INT-030: Graph updated after resource deletion — edge weights decremented (BDD: Graph Update) (PR #113 ✅)
+- [x] INT-031: Graph updated after resource re-processing — old tags removed, new applied (BDD: Graph Update) (PR #113 ✅)
+- [x] INT-032: User views root graph — nodes + edges for personal graph (BDD: Graph Exploration) (PR #113 ✅)
+- [x] INT-033: User views graph centered on specific tag (BDD: Graph Exploration) (PR #113 ✅)
+- [x] INT-034: User expands a graph node (BDD: Graph Exploration) (PR #113 ✅)
+- [x] INT-035: User views resources for a graph node (BDD: Graph Exploration) (PR #113 ✅)
 
 **Group: chat** — CI: nightly (blocked: DEV-032–035)
 - [ ] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
@@ -176,6 +176,6 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 
 - [x] DEMO-001: First User Journey — login → submit resource → see list (run-2 ✅)
 - [x] DEMO-002: Account Management & Resource CRUD — settings, detail, edit, delete (run-1 ✅)
-- [ ] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (blocked: DEV-023 pending)
-- [ ] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (blocked: DEV-025, DEV-026, DEV-028, DEV-029, DEV-030, DEV-052 pending)
+- [x] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (run-1 ✅)
+- [x] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (run-1 ✅)
 - [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: DEV-032, DEV-033, DEV-034, DEV-035, DEV-053 pending)
