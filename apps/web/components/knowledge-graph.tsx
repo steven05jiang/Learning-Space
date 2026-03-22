@@ -17,21 +17,35 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ExternalLink,
   FileText,
   Link2,
-  BookOpen,
-  Video,
-  Code,
 } from "lucide-react";
 
-// Types for the graph
-interface Resource {
+// API response types
+interface ApiGraphNode {
+  id: string;
+  label: string;
+  level: string; // "root", "current", "child", "parent"
+}
+interface ApiGraphEdge {
+  source: string;
+  target: string;
+  weight: number;
+}
+interface ApiGraphResponse {
+  nodes: ApiGraphNode[];
+  edges: ApiGraphEdge[];
+}
+interface ApiResource {
   id: string;
   title: string;
-  type: "article" | "video" | "document" | "code" | "book";
-  url: string;
-  description: string;
+  summary: string | null;
+  status: string;
+  tags: string[];
+}
+interface ApiNodeResourcesResponse {
+  items: ApiResource[];
+  total: number;
 }
 
 interface KnowledgeNode extends NodeObject {
@@ -39,7 +53,6 @@ interface KnowledgeNode extends NodeObject {
   name: string;
   category: string;
   color: string;
-  resources: Resource[];
   val?: number;
 }
 
@@ -49,249 +62,50 @@ interface KnowledgeLink extends LinkObject {
   relationship: string;
 }
 
-// Sample knowledge graph data
-const knowledgeData = {
-  nodes: [
-    {
-      id: "ml",
-      name: "Machine Learning",
-      category: "AI",
-      color: "#60a5fa",
-      val: 25,
-      resources: [
-        {
-          id: "r1",
-          title: "Introduction to ML",
-          type: "article" as const,
-          url: "/app/resources/ml-intro",
-          description: "A comprehensive guide to machine learning fundamentals",
-        },
-        {
-          id: "r2",
-          title: "ML with Python",
-          type: "video" as const,
-          url: "/app/resources/ml-python",
-          description: "Video course on implementing ML algorithms",
-        },
-        {
-          id: "r3",
-          title: "Scikit-learn Docs",
-          type: "document" as const,
-          url: "/app/resources/sklearn",
-          description: "Official documentation for scikit-learn",
-        },
-      ],
-    },
-    {
-      id: "dl",
-      name: "Deep Learning",
-      category: "AI",
-      color: "#a78bfa",
-      val: 22,
-      resources: [
-        {
-          id: "r4",
-          title: "Neural Networks Explained",
-          type: "article" as const,
-          url: "/app/resources/nn-explained",
-          description: "Understanding neural network architectures",
-        },
-        {
-          id: "r5",
-          title: "PyTorch Tutorial",
-          type: "code" as const,
-          url: "/app/resources/pytorch",
-          description: "Hands-on PyTorch examples",
-        },
-      ],
-    },
-    {
-      id: "nlp",
-      name: "Natural Language Processing",
-      category: "AI",
-      color: "#22d3ee",
-      val: 20,
-      resources: [
-        {
-          id: "r6",
-          title: "NLP Fundamentals",
-          type: "book" as const,
-          url: "/app/resources/nlp-book",
-          description: "Comprehensive NLP textbook",
-        },
-        {
-          id: "r7",
-          title: "Transformers Guide",
-          type: "article" as const,
-          url: "/app/resources/transformers",
-          description: "Understanding transformer architecture",
-        },
-      ],
-    },
-    {
-      id: "cv",
-      name: "Computer Vision",
-      category: "AI",
-      color: "#34d399",
-      val: 18,
-      resources: [
-        {
-          id: "r8",
-          title: "OpenCV Tutorial",
-          type: "video" as const,
-          url: "/app/resources/opencv",
-          description: "Getting started with OpenCV",
-        },
-        {
-          id: "r9",
-          title: "Image Classification",
-          type: "code" as const,
-          url: "/app/resources/img-class",
-          description: "Build your first image classifier",
-        },
-      ],
-    },
-    {
-      id: "data",
-      name: "Data Science",
-      category: "Analytics",
-      color: "#fbbf24",
-      val: 24,
-      resources: [
-        {
-          id: "r10",
-          title: "Data Analysis with Pandas",
-          type: "article" as const,
-          url: "/app/resources/pandas",
-          description: "Master data manipulation with Pandas",
-        },
-        {
-          id: "r11",
-          title: "Statistical Methods",
-          type: "book" as const,
-          url: "/app/resources/stats",
-          description: "Statistics for data science",
-        },
-      ],
-    },
-    {
-      id: "viz",
-      name: "Data Visualization",
-      category: "Analytics",
-      color: "#f472b6",
-      val: 16,
-      resources: [
-        {
-          id: "r12",
-          title: "D3.js Fundamentals",
-          type: "code" as const,
-          url: "/app/resources/d3",
-          description: "Interactive visualizations with D3",
-        },
-        {
-          id: "r13",
-          title: "Chart Design Principles",
-          type: "article" as const,
-          url: "/app/resources/charts",
-          description: "Best practices for data viz",
-        },
-      ],
-    },
-    {
-      id: "python",
-      name: "Python",
-      category: "Programming",
-      color: "#818cf8",
-      val: 28,
-      resources: [
-        {
-          id: "r14",
-          title: "Python Basics",
-          type: "video" as const,
-          url: "/app/resources/python-basics",
-          description: "Learn Python from scratch",
-        },
-        {
-          id: "r15",
-          title: "Advanced Python",
-          type: "book" as const,
-          url: "/app/resources/adv-python",
-          description: "Master advanced Python concepts",
-        },
-      ],
-    },
-    {
-      id: "math",
-      name: "Mathematics",
-      category: "Foundations",
-      color: "#f87171",
-      val: 20,
-      resources: [
-        {
-          id: "r16",
-          title: "Linear Algebra",
-          type: "video" as const,
-          url: "/app/resources/linear-algebra",
-          description: "Essential linear algebra for ML",
-        },
-        {
-          id: "r17",
-          title: "Calculus for ML",
-          type: "article" as const,
-          url: "/app/resources/calculus",
-          description: "Calculus concepts in machine learning",
-        },
-      ],
-    },
-    {
-      id: "stats",
-      name: "Statistics",
-      category: "Foundations",
-      color: "#fb923c",
-      val: 18,
-      resources: [
-        {
-          id: "r18",
-          title: "Probability Theory",
-          type: "book" as const,
-          url: "/app/resources/probability",
-          description: "Foundations of probability",
-        },
-        {
-          id: "r19",
-          title: "Bayesian Statistics",
-          type: "article" as const,
-          url: "/app/resources/bayesian",
-          description: "Introduction to Bayesian methods",
-        },
-      ],
-    },
-  ],
-  links: [
-    { source: "ml", target: "dl", relationship: "foundation for" },
-    { source: "ml", target: "nlp", relationship: "enables" },
-    { source: "ml", target: "cv", relationship: "enables" },
-    { source: "dl", target: "nlp", relationship: "powers" },
-    { source: "dl", target: "cv", relationship: "powers" },
-    { source: "python", target: "ml", relationship: "used in" },
-    { source: "python", target: "data", relationship: "used in" },
-    { source: "data", target: "ml", relationship: "feeds into" },
-    { source: "data", target: "viz", relationship: "enables" },
-    { source: "math", target: "ml", relationship: "foundation of" },
-    { source: "math", target: "dl", relationship: "foundation of" },
-    { source: "stats", target: "ml", relationship: "foundation of" },
-    { source: "stats", target: "data", relationship: "foundation of" },
-    { source: "nlp", target: "cv", relationship: "combines with" },
-  ],
-};
+// Helper functions
+function mapApiToGraphData(data: ApiGraphResponse): { nodes: KnowledgeNode[]; links: KnowledgeLink[] } {
+  const colorByLevel: Record<string, string> = {
+    root: '#60a5fa',
+    current: '#60a5fa',
+    child: '#34d399',
+    parent: '#a78bfa',
+  };
+  const nodes: KnowledgeNode[] = data.nodes.map((n) => ({
+    id: n.id,
+    name: n.label,
+    category: n.level,
+    color: colorByLevel[n.level] ?? '#818cf8',
+    val: 15,
+  }));
+  const links: KnowledgeLink[] = data.edges.map((e) => ({
+    source: e.source,
+    target: e.target,
+    relationship: String(e.weight),
+  }));
+  return { nodes, links };
+}
 
-const resourceIcons = {
-  article: FileText,
-  video: Video,
-  document: FileText,
-  code: Code,
-  book: BookOpen,
-};
+function mergeGraphData(
+  existing: { nodes: KnowledgeNode[]; links: KnowledgeLink[] },
+  newData: ApiGraphResponse
+): { nodes: KnowledgeNode[]; links: KnowledgeLink[] } {
+  const existingIds = new Set(existing.nodes.map((n) => n.id));
+  const colorByLevel: Record<string, string> = { root: '#60a5fa', current: '#60a5fa', child: '#34d399', parent: '#a78bfa' };
+  const newNodes = newData.nodes
+    .filter((n) => !existingIds.has(n.id))
+    .map((n) => ({
+      id: n.id,
+      name: n.label,
+      category: n.level,
+      color: colorByLevel[n.level] ?? '#818cf8',
+      val: 15
+    }));
+  const existingEdgeKeys = new Set(existing.links.map((l) => `${l.source}-${l.target}`));
+  const newLinks = newData.edges
+    .filter((e) => !existingEdgeKeys.has(`${e.source}-${e.target}`) && !existingEdgeKeys.has(`${e.target}-${e.source}`))
+    .map((e) => ({ source: e.source, target: e.target, relationship: String(e.weight) }));
+  return { nodes: [...existing.nodes, ...newNodes], links: [...existing.links, ...newLinks] };
+}
 
 export function KnowledgeGraph() {
   const graphRef = useRef<ForceGraphMethods>(undefined);
@@ -303,6 +117,11 @@ export function KnowledgeGraph() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [highlightNodes, setHighlightNodes] = useState<Set<string>>(new Set());
   const [highlightLinks, setHighlightLinks] = useState<Set<string>>(new Set());
+  const [graphData, setGraphData] = useState<{ nodes: KnowledgeNode[]; links: KnowledgeLink[] }>({ nodes: [], links: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [nodeResources, setNodeResources] = useState<ApiResource[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
 
   // Handle container resize (including when chat panel opens/closes)
   useEffect(() => {
@@ -323,12 +142,33 @@ export function KnowledgeGraph() {
     return () => observer.disconnect();
   }, []);
 
-  const handleNodeClick = useCallback((node: NodeObject) => {
+  // Load graph data on mount
+  useEffect(() => {
+    async function loadGraph() {
+      try {
+        setIsLoading(true);
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+        const res = await fetch(`${apiBase}/graph`);
+        if (!res.ok) throw new Error('Failed to load graph');
+        const data: ApiGraphResponse = await res.json();
+        setGraphData(mapApiToGraphData(data));
+      } catch (e) {
+        setLoadError('Could not load knowledge graph.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadGraph();
+  }, []);
+
+  const handleNodeClick = useCallback(async (node: NodeObject) => {
     const knowledgeNode = node as KnowledgeNode;
     setSelectedNode(knowledgeNode);
+    setIsDialogOpen(true);
+    setResourcesLoading(true);
 
-    // Find adjacent nodes and links
-    const adjLinks = knowledgeData.links.filter(
+    // Find adjacent nodes and links using current graph state
+    const adjLinks = graphData.links.filter(
       (link) =>
         link.source === knowledgeNode.id || link.target === knowledgeNode.id,
     );
@@ -340,7 +180,7 @@ export function KnowledgeGraph() {
       if (link.target === knowledgeNode.id) adjNodeIds.add(link.source);
     });
 
-    const adjNodes = knowledgeData.nodes.filter((n) => adjNodeIds.has(n.id));
+    const adjNodes = graphData.nodes.filter((n) => adjNodeIds.has(n.id));
     setAdjacentNodes(adjNodes);
 
     // Set highlights
@@ -354,14 +194,44 @@ export function KnowledgeGraph() {
     setHighlightNodes(newHighlightNodes);
     setHighlightLinks(newHighlightLinks);
 
-    setIsDialogOpen(true);
+    // Fetch real resources for this node
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const res = await fetch(`${apiBase}/graph/nodes/${encodeURIComponent(knowledgeNode.id)}/resources`);
+      if (res.ok) {
+        const data: ApiNodeResourcesResponse = await res.json();
+        setNodeResources(data.items);
+      } else {
+        setNodeResources([]);
+      }
+    } catch {
+      setNodeResources([]);
+    } finally {
+      setResourcesLoading(false);
+    }
+
+    // Also call POST /api/graph/expand to get neighbors (merge into graph)
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const expandRes = await fetch(`${apiBase}/graph/expand`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ node_id: knowledgeNode.id }),
+      });
+      if (expandRes.ok) {
+        const expandData: ApiGraphResponse = await expandRes.json();
+        setGraphData(prev => mergeGraphData(prev, expandData));
+      }
+    } catch {
+      // non-blocking
+    }
 
     // Zoom to the node
     if (graphRef.current) {
       graphRef.current.centerAt(node.x, node.y, 500);
       graphRef.current.zoom(2, 500);
     }
-  }, []);
+  }, [graphData]);
 
   const handleDialogClose = () => {
     setIsDialogOpen(false);
@@ -372,9 +242,6 @@ export function KnowledgeGraph() {
     }
   };
 
-  const navigateToResource = (url: string) => {
-    window.location.href = url;
-  };
 
   const nodeCanvasObject = useCallback(
     (node: NodeObject, ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -471,6 +338,16 @@ export function KnowledgeGraph() {
     [highlightLinks],
   );
 
+  // Handle loading and empty states
+  if (isLoading) return <div className="flex h-full items-center justify-center text-gray-400">Loading graph...</div>;
+  if (loadError) return <div className="flex h-full items-center justify-center text-gray-400">{loadError}</div>;
+  if (graphData.nodes.length === 0) return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
+      <p className="text-sm">No knowledge graph yet.</p>
+      <p className="text-xs">Add and process some resources to build your graph.</p>
+    </div>
+  );
+
   return (
     <div
       ref={containerRef}
@@ -512,7 +389,7 @@ export function KnowledgeGraph() {
       {/* Force Graph */}
       <ForceGraph2D
         ref={graphRef}
-        graphData={knowledgeData}
+        graphData={graphData}
         width={dimensions.width}
         height={dimensions.height}
         nodeCanvasObject={nodeCanvasObject}
@@ -573,7 +450,7 @@ export function KnowledgeGraph() {
                       variant="secondary"
                       className="cursor-pointer transition-colors hover:bg-accent"
                       onClick={() => {
-                        const nodeObj = knowledgeData.nodes.find(
+                        const nodeObj = graphData.nodes.find(
                           (n) => n.id === node.id,
                         );
                         if (nodeObj) {
@@ -599,37 +476,53 @@ export function KnowledgeGraph() {
               </h4>
               <ScrollArea className="h-[200px]">
                 <div className="space-y-2 pr-4">
-                  {selectedNode?.resources.map((resource) => {
-                    const Icon = resourceIcons[resource.type];
-                    return (
+                  {resourcesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-sm text-muted-foreground">Loading resources...</div>
+                    </div>
+                  ) : nodeResources.length > 0 ? (
+                    nodeResources.map((resource) => (
                       <div
                         key={resource.id}
-                        className="group flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
-                        onClick={() => navigateToResource(resource.url)}
+                        className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          <FileText className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-foreground group-hover:underline">
-                              {resource.title}
-                            </p>
-                            <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {resource.description}
+                          <p className="text-sm font-medium text-foreground">
+                            {resource.title}
                           </p>
-                          <Badge
-                            variant="outline"
-                            className="mt-1 text-xs capitalize"
-                          >
-                            {resource.type}
-                          </Badge>
+                          {resource.summary && (
+                            <p className="text-xs text-muted-foreground">
+                              {resource.summary}
+                            </p>
+                          )}
+                          <div className="mt-1 flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="text-xs capitalize"
+                            >
+                              {resource.status}
+                            </Badge>
+                            {resource.tags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-sm text-muted-foreground">No resources found for this node.</div>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </div>
