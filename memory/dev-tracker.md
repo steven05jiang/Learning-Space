@@ -4,7 +4,7 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-22 (DEMO-003+004 run-1 complete, sprint closed)
+**Last Updated:** 2026-03-22 (chat backend cycle started: DEV-035 + DEV-032)
 
 ---
 
@@ -12,8 +12,8 @@
 
 - Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
 - ✅ Completed: 81
-- 🔄 Active: 0
-- ⏳ Pending: 35
+- 🔄 Active: 2
+- ⏳ Pending: 33
 - ⚠️ Stuck: 0
 
 ---
@@ -58,8 +58,8 @@
 - [x] DEV-028: Implement GET /graph (graph view) — Core graph exploration API (PR #99 ✅)
 - [x] DEV-029: Implement POST /graph/expand — Graph drill-down (PR #101 ✅)
 - [x] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph (PR #94 ✅)
-- [ ] DEV-035: Implement conversation storage (DB schema) — Chat persistence
-- [ ] DEV-032: Implement LangGraph agent with tools — Core chat intelligence
+- [~] DEV-035: Implement conversation storage (DB schema) — Chat persistence
+- [~] DEV-032: Implement LangGraph agent with tools — Core chat intelligence
 - [ ] DEV-033: Implement POST /chat endpoint — Chat API
 - [ ] DEV-034: Implement GET /chat/conversations and messages — Chat history
 - [x] DEV-040: Implement Settings — Account Management UI — Manage linked accounts UI (PR #59 ✅)
