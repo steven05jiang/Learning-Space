@@ -8,6 +8,13 @@ to main in one clean chore commit.
 
 ---
 
+## Hard Rules
+
+- **Never use `git stash`** — not for reading, not for saving state, not for any reason.
+  If uncommitted changes are in the way, stop and report them to the user. The user handles stashing manually.
+
+---
+
 ## Phase 1 — Audit Stale Task Status
 
 Scan `memory/active/` and `memory/completed/` for any task files whose recorded
