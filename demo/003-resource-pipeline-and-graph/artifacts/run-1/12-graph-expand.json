@@ -1,0 +1,67 @@
+=== POST /graph/expand (knowledge-graph) ===
+{
+    "nodes": [
+        {
+            "id": "data-structure",
+            "label": "data-structure",
+            "level": "child"
+        },
+        {
+            "id": "knowledge-representation",
+            "label": "knowledge-representation",
+            "level": "child"
+        },
+        {
+            "id": "formal-semantics",
+            "label": "formal-semantics",
+            "level": "child"
+        },
+        {
+            "id": "semantic-web",
+            "label": "semantic-web",
+            "level": "child"
+        },
+        {
+            "id": "information-science",
+            "label": "information-science",
+            "level": "child"
+        },
+        {
+            "id": "ontology",
+            "label": "ontology",
+            "level": "child"
+        }
+    ],
+    "edges": [
+        {
+            "source": "knowledge-graph",
+            "target": "data-structure",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "knowledge-representation",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "formal-semantics",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "information-science",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "ontology",
+            "weight": 1
+        }
+    ]
+}

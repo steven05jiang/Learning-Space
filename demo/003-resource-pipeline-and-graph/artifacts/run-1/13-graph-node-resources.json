@@ -1,0 +1,26 @@
+=== GET /graph/nodes/knowledge-graph/resources ===
+{
+    "items": [
+        {
+            "id": "1",
+            "title": "Knowledge graph - Wikipedia",
+            "summary": "A knowledge graph is a structured representation of knowledge that uses entities and relationships to organize and connect information. It's a fundamental concept in information science and semantic web technologies that enables better data organization, retrieval, and understanding.\n\nKnowledge graphs are used to represent real-world entities (such as people, places, things, or concepts) and the relationships between them in a machine-readable format. They form the foundation for many modern applications including search engines, recommendation systems, and artificial intelligence systems that need to understand and reason about information.\n\nThe concept combines principles from ontology engineering, formal semantics in natural language processing, and information science. Knowledge graphs enable systems to understand not just individual pieces of information, but also how different pieces of information relate to and depend on each other. This interconnected approach to organizing knowledge allows for more intelligent information retrieval, entity resolution, and inferential reasoning.\n\nKnowledge graphs have become increasingly important in the era of big data and artificial intelligence, providing the structured framework that helps machines understand context and relationships in unstructured information. They are widely used by major technology companies and are essential components in natural language processing, knowledge representation, and semantic search applications.",
+            "original_content": "https://en.wikipedia.org/wiki/Knowledge_graph",
+            "content_type": "url",
+            "status": "READY",
+            "created_at": "2026-03-22T05:12:32.559863",
+            "tags": [
+                "knowledge-graph",
+                "ontology",
+                "information-science",
+                "semantic-web",
+                "formal-semantics",
+                "knowledge-representation",
+                "data-structure"
+            ]
+        }
+    ],
+    "total": 1,
+    "limit": 50,
+    "offset": 0
+}

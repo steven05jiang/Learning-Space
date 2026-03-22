@@ -9,8 +9,8 @@
 
 ## Progress Summary
 
-- Total: 9 tasks
-- ✅ Fixed: 9
+- Total: 10 tasks
+- ✅ Fixed: 10
 - 🔄 Active: 0
 - ⏳ Pending: 0
 - ⚠️ Stuck: 0
@@ -28,3 +28,4 @@
 - [x] BUG-006: Pending tag overflow in resources page — long URL title causes "Pending" badge to overflow card bounds (PR #63 ✅)
 - [x] BUG-007: Settings linked accounts shows incorrect connection status — Google shown as "not connected" after OAuth login; resolved by BUG-008 (PR #65 ✅)
 - [x] BUG-008: OAuth lint fix + accounts table persistence — unused mock_account variable, lint errors, OAuth callback not persisting to accounts table; added GET /auth/accounts endpoint (PR #65 ✅)
+- [x] BUG-009: LLM model deprecated — default model `claude-3-5-sonnet-20241022` returns 404; updated default to `claude-haiku-4-5-20251001` in services/llm_processor.py; found during DEMO-003 run-1 (PR #114 ✅)

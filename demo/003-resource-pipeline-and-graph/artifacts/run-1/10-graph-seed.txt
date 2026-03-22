@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "<string>", line 17, in <module>
+    asyncio.run(seed())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/Users/wei/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/Users/wei/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/wei/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "<string>", line 15, in seed
+    await neo4j_driver.close()
+          ^^^^^^^^^^^^^^^^^^
+AttributeError: 'Neo4jDriverService' object has no attribute 'close'
+Graph seeded with 7 tags

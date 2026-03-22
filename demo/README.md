@@ -6,6 +6,7 @@ Each subfolder is a self-contained demo with documentation and execution artifac
 | --- | ------------------------------------------------------------------------------------ | ----------- | ---------- |
 | 001 | [First User Journey](./001-first-user-journey/) — login → submit resource → see list | ✅ Executed | 2026-03-16 |
 | 002 | [Account Management & Resource CRUD](./002-account-and-resource-crud/) — settings, detail, edit, delete | ✅ Executed | 2026-03-17 |
+| 003 | [Resource Pipeline + Knowledge Graph](./003-resource-pipeline-and-graph/) — submit URL → LLM tags → graph exploration | ✅ Executed | 2026-03-22 |
 
 ---
 

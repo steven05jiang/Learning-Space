@@ -1,0 +1,147 @@
+=== GET /graph ===
+{
+    "nodes": [
+        {
+            "id": "semantic-web",
+            "label": "semantic-web",
+            "level": "root"
+        },
+        {
+            "id": "data-structure",
+            "label": "data-structure",
+            "level": "root"
+        },
+        {
+            "id": "knowledge-representation",
+            "label": "knowledge-representation",
+            "level": "root"
+        },
+        {
+            "id": "formal-semantics",
+            "label": "formal-semantics",
+            "level": "root"
+        },
+        {
+            "id": "information-science",
+            "label": "information-science",
+            "level": "root"
+        },
+        {
+            "id": "ontology",
+            "label": "ontology",
+            "level": "root"
+        },
+        {
+            "id": "knowledge-graph",
+            "label": "knowledge-graph",
+            "level": "root"
+        }
+    ],
+    "edges": [
+        {
+            "source": "data-structure",
+            "target": "knowledge-representation",
+            "weight": 1
+        },
+        {
+            "source": "data-structure",
+            "target": "formal-semantics",
+            "weight": 1
+        },
+        {
+            "source": "data-structure",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "data-structure",
+            "target": "information-science",
+            "weight": 1
+        },
+        {
+            "source": "data-structure",
+            "target": "ontology",
+            "weight": 1
+        },
+        {
+            "source": "data-structure",
+            "target": "knowledge-graph",
+            "weight": 1
+        },
+        {
+            "source": "formal-semantics",
+            "target": "knowledge-representation",
+            "weight": 1
+        },
+        {
+            "source": "formal-semantics",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "formal-semantics",
+            "target": "information-science",
+            "weight": 1
+        },
+        {
+            "source": "formal-semantics",
+            "target": "ontology",
+            "weight": 1
+        },
+        {
+            "source": "formal-semantics",
+            "target": "knowledge-graph",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-representation",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-representation",
+            "target": "ontology",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "knowledge-representation",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "knowledge-graph",
+            "target": "ontology",
+            "weight": 1
+        },
+        {
+            "source": "ontology",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "information-science",
+            "target": "knowledge-representation",
+            "weight": 1
+        },
+        {
+            "source": "information-science",
+            "target": "semantic-web",
+            "weight": 1
+        },
+        {
+            "source": "information-science",
+            "target": "ontology",
+            "weight": 1
+        },
+        {
+            "source": "information-science",
+            "target": "knowledge-graph",
+            "weight": 1
+        }
+    ]
+}
