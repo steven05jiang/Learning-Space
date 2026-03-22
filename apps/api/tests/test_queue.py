@@ -39,8 +39,7 @@ class TestTaskFunctions:
 
         assert result["entity_id"] == "entity456"
         assert result["operation"] == "update"
-        assert result["status"] == "synced"
-        assert result["graph_data"]["nodes_affected"] == 1
+        assert result["status"] == "noop"
 
     @pytest.mark.asyncio
     async def test_sync_graph_all_operations(self):
@@ -50,7 +49,7 @@ class TestTaskFunctions:
         for operation in operations:
             result = await sync_graph("entity123", operation)
             assert result["operation"] == operation
-            assert result["status"] == "synced"
+            assert result["status"] == "noop"
 
     @pytest.mark.asyncio
     async def test_sync_graph_invalid_operation(self):
@@ -112,7 +111,9 @@ class TestQueueService:
             job_id = await QueueService.enqueue_graph_sync("entity123", "create")
 
             assert job_id == "job456"
-            mock_enqueue.assert_called_once_with("sync_graph", "entity123", "create")
+            mock_enqueue.assert_called_once_with(
+                "sync_graph", "entity123", operation="create", owner_id=None, tags=None
+            )
 
     @pytest.mark.asyncio
     async def test_enqueue_graph_sync_invalid_operation(self):

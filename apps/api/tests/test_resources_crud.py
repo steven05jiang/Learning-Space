@@ -1,5 +1,7 @@
 """Tests for resource CRUD endpoints (GET, PATCH, DELETE /resources/{id})."""
 
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -452,3 +454,147 @@ class TestDeleteResource:
         """Test that unauthenticated requests return 401."""
         response = await client.delete("/resources/1")
         assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_delete_resource_with_tags_enqueues_graph_sync(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        auth_headers: dict,
+        test_user,
+    ):
+        """Test that deleting a resource with tags enqueues graph sync job."""
+        # Create a resource with tags
+        resource = Resource(
+            owner_id=test_user.id,
+            content_type="url",
+            original_content="https://example.com/tagged-resource",
+            title="Tagged Resource",
+            tags=["AI", "Python", "Machine Learning"],
+            status=ResourceStatus.READY,
+        )
+        db_session.add(resource)
+        await db_session.commit()
+        await db_session.refresh(resource)
+
+        resource_id = resource.id
+
+        # Mock the queue service
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
+            mock_enqueue.return_value = "job123"
+
+            # Delete the resource
+            response = await client.delete(
+                f"/resources/{resource_id}", headers=auth_headers
+            )
+
+            # Verify response
+            assert response.status_code == 204
+
+            # Verify graph sync job was enqueued with correct parameters
+            mock_enqueue.assert_called_once_with(
+                str(resource_id),
+                operation="delete",
+                owner_id=test_user.id,
+                tags=["AI", "Python", "Machine Learning"],
+            )
+
+        # Verify resource is deleted from database
+        stmt = select(Resource).where(Resource.id == resource_id)
+        result = await db_session.execute(stmt)
+        deleted_resource = result.scalar_one_or_none()
+        assert deleted_resource is None
+
+    @pytest.mark.asyncio
+    async def test_delete_resource_without_tags_no_graph_sync(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        auth_headers: dict,
+        test_user,
+    ):
+        """Test that deleting a resource without tags doesn't enqueue graph sync."""
+        # Create a resource without tags
+        resource = Resource(
+            owner_id=test_user.id,
+            content_type="text",
+            original_content="Content without tags",
+            title="Untagged Resource",
+            tags=None,
+            status=ResourceStatus.READY,
+        )
+        db_session.add(resource)
+        await db_session.commit()
+        await db_session.refresh(resource)
+
+        resource_id = resource.id
+
+        # Mock the queue service
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
+            # Delete the resource
+            response = await client.delete(
+                f"/resources/{resource_id}", headers=auth_headers
+            )
+
+            # Verify response
+            assert response.status_code == 204
+
+            # Verify graph sync job was NOT enqueued
+            mock_enqueue.assert_not_called()
+
+        # Verify resource is deleted from database
+        stmt = select(Resource).where(Resource.id == resource_id)
+        result = await db_session.execute(stmt)
+        deleted_resource = result.scalar_one_or_none()
+        assert deleted_resource is None
+
+    @pytest.mark.asyncio
+    async def test_delete_resource_graph_sync_failure_doesnt_affect_deletion(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        auth_headers: dict,
+        test_user,
+    ):
+        """Test that graph sync failure doesn't prevent successful resource deletion."""
+        # Create a resource with tags
+        resource = Resource(
+            owner_id=test_user.id,
+            content_type="url",
+            original_content="https://example.com/sync-fail-test",
+            title="Sync Fail Test",
+            tags=["tag1", "tag2"],
+            status=ResourceStatus.READY,
+        )
+        db_session.add(resource)
+        await db_session.commit()
+        await db_session.refresh(resource)
+
+        resource_id = resource.id
+
+        # Mock the queue service to raise an exception
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
+            mock_enqueue.side_effect = Exception("Graph sync failed")
+
+            # Delete the resource
+            response = await client.delete(
+                f"/resources/{resource_id}", headers=auth_headers
+            )
+
+            # Verify response is still successful despite graph sync failure
+            assert response.status_code == 204
+
+            # Verify graph sync job was attempted
+            mock_enqueue.assert_called_once()
+
+        # Verify resource is still deleted from database
+        stmt = select(Resource).where(Resource.id == resource_id)
+        result = await db_session.execute(stmt)
+        deleted_resource = result.scalar_one_or_none()
+        assert deleted_resource is None

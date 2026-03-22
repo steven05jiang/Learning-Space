@@ -38,12 +38,19 @@ class QueueService:
         return job_id
 
     @staticmethod
-    async def enqueue_graph_sync(entity_id: str, operation: str = "update") -> str:
+    async def enqueue_graph_sync(
+        entity_id: str,
+        operation: str = "update",
+        owner_id: int = None,
+        tags: list = None,
+    ) -> str:
         """Enqueue a graph synchronization job.
 
         Args:
             entity_id: The ID of the entity to sync
             operation: Type of sync operation ('create', 'update', 'delete')
+            owner_id: Owner ID for delete operations
+            tags: Tag list for delete operations
 
         Returns:
             Job ID as string
@@ -64,7 +71,9 @@ class QueueService:
             f"operation={operation}"
         )
 
-        job_id = await enqueue_job("sync_graph", entity_id, operation)
+        job_id = await enqueue_job(
+            "sync_graph", entity_id, operation=operation, owner_id=owner_id, tags=tags
+        )
         logger.info(f"Graph sync job enqueued with ID: {job_id}")
         return job_id
 

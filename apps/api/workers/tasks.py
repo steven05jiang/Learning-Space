@@ -210,14 +210,16 @@ async def _set_resource_failed(
     logger.error(f"Resource {resource.id} marked as FAILED: {error_message}")
 
 
-async def sync_graph(entity_id: str, operation: str = "update") -> Dict[str, Any]:
+async def sync_graph(
+    entity_id: str, operation: str = "update", owner_id: int = None, tags: list = None
+) -> Dict[str, Any]:
     """Synchronize entity data with the knowledge graph.
-
-    This is a stub implementation that will be expanded in later DEV tasks.
 
     Args:
         entity_id: The ID of the entity to sync
         operation: Type of sync operation ('create', 'update', 'delete')
+        owner_id: Owner ID for delete operations
+        tags: Tag list for delete operations
 
     Returns:
         Synchronization result dictionary
@@ -236,34 +238,13 @@ async def sync_graph(entity_id: str, operation: str = "update") -> Dict[str, Any
             f"operation must be one of {valid_operations}, got: {operation}"
         )
 
-    # TODO: Implement actual graph synchronization logic in future DEV tasks
-    # This will include:
-    # - Neo4j connection and transaction handling
-    # - Entity relationship mapping
-    # - Graph schema validation
-    # - Conflict resolution
+    if operation == "delete" and owner_id is not None and tags:
+        await graph_service.remove_resource_tags(owner_id, tags)
+        await graph_service.cleanup_orphan_tags(owner_id)
+        return {"entity_id": entity_id, "operation": operation, "status": "synced"}
 
-    try:
-        # Stub implementation - simulate graph sync
-        result = {
-            "entity_id": entity_id,
-            "operation": operation,
-            "status": "synced",
-            "synced_at": "2026-03-17T00:00:00Z",  # TODO: Use actual timestamp
-            "graph_data": {
-                "nodes_affected": 1,
-                "relationships_created": 0,
-                "relationships_updated": 0,
-                "relationships_deleted": 0,
-            },
-        }
-
-        logger.info(f"Graph sync completed for entity_id={entity_id}")
-        return result
-
-    except Exception as e:
-        logger.error(f"Graph sync failed for entity_id={entity_id}: {e}")
-        raise
+    # create/update not yet implemented (placeholder)
+    return {"entity_id": entity_id, "operation": operation, "status": "noop"}
 
 
 # Job failure handler
