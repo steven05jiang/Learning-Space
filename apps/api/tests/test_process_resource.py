@@ -98,10 +98,10 @@ class TestProcessResource:
     async def test_process_resource_invalid_id(self):
         """Test that invalid resource ID raises ValueError."""
         with pytest.raises(ValueError, match="resource_id cannot be empty"):
-            await process_resource("")
+            await process_resource({}, "")
 
         with pytest.raises(ValueError, match="resource_id cannot be empty"):
-            await process_resource(None)
+            await process_resource({}, None)
 
     @pytest.mark.asyncio
     async def test_process_resource_url_success_end_to_end(
@@ -134,7 +134,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_success
@@ -145,7 +145,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify the result
         assert result["resource_id"] == "123"
@@ -215,7 +215,7 @@ class TestProcessResource:
 
         # Mock services (URL fetcher should not be called for text resources)
         mock_url_fetcher = AsyncMock()
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_success
@@ -226,7 +226,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("124")
+        result = await process_resource({}, "124")
 
         # Verify the result
         assert result["resource_id"] == "124"
@@ -268,7 +268,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.AsyncSessionLocal", mock_session_factory)
 
         with pytest.raises(ValueError, match="Resource with id 999 not found"):
-            await process_resource("999")
+            await process_resource({}, "999")
 
     @pytest.mark.asyncio
     async def test_process_resource_fetch_failure(
@@ -301,10 +301,10 @@ class TestProcessResource:
         # Mock failed URL fetch
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_failure
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify failure result
         assert result["resource_id"] == "123"
@@ -347,14 +347,14 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_failure
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify failure result
         assert result["resource_id"] == "123"
@@ -397,7 +397,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_success
@@ -411,7 +411,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify processing still succeeds despite graph update failure
         assert result["resource_id"] == "123"
@@ -457,7 +457,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_insufficient_tags
@@ -467,7 +467,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify processing succeeds
         assert result["status"] == "ready"
@@ -507,7 +507,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_success
@@ -517,7 +517,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        await process_resource("123")
+        await process_resource({}, "123")
 
         # Verify final status should be READY (can't easily track transitions with Mock)
         assert mock_resource.status == ResourceStatus.READY
@@ -561,7 +561,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_multiple_tags
@@ -571,7 +571,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify processing succeeds
         assert result["status"] == "ready"
@@ -621,7 +621,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_no_tags
@@ -631,7 +631,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify processing succeeds
         assert result["status"] == "ready"
@@ -670,7 +670,7 @@ class TestProcessResource:
         # Mock services
         mock_url_fetcher = AsyncMock()
         mock_url_fetcher.fetch_url_content.return_value = mock_fetch_success
-        monkeypatch.setattr("workers.tasks.url_fetcher_service", mock_url_fetcher)
+        monkeypatch.setattr("workers.tasks._fetcher", mock_url_fetcher)
 
         mock_llm_processor = AsyncMock()
         mock_llm_processor.process_content.return_value = mock_llm_success
@@ -684,7 +684,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
-        result = await process_resource("123")
+        result = await process_resource({}, "123")
 
         # Verify processing still succeeds despite graph update failure
         assert result["resource_id"] == "123"

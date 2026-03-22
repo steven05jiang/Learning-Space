@@ -8,6 +8,8 @@ from arq.connections import RedisSettings
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
+QUEUE_NAME = "learning_space_queue"
+
 
 class QueueSettings(BaseSettings):
     """Redis queue configuration."""
@@ -51,11 +53,10 @@ async def enqueue_job(job_name: str, *args, **kwargs) -> str:
     """
     pool = await create_queue_pool()
     try:
-        job = await pool.enqueue_job(job_name, *args, **kwargs)
+        job = await pool.enqueue_job(job_name, *args, _queue_name=QUEUE_NAME, **kwargs)
         return job.job_id
     finally:
-        pool.close()
-        await pool.wait_closed()
+        await pool.aclose()
 
 
 async def get_job_status(job_id: str) -> Dict[str, Any] | None:
@@ -82,8 +83,7 @@ async def get_job_status(job_id: str) -> Dict[str, Any] | None:
             "finish_time": job.finish_time,
         }
     finally:
-        pool.close()
-        await pool.wait_closed()
+        await pool.aclose()
 
 
 # Configure logging for job failures

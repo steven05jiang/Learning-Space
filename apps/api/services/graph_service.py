@@ -152,7 +152,7 @@ class GraphService:
                 """
                 MATCH (t:Tag {owner_id: $owner_id})
                 WHERE NOT (t)-[:RELATED_TO]-()
-                WITH t.name AS tag_name
+                WITH t, t.name AS tag_name
                 DELETE t
                 RETURN COUNT(*) AS deleted_count, COLLECT(tag_name) AS deleted_tags
                 """,

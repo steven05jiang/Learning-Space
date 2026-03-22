@@ -12,7 +12,9 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import after path modification to avoid import errors
-from workers.worker import main  # noqa: E402
+from arq import run_worker  # noqa: E402
+
+from workers.worker import WorkerSettings  # noqa: E402
 
 
 # Set up signal handling for graceful shutdown
@@ -37,8 +39,11 @@ if __name__ == "__main__":
     print("Starting Learning Space task worker...")
     print("Press Ctrl+C to stop")
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     try:
-        asyncio.run(main())
+        run_worker(WorkerSettings)
     except KeyboardInterrupt:
         print("\nWorker stopped by user")
     except Exception as e:

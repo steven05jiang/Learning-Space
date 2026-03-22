@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""  # Optional for development
     anthropic_model: str = "claude-haiku-4-5-20251001"  # Default model
 
+    # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
+    url_fetcher_backend: str = "httpx"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("jwt_secret_key")

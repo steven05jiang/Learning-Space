@@ -134,7 +134,7 @@ async def test_graph_updated_after_resource_processed(
     ):
         with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
             # Run the worker task
-            result = await process_resource(str(resource.id))
+            result = await process_resource({}, str(resource.id))
 
     # Verify processing completed successfully
     assert result["status"] == "ready"
@@ -294,7 +294,7 @@ async def test_graph_updated_after_resource_reprocessing(
     ):
         with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
             # Run the worker task for re-processing
-            result = await process_resource(str(resource.id))
+            result = await process_resource({}, str(resource.id))
 
     # Verify processing completed successfully
     assert result["status"] == "ready"

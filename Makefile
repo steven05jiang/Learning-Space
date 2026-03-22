@@ -3,7 +3,9 @@
         web-lint web-build web-security web-dev web-dev-mock \
         int-test-ci int-test int-test-web int-test-e2e int-test-full \
         infra-up infra-down \
-        dev-stack-up dev-stack-down
+        dev-stack-up dev-stack-down \
+        dev-restart-api dev-restart-worker dev-restart-web dev-restart-all \
+        infra-restart
 
 # ── Full CI (requires `make infra-up` first for integration tests) ────────
 
@@ -105,6 +107,43 @@ infra-up:
 	@echo "   Waiting for PostgreSQL..."
 	@until docker compose exec -T postgres pg_isready -q; do sleep 1; done
 	@echo "   PostgreSQL ready."
+	@echo "   Waiting for Redis..."
+	@ok=0; \
+	for s in $$(seq 1 30); do \
+	  if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then ok=1; break; fi; \
+	  sleep 1; \
+	done; \
+	if [ $$ok -eq 0 ]; then \
+	  echo "   Redis not ready, restarting container..."; \
+	  docker compose restart redis; \
+	  for s in $$(seq 1 30); do \
+	    if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then ok=1; break; fi; \
+	    sleep 1; \
+	  done; \
+	fi; \
+	if [ $$ok -eq 0 ]; then echo "   ERROR: Redis failed to start. Run: docker compose logs redis"; exit 1; fi; \
+	echo "   Redis ready."
+	@echo "   Waiting for Neo4j (may take up to 60s on first start)..."
+	@ok=0; \
+	for s in $$(seq 1 60); do \
+	  if curl -sf http://localhost:7474 > /dev/null 2>&1; then ok=1; break; fi; \
+	  sleep 1; \
+	done; \
+	if [ $$ok -eq 0 ]; then \
+	  echo "   Neo4j not ready, restarting container..."; \
+	  docker compose restart neo4j; \
+	  for s in $$(seq 1 60); do \
+	    if curl -sf http://localhost:7474 > /dev/null 2>&1; then ok=1; break; fi; \
+	    sleep 1; \
+	  done; \
+	fi; \
+	if [ $$ok -eq 0 ]; then echo "   ERROR: Neo4j failed to start. Run: docker compose logs neo4j"; exit 1; fi; \
+	echo "   Neo4j ready."
+
+infra-restart:
+	@echo "── Restarting infrastructure ──────────────────────────"
+	$(MAKE) infra-down
+	$(MAKE) infra-up
 
 infra-down:
 	docker compose down
@@ -117,13 +156,71 @@ dev-stack-up:
 	$(MAKE) infra-up
 	@echo "   2. Starting API (uvicorn)..."
 	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
-	@echo "   3. Starting web (Next.js)..."
+	@echo "   3. Starting worker (arq)..."
+	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
+	@echo "   4. Starting web (Next.js)..."
 	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
+	@echo "   5. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
+	@ok=0; \
+	for attempt in 1 2 3 4 5; do \
+	  for s in $$(seq 1 30); do \
+	    if curl -sf http://localhost:8000/health/ > /dev/null 2>&1; then ok=1; break; fi; \
+	    sleep 1; \
+	  done; \
+	  if [ $$ok -eq 1 ]; then echo "   API healthy (attempt $$attempt/5) ✓"; break; fi; \
+	  echo "   API not healthy after 30s (attempt $$attempt/5), restarting..."; \
+	  lsof -ti :8000 | xargs kill -9 2>/dev/null || true; \
+	  sleep 2; \
+	  (cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1) & \
+	done; \
+	if [ $$ok -eq 0 ]; then echo "   ERROR: API failed to start after 5 attempts. Check /tmp/api.log"; exit 1; fi
+	@echo "   6. Waiting for web to be healthy (up to 5 attempts, 30s each)..."
+	@ok=0; \
+	for attempt in 1 2 3 4 5; do \
+	  for s in $$(seq 1 30); do \
+	    if curl -sf http://localhost:3000 > /dev/null 2>&1; then ok=1; break; fi; \
+	    sleep 1; \
+	  done; \
+	  if [ $$ok -eq 1 ]; then echo "   Web healthy (attempt $$attempt/5) ✓"; break; fi; \
+	  echo "   Web not healthy after 30s (attempt $$attempt/5), restarting..."; \
+	  lsof -ti :3000 | xargs kill -9 2>/dev/null || true; \
+	  sleep 2; \
+	  (cd apps/web && npm run dev > /tmp/web.log 2>&1) & \
+	done; \
+	if [ $$ok -eq 0 ]; then echo "   ERROR: Web failed to start after 5 attempts. Check /tmp/web.log"; exit 1; fi
 	@echo ""
 	@echo "Development stack started:"
-	@echo "   API:  http://localhost:8000"
-	@echo "   Web:  http://localhost:3000"
-	@echo "   Logs: /tmp/api.log, /tmp/web.log"
+	@echo "   API:    http://localhost:8000"
+	@echo "   Web:    http://localhost:3000"
+	@echo "   Logs:   /tmp/api.log, /tmp/worker.log, /tmp/web.log"
+
+dev-restart-api:
+	@echo "── Restarting API ─────────────────────────────────────"
+	lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
+	@ok=0; for s in $$(seq 1 30); do sleep 1; if curl -sf http://localhost:8000/health/ > /dev/null 2>&1; then ok=1; break; fi; done; \
+	if [ $$ok -eq 1 ]; then echo "   API restarted ✓  (http://localhost:8000)"; else echo "   ERROR: API failed to start. Check /tmp/api.log"; exit 1; fi
+
+dev-restart-worker:
+	@echo "── Restarting worker ──────────────────────────────────"
+	pkill -f "workers/run_worker.py" 2>/dev/null || true
+	sleep 1
+	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
+	@sleep 2 && pgrep -f "run_worker.py" > /dev/null && echo "   Worker restarted ✓  (log: /tmp/worker.log)" || (echo "   ERROR: Worker failed to start. Check /tmp/worker.log"; exit 1)
+
+dev-restart-web:
+	@echo "── Restarting web ─────────────────────────────────────"
+	lsof -ti :3000 | xargs kill -9 2>/dev/null || true
+	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
+	@ok=0; for s in $$(seq 1 60); do sleep 1; if curl -sf http://localhost:3000 > /dev/null 2>&1; then ok=1; break; fi; done; \
+	if [ $$ok -eq 1 ]; then echo "   Web restarted ✓  (http://localhost:3000)"; else echo "   ERROR: Web failed to start. Check /tmp/web.log"; exit 1; fi
+
+dev-restart-all:
+	@echo "── Restarting all services (API, worker, web) ─────────"
+	$(MAKE) dev-restart-api
+	$(MAKE) dev-restart-worker
+	$(MAKE) dev-restart-web
+	@echo "   All services restarted ✓"
 
 dev-stack-down:
 	@echo "── Stopping full development stack ───────────────────"
@@ -131,6 +228,8 @@ dev-stack-down:
 	docker compose down
 	@echo "   2. Killing API process on port 8000..."
 	lsof -ti :8000 | xargs kill -9 || true
-	@echo "   3. Killing web process on port 3000..."
+	@echo "   3. Killing worker (arq)..."
+	pkill -f "workers/run_worker.py" || true
+	@echo "   4. Killing web process on port 3000..."
 	lsof -ti :3000 | xargs kill -9 || true
 	@echo "   Development stack stopped."

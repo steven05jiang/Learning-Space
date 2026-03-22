@@ -41,12 +41,12 @@ async def test_connect_and_create_constraints(neo4j_service):
         # Verify connectivity was checked
         mock_driver.verify_connectivity.assert_called_once()
 
-        # Verify constraint creation was attempted
-        expected_constraint = (
-            "CREATE CONSTRAINT tag_name_unique IF NOT EXISTS FOR "
-            "(t:Tag) REQUIRE t.name IS UNIQUE"
+        # Verify index creation was attempted (BUG-011 replaced global constraint)
+        expected_index = (
+            "CREATE INDEX tag_name_owner_idx IF NOT EXISTS "
+            "FOR (t:Tag) ON (t.name, t.owner_id)"
         )
-        mock_session.run.assert_called_with(expected_constraint)
+        mock_session.run.assert_called_with(expected_index)
 
 
 @pytest.mark.asyncio

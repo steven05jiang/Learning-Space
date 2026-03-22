@@ -29,13 +29,12 @@ router = APIRouter(prefix="/resources", tags=["resources"])
 
 
 async def process_resource_background_job(resource_id: int) -> None:
-    """
-    Placeholder background job for resource processing.
-
-    This will be replaced with proper task queue integration in DEV-019.
-    For now, just log the job dispatch.
-    """
-    logger.info(f"Background job enqueued for resource {resource_id}")
+    """Enqueue resource for processing via the task queue."""
+    try:
+        job_id = await queue_service.enqueue_resource_processing(str(resource_id))
+        logger.info(f"Resource {resource_id} enqueued for processing, job_id={job_id}")
+    except Exception as e:
+        logger.error(f"Failed to enqueue resource {resource_id}: {e}")
 
 
 @router.post("/", status_code=status.HTTP_202_ACCEPTED, response_model=ResourceResponse)

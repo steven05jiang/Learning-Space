@@ -7,17 +7,26 @@ from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from models.database import AsyncSessionLocal
 from models.resource import Resource, ResourceStatus
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
+from services.playwright_fetcher import playwright_fetcher_service
 from services.url_fetcher import url_fetcher_service
+
+# Select fetcher backend from config: "httpx" (default) or "playwright"
+_fetcher = (
+    playwright_fetcher_service
+    if settings.url_fetcher_backend == "playwright"
+    else url_fetcher_service
+)
 
 logger = logging.getLogger(__name__)
 
 
 async def process_resource(
-    resource_id: str, options: Dict[str, Any] | None = None
+    ctx: Dict[str, Any], resource_id: str, options: Dict[str, Any] | None = None
 ) -> Dict[str, Any]:
     """Process a resource through the full pipeline.
 
@@ -73,7 +82,7 @@ async def process_resource(
 
             if resource.content_type == "url":
                 # Use URL fetcher for URL resources
-                fetch_result = await url_fetcher_service.fetch_url_content(
+                fetch_result = await _fetcher.fetch_url_content(
                     resource.original_content
                 )
 
@@ -211,7 +220,11 @@ async def _set_resource_failed(
 
 
 async def sync_graph(
-    entity_id: str, operation: str = "update", owner_id: int = None, tags: list = None
+    ctx: Dict[str, Any],
+    entity_id: str,
+    operation: str = "update",
+    owner_id: int = None,
+    tags: list = None,
 ) -> Dict[str, Any]:
     """Synchronize entity data with the knowledge graph.
 
