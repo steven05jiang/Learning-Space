@@ -20,23 +20,51 @@ from models.resource import Resource, ResourceStatus
 from models.user import User
 from services.graph_service import graph_service
 from services.llm_processor import LLMResult
-from services.neo4j_driver import neo4j_driver
 from workers.tasks import process_resource
 
 
 @pytest.fixture
-async def neo4j_connection():
-    """Ensure Neo4j is connected for graph tests."""
-    await neo4j_driver.connect()
-    yield
-    # Note: don't disconnect as other tests might need it
+async def test_neo4j_driver():
+    """Create a fresh Neo4j driver for integration tests."""
+    import os
+
+    from neo4j import AsyncGraphDatabase
+
+    # Create a fresh Neo4j driver to avoid event loop scoping issues
+    driver = AsyncGraphDatabase.driver(
+        os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+        auth=(
+            os.environ.get("NEO4J_USER", "neo4j"),
+            os.environ.get("NEO4J_PASSWORD", "changeme"),
+        ),
+    )
+
+    try:
+        yield driver
+    finally:
+        await driver.close()
 
 
 @pytest.fixture
-async def clean_graph():
+async def mock_neo4j_driver(test_neo4j_driver):
+    """Patch the Neo4j driver dependency to use test driver."""
+    from unittest.mock import AsyncMock
+
+    # Create a mock Neo4j driver service that returns our test driver
+    mock_driver_service = AsyncMock()
+    mock_driver_service.get_session = test_neo4j_driver.session
+
+    with patch(
+        "services.graph_service.get_neo4j_driver", return_value=mock_driver_service
+    ):
+        yield mock_driver_service
+
+
+@pytest.fixture
+async def clean_graph(test_neo4j_driver):
     """Clean up graph data before each test."""
     # Clean up any existing graph data (for test isolation)
-    async with neo4j_driver.get_session() as session:
+    async with test_neo4j_driver.session() as session:
         await session.run("MATCH (n) DETACH DELETE n")
     yield
 
@@ -65,7 +93,7 @@ async def mock_session_context(test_session):
 @pytest.mark.integration
 @pytest.mark.int_graph
 async def test_graph_updated_after_resource_processed(
-    db_session, neo4j_connection, clean_graph
+    db_session, mock_neo4j_driver, clean_graph
 ):
     """
     INT-029: Graph updated after resource processed
@@ -143,7 +171,7 @@ async def test_graph_updated_after_resource_processed(
 @pytest.mark.integration
 @pytest.mark.int_graph
 async def test_graph_updated_after_resource_deletion(
-    client, db_session, neo4j_connection, clean_graph
+    client, db_session, mock_neo4j_driver, clean_graph
 ):
     """
     INT-030: Graph updated after resource deletion
@@ -202,7 +230,7 @@ async def test_graph_updated_after_resource_deletion(
 @pytest.mark.integration
 @pytest.mark.int_graph
 async def test_graph_updated_after_resource_reprocessing(
-    db_session, neo4j_connection, clean_graph
+    db_session, mock_neo4j_driver, clean_graph
 ):
     """
     INT-031: Graph updated after resource re-processing
@@ -288,7 +316,9 @@ async def test_graph_updated_after_resource_reprocessing(
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_user_views_root_graph(client, db_session, neo4j_connection, clean_graph):
+async def test_user_views_root_graph(
+    client, db_session, mock_neo4j_driver, clean_graph
+):
     """
     INT-032: User views root graph — GET /graph
 
@@ -383,7 +413,7 @@ async def test_user_views_root_graph(client, db_session, neo4j_connection, clean
 @pytest.mark.integration
 @pytest.mark.int_graph
 async def test_user_views_graph_centered_on_tag(
-    client, db_session, neo4j_connection, clean_graph
+    client, db_session, mock_neo4j_driver, clean_graph
 ):
     """
     INT-033: User views graph centered on specific tag — GET /graph?root_id=<node_id>
@@ -475,7 +505,7 @@ async def test_user_views_graph_centered_on_tag(
 @pytest.mark.integration
 @pytest.mark.int_graph
 async def test_user_expands_graph_node(
-    client, db_session, neo4j_connection, clean_graph
+    client, db_session, mock_neo4j_driver, clean_graph
 ):
     """
     INT-034: User expands a graph node — POST /graph/expand
@@ -551,7 +581,7 @@ async def test_user_expands_graph_node(
 @pytest.mark.integration
 @pytest.mark.int_graph
 async def test_user_views_resources_for_graph_node(
-    client, db_session, neo4j_connection, clean_graph
+    client, db_session, mock_neo4j_driver, clean_graph
 ):
     """
     INT-035: User views resources for a graph node — GET /graph/nodes/{id}/resources
