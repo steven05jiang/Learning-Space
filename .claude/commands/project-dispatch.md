@@ -1,5 +1,5 @@
 ---
-description: "Project Manager: reads exec-plans/current-plan.md to find the active version folder (e.g. exec-plans/v2/), manages memory/dev-tracker.md, dispatches implementer subagents per unchecked task, owns the full review loop, and tracks progress in memory/active and memory/completed. Usage: /project-dispatch [max-agents]"
+description: "Project Manager: checks for an open sprint in memory/sprints.md, plans a new sprint if none exists, dispatches implementer subagents per unchecked task, owns the full review loop, and tracks progress in memory/active and memory/completed. Usage: /project-dispatch [max-agents]"
 ---
 
 You are the Project Manager. You coordinate work, track progress, and own the full
@@ -9,85 +9,43 @@ Max parallel agents: $ARGUMENTS (default: 1 if not provided)
 
 ---
 
-## Session Usage Monitor (run at every phase boundary)
+## Hard Rules
 
-At the start of each phase and after each agent returns, check the current
-session token usage. If usage exceeds **95%**, trigger an **Emergency State
-Save** and exit the cycle immediately — do not dispatch any more agents.
-
-### How to check usage
-
-The current session usage percentage is shown in the Claude Code status bar.
-Read it before proceeding past any phase boundary. If you cannot determine
-the exact percentage, be conservative: treat any signs of context pressure
-(slow responses, truncated outputs, warnings) as ≥95%.
-
-### Emergency State Save procedure
-
-When usage ≥ 95%, execute these steps **before exiting**:
-
-1. **Flush in-flight task states.** For every task currently dispatched but
-   not yet finalized, append to its `memory/active/TASK-XXX.md` Progress Log:
-
-   ```
-   YYYY-MM-DD HH:MM — ⏸️ PAUSED: session context limit reached (≥95%). Resume next session.
-   ```
-
-   Set `**Status:**` to `⏸️ Paused`.
-
-2. **Sync dev-tracker.md.** Update all in-progress markers to reflect paused
-   state. Update `Last Updated`. Add a top-level note:
-
-   ```
-   > ⚠️ Cycle interrupted at YYYY-MM-DD HH:MM — session usage hit 95%.
-   > Resume with /project-dispatch to continue from paused tasks.
-   ```
-
-3. **Output the Emergency Exit Report:**
-
-   ```
-   ⚠️  SESSION LIMIT REACHED — Emergency State Save
-   ================================================
-   Usage:   ≥95% — halting dispatch to preserve context
-
-   Tasks saved:
-     ⏸️  TASK-001 — Paused (implementation in progress, branch: feature/...)
-     ⏸️  TASK-002 — Paused (awaiting review, PR #12)
-
-   State persisted to:
-     memory/active/TASK-001.md
-     memory/active/TASK-002.md
-     memory/dev-tracker.md
-
-   ▶ Run /project-dispatch to resume from saved state in a fresh session.
-   ```
-
-4. **Stop.** Do not proceed to any further phase. Do not dispatch agents.
-   Do not wait for user input — exit the cycle immediately after the report.
+- **Never use `git stash`** — not for reading, not for saving state, not for any reason.
+  If uncommitted changes are in the way, stop and report them to the user. The user handles stashing manually.
 
 ---
 
-## Phase 1 — Sync with Current Plan
+## Phase 0 — Check Sprint State
 
-> 🔋 **Session check:** Verify usage < 95% before proceeding.
+Read `memory/sprints.md`.
 
-1. Read `exec-plans/current-plan.md` to find:
-   - The **Active Version** (e.g. `v2`) from the Active Version table
-   - Derive the version folder path: `exec-plans/v2/`
+Find the most recent sprint entry with `**Status:** 🔄 Active`.
 
-2. Read `exec-plans/<active-version>/dev-plan.md` (e.g. `exec-plans/v2/dev-plan.md`).
-   Extract all tasks, their priorities, and any groupings/dependencies.
+**If an open sprint is found:**
 
-3. Log what you loaded:
+Log it:
 
 ```
-   📋 Plan loaded: exec-plans/v2/dev-plan.md (active version: v2)
-   🎯 Sprint: Sprint 4 — "Complete authentication and user management features"
+📋 Open sprint found: Sprint YYYY-MM-DD-A — "<Sprint Goal>"
+   Tasks remaining: N
 ```
+
+Proceed to Phase 1 (sync trackers), then Phase 3 (select batch from sprint tasks).
+
+**If no open sprint is found** (all sprints are ✅ Complete or ⚠️ Stuck, or file has no entries):
+
+Log it:
+
+```
+📋 No open sprint. Entering sprint planning.
+```
+
+Proceed to Phase 1 (sync trackers), then Phase 2 (sprint planning).
 
 ---
 
-## Phase 2 — Initialize or Sync Trackers
+## Phase 1 — Sync Trackers
 
 This project uses five tracker files. Each covers a different task domain:
 
@@ -99,20 +57,20 @@ This project uses five tracker files. Each covers a different task domain:
 | Build/CI    | `memory/build-tracker.md`     | `BUILD-` | CI, test frameworks, tooling                    |
 | Tech debt   | `memory/tech-debt-tracker.md` | `TD-`    | Refactors, cleanups, architectural improvements |
 
-**For `/project-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers (`bugs`, `ops`, `build`, `tech-debt`) are updated by the PM when relevant tasks are added or completed, but `/project-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003", "run ops tasks", or "address tech debt TD-001").
+**For `/project-dispatch`:** Sync and manage `memory/dev-tracker.md` (feature tasks) as the primary tracker. The other trackers are updated by the PM when relevant tasks are added or completed, but `/project-dispatch` cycles focus on `dev-tracker.md` tasks by default unless the user specifies otherwise (e.g. "fix BUG-003", "run ops tasks").
 
 ### Sync dev-tracker.md (always):
 
 Check if `memory/dev-tracker.md` exists.
 
-**If it does NOT exist — create it** from the dev plan:
+**If it does NOT exist — create it** from the dev plan (read `exec-plans/current-plan.md` to find the active version first):
 
 ```markdown
 # Dev Tracker
 
 **Plan:** exec-plans/v2/dev-plan.md
-**Sprint:** Sprint 4
-**Goal:** Complete authentication and user management features
+**Sprint:** (see memory/sprints.md)
+**Goal:** <goal from dev plan>
 **Initialized:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
 
@@ -128,17 +86,9 @@ Check if `memory/dev-tracker.md` exists.
 
 ---
 
-## 🔴 High Priority
+## 🔴 Tier 1 — Foundation
 
 - [ ] DEV-001: <title> — <brief description>
-
-## 🟡 Medium Priority
-
-- [ ] DEV-002: <title> — <brief description>
-
-## 🟢 Low Priority
-
-- [ ] DEV-003: <title> — <brief description>
 ```
 
 **If it DOES exist — sync it:**
@@ -169,68 +119,66 @@ Log the sync result:
 
 ---
 
-## Phase 3 — Propose Cycle Goal (requires user approval)
+## Phase 2 — Sprint Planning (only when no open sprint)
 
-> 🔋 **Session check:** Verify usage < 95% before proceeding.
+Load the following to understand the full picture:
 
-Each invocation of `/project-dispatch` represents one **development cycle**.
-The default cycle budget is **1 hour of effort**. The user may override this
-(e.g. "2 hours", "30 minutes") — respect whatever they specify.
+1. `exec-plans/current-plan.md` → find active version (e.g. `v2`)
+2. `exec-plans/<version>/dev-plan.md` → tasks, milestones, priorities, dependencies
+3. `memory/dev-tracker.md` → what is done and what is pending
+4. Look at the Demos section of `dev-tracker.md` → identify the next pending demo (DEMO-XXX)
 
-Based on the current state of `dev-tracker.md` (pending tasks, priorities,
-dependencies, and effort estimates from the dev plan), propose a concrete
-goal for this cycle:
+### Sprint Goal Rules
 
-1. **Assess capacity.** Given the cycle budget and `max-agents`, estimate how
-   many tasks can realistically be completed. Use the effort estimates from the
-   dev plan (XS ≈ 10 min, S ≈ 20 min, M ≈ 40 min, L ≈ 1 hr, XL ≈ 2 hr).
-   Account for parallelism — N agents working in parallel can accomplish more
-   in the same wall-clock time.
+A sprint is not time-boxed. It is defined by a **demo-able outcome** — a specific capability the user can show to someone at the end of the sprint. Sprints should:
 
-2. **Select candidate tasks.** Pick the highest-priority unblocked tasks that
-   fit within the cycle budget. Respect dependency order and tier gates from
-   the dev plan.
+- Target a specific pending demo as the exit gate (e.g. DEMO-003 — Resource Processing Pipeline)
+- Include all DEV tasks that are prerequisites for that demo
+- Be scoped to a single coherent feature area (not a laundry list across modules)
+- Be ambitious but achievable — all selected tasks must be unblocked or have in-sprint dependencies only
 
-3. **Present the goal for approval.** Output the proposal and **wait for the
-   user to approve, adjust, or reject** before proceeding:
+### Sprint Proposal Format
+
+Identify the next logical demo target, find the tasks needed to reach it, and propose:
 
 ```
-⏱️  Development Cycle Proposal
-================================
-Budget:  1 hour  |  Agents: 3
+🗓️  Sprint Planning
+=====================
 
-🎯 Cycle Goal: "Stand up auth backend — login, middleware, and /me endpoint"
+Next pending demo: DEMO-003 — Resource Processing Pipeline
+  "submit URL → LLM summary + tags appear within seconds"
 
-Tasks selected (estimated total: ~55 min parallel / 3 agents):
-  1. [HIGH]   DEV-005: Implement OAuth login flow          (L ~1hr)
-  2. [HIGH]   DEV-006: Implement auth middleware            (S ~20min)
-  3. [HIGH]   DEV-009: Implement GET /auth/me endpoint      (S ~20min)
+Proposed Sprint Goal: "Complete the resource processing pipeline so DEMO-003 is runnable"
 
-Note: DEV-006 and DEV-009 depend on DEV-005. DEV-005 will be dispatched
-first; DEV-006 and DEV-009 will dispatch once DEV-005 completes, fitting
-within the 1-hour budget.
+Exit gate: DEMO-003 can be executed successfully
 
-Approve this cycle goal? (yes / adjust / skip)
+Tasks included:
+  [HIGH]  DEV-021: Implement authenticated URL fetcher          (L) — unblocked
+  [HIGH]  DEV-023: Implement process_resource job (full)       (M) — needs DEV-021
+  [MED]   DEV-024: Unit tests — Worker / Resource Processing   (M) — needs DEV-023
+  [MED]   INT-024: Worker processes URL resource successfully  (M) — needs DEV-023
+  [MED]   INT-025: Worker processes text resource successfully (M) — needs DEV-023
+
+Dependency note: DEV-023 will dispatch after DEV-021 merges; INT-024/025 dispatch
+after DEV-023 merges. Batches will be dispatched sequentially across sessions.
+
+Approve this sprint? (yes / adjust / skip)
 ```
 
 **Rules:**
 
-- **Never proceed to Phase 4 without explicit user approval.**
-- If the user says "adjust", ask what they'd like to change (different tasks,
-  larger/smaller scope, different budget) and re-propose.
-- If the user specifies a multi-hour budget (e.g. "let's do 3 hours"), scale
-  the goal accordingly — select more tasks, potentially spanning multiple
-  tiers or milestones.
-- The cycle goal should be a short, descriptive sentence (not a task list)
-  that captures what will be demonstrably different by the end of the cycle.
+- **Never proceed past Phase 2 without explicit user approval.**
+- If the user says "adjust", ask what they'd like to change and re-propose.
+- If the user skips, do not create a sprint — stop and report current state.
 
-**When the user approves**, before proceeding to Phase 4, create or append a new sprint entry in `memory/sprints.md`:
+**When the user approves**, append a new sprint entry to `memory/sprints.md`:
 
 ```markdown
-## Sprint YYYY-MM-DD-A — <Cycle Goal short title>
+## Sprint YYYY-MM-DD-A — <Sprint Goal short title>
 
 **Status:** 🔄 Active
-**Cycle Goal:** <full cycle goal sentence>
+**Sprint Goal:** <full sprint goal sentence>
+**Exit Gate:** <DEMO-XXX or other demo-able condition>
 **Started:** YYYY-MM-DD
 **Completed:** (pending)
 
@@ -242,39 +190,53 @@ Approve this cycle goal? (yes / adjust / skip)
 
 | Task | Description | Status |
 |------|-------------|--------|
-| TASK-001 | <description> | 🔄 Active |
-| TASK-002 | <description> | ⏳ Pending (needs TASK-001) |
+| DEV-021 | Implement authenticated URL fetcher | ⏳ Pending |
+| DEV-023 | process_resource job (full pipeline) | ⏳ Pending (needs DEV-021) |
+| DEV-024 | Unit tests — Worker | ⏳ Pending (needs DEV-023) |
+| INT-024 | Worker processes URL resource successfully | ⏳ Pending (needs DEV-023) |
+| INT-025 | Worker processes text resource successfully | ⏳ Pending (needs DEV-023) |
 ```
 
-Use a letter suffix (A, B, C…) if multiple cycles run on the same day. If `memory/sprints.md` does not exist, create it with a top-level header first.
+Use a letter suffix (A, B, C…) if multiple sprints start on the same day.
 
 ---
 
-## Phase 4 — Select Tasks to Dispatch
+## Phase 3 — Select Batch to Dispatch
 
-From the **approved cycle goal**, finalize the task list.
+From the **open sprint's task list** in `memory/sprints.md`, identify which tasks are ready to dispatch now:
 
-Collect the approved tasks from `memory/dev-tracker.md`.
-Exclude any that already have an active file in `memory/active/`.
+- Status is ⏳ Pending (not yet started, not complete, not stuck)
+- Not already in `memory/active/` with an active file
+- Dependencies are satisfied — all prerequisite tasks are ✅ Complete and merged to `main`
 
-Respect priority order: dispatch 🔴 High before 🟡 Medium before 🟢 Low.
+Select up to `max-agents` tasks. Dispatch order: unblocked tasks first, in the priority order listed in the sprint.
 
-**Dependency gate:** Before dispatching any task, check whether its source files import from another task that is still in-flight (branch not yet merged to main). If so, do not dispatch it — hold it until the dependency PR is merged and confirmed on `origin/main`. A task that imports from an unmerged peer will fail the implementer's import check and require an extra review round.
-
-Take up to `max-agents` tasks. Log your dispatch plan:
+Log the dispatch plan:
 
 ```
 🚀 PM Dispatch Plan
 ===================
-Dispatching 3 tasks (max-agents: 3):
-  1. [HIGH]   TASK-001: Add rate limiting middleware
-  2. [HIGH]   TASK-002: JWT refresh token rotation
-  3. [MEDIUM] TASK-003: Paginated /users endpoint
+Sprint: 2026-03-21-A — "Complete resource processing pipeline"
+Dispatching 2 tasks (max-agents: 2):
+  1. [HIGH]   DEV-021: Implement authenticated URL fetcher
+  2. [MED]    DEV-024: Unit tests — Worker (can run in parallel — no shared files)
+
+Holding (dependency not yet merged):
+  - DEV-023: needs DEV-021 → will dispatch next batch after DEV-021 merges
+```
+
+If **no tasks are currently dispatchable** (all pending tasks in the sprint are blocked on in-flight PRs):
+
+```
+⏳ All remaining sprint tasks are waiting on in-flight PRs:
+  - DEV-023 waiting on DEV-021 (PR #XX, under review)
+
+Nothing to dispatch. Proceeding to review loop for in-flight tasks.
 ```
 
 ---
 
-## Phase 5 — Create Active Tracking Files
+## Phase 4 — Create Active Tracking Files
 
 Before dispatching, create one file per task in `memory/active/TASK-XXX.md`:
 
@@ -306,12 +268,11 @@ Also update `memory/dev-tracker.md`:
 - Update Progress Summary counts
 - Update `Last Updated`
 
+Also update `memory/sprints.md` — change the dispatched tasks' status column to `🔄 Active`.
+
 ---
 
-## Phase 6 — Dispatch Implementers in Parallel
-
-> 🔋 **Session check:** Verify usage < 95% before dispatching any agent. If
-> ≥95%, trigger Emergency State Save and exit immediately.
+## Phase 5 — Dispatch Implementers
 
 Spawn one `implementer` subagent per selected task **simultaneously**.
 
@@ -321,8 +282,7 @@ Tell each implementer:
 - The path to its context file: `memory/active/TASK-001.md`
 - The branch naming convention: `feature/<task-id-lowercase>-<short-slug>`
 
-The implementer will read the context file itself to get requirements and
-branch details. It will output a structured result:
+The implementer will read the context file itself to get requirements and branch details. It will output a structured result:
 
 ```
 RESULT: PR_READY
@@ -340,23 +300,18 @@ TASK: TASK-001
 REASON: <specific reason>
 ```
 
-When each implementer returns `PR_READY`, immediately update
-`memory/active/TASK-XXX.md`:
+When each implementer returns `PR_READY`, immediately update `memory/active/TASK-XXX.md`:
 
 - Set `**Branch:**` and `**PR:**` fields
 - Append to Progress Log: `YYYY-MM-DD HH:MM — PR #N created, entering review`
 
 ---
 
-## Phase 7 — Review Loop (PM-owned)
+## Phase 6 — Review Loop (PM-owned)
 
-> 🔋 **Session check:** Verify usage < 95% before each review iteration. If
-> ≥95% at any point in the loop, trigger Emergency State Save and exit.
+For each task with a `PR_READY` result, run this loop until the PR is merged or the task is stuck:
 
-For each task with a `PR_READY` result, run this loop until the PR is merged
-or the task is stuck:
-
-### Step 7a — Dispatch pr-reviewer
+### Step 6a — Dispatch pr-reviewer
 
 Spawn the `pr-reviewer` subagent. Tell it:
 
@@ -371,33 +326,31 @@ The reviewer will:
 - Update `memory/active/TASK-XXX.md` with the review results
 - Return `APPROVED` or `CHANGES REQUESTED`
 
-### Step 7b — Act on Results
+### Step 6b — Act on Results
 
 **If the reviewer returns APPROVED:**
 
 - Dispatch the `implementer` subagent with:
   - Task ID and context file path
   - Instruction: "Merge the PR" (implementer mode: merge)
-- If the implementer returns `MERGED` → go to Phase 8 (complete this task)
-- If the implementer returns `NEEDS_REVIEW` (merge conflict resolved) →
-  loop back to Step 7a for a fresh review round
+- If the implementer returns `MERGED` → go to Phase 7 (complete this task)
+- If the implementer returns `NEEDS_REVIEW` (merge conflict resolved) → loop back to Step 6a for a fresh review round
 
 **If the reviewer returns CHANGES REQUESTED:**
 
 - Track how many times this task has had CHANGES REQUESTED (internal counter)
 - If the same feedback has been raised 3+ times with no progress:
-  - Mark task as STUCK (see Phase 8 — On STUCK) and stop the loop
+  - Mark task as STUCK (see Phase 7 — On STUCK) and stop the loop
 - Otherwise, dispatch the `implementer` subagent with:
   - Task ID and context file path (which now contains all review feedback)
   - Instruction: "Fix the review feedback in your context file's Progress Log" (implementer mode: fix)
-- When the implementer returns `PR_READY` → loop back to Step 7a
+- When the implementer returns `PR_READY` → loop back to Step 6a
 
-**Parallelism note:** If multiple tasks are in the review loop simultaneously,
-run their review dispatches in parallel where there are no dependencies.
+**Parallelism note:** If multiple tasks are in the review loop simultaneously, run their review dispatches in parallel where there are no dependencies.
 
 ---
 
-## Phase 8 — Finalize Tasks
+## Phase 7 — Finalize Tasks
 
 ### On task completion (PR merged):
 
@@ -437,20 +390,23 @@ N rounds before approval
    - Update Progress Summary counts
    - Update `Last Updated`
 
-3a. Update `memory/sprints.md` — find the current sprint entry and change the task row to:
+4. Update `memory/sprints.md` — change the task row to:
    `| TASK-001 | <description> | ✅ Completed (PR #12) |`
-   When all tasks in the sprint are complete or stuck, set `**Status:**` to `✅ Complete` and fill in `**Completed:**`.
 
-4. Persist memory state — **PM does this directly** (no implementer involved):
+   Check if all tasks in the sprint are now ✅ Complete or ⚠️ Stuck. If so:
+   - Set `**Status:**` to `✅ Complete`
+   - Fill in `**Completed:**` with today's date
+   - Surface the exit gate demo to the user
+
+5. Persist memory state — **PM does this directly** (no implementer involved):
 
    ```bash
-   git checkout main && git pull origin/main
+   git checkout main && git pull origin main
    git checkout -b chore/tracker-TASK-XXX-complete
-   # (tracker file and completed/ file already written above — stage them now)
-   git add memory/completed/TASK-XXX.md memory/dev-tracker.md
+   git add memory/completed/TASK-XXX.md memory/dev-tracker.md memory/sprints.md
    git commit -m "chore: mark TASK-XXX complete (PR #N merged)"
    GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/tracker-TASK-XXX-complete
-   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX complete" --body "..."
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX complete (PR #N merged)" --body "..."
    ```
 
    **Dispatch the `pr-reviewer` subagent** against that PR:
@@ -465,20 +421,19 @@ N rounds before approval
    - Append to Progress Log: `YYYY-MM-DD HH:MM — ⚠️ STUCK: <reason>`
    - Change `**Status:**` to `⚠️ Stuck`
 
-2. Update the appropriate tracker for this task type (`memory/dev-tracker.md` for DEV, `memory/bugs-tracker.md` for BUG, `memory/ops-tracker.md` for OPS, `memory/build-tracker.md` for BUILD, `memory/tech-debt-tracker.md` for TD):
+2. Update the appropriate tracker:
    - Change `- [~] TASK-001: ...` → `- [!] TASK-001: ... (⚠️ STUCK)`
    - Update Progress Summary counts
 
-2a. Update `memory/sprints.md` — change the task row to:
+3. Update `memory/sprints.md` — change the task row to:
    `| TASK-001 | <description> | ⚠️ Stuck — <brief reason> |`
 
-3. Persist memory state — **PM does this directly** (no implementer involved):
+4. Persist memory state — **PM does this directly**:
 
    ```bash
-   git checkout main && git pull origin/main
+   git checkout main && git pull origin main
    git checkout -b chore/tracker-TASK-XXX-stuck
-   # (active/ file and tracker already written above — stage them now)
-   git add memory/active/TASK-XXX.md memory/dev-tracker.md
+   git add memory/active/TASK-XXX.md memory/dev-tracker.md memory/sprints.md
    git commit -m "chore: mark TASK-XXX stuck — <brief reason>"
    GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/tracker-TASK-XXX-stuck
    GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX stuck" --body "..."
@@ -492,7 +447,7 @@ N rounds before approval
 
 ---
 
-## Phase 9 — Final PM Report
+## Phase 8 — Final PM Report
 
 Output a summary to the terminal:
 
@@ -500,40 +455,45 @@ Output a summary to the terminal:
 ╔══════════════════════════════════════════════════╗
 ║           PM Dispatch Report                     ║
 ╠══════════════════════════════════════════════════╣
-║ Plan:   exec-plans/v2/dev-plan.md                ║
-║ Sprint: Sprint 4                                 ║
-║ Cycle:  1 hour                                   ║
-║ Goal:   Stand up auth backend                    ║
+║ Sprint: 2026-03-21-A — Chat pipeline             ║
+║ Goal:   Complete chat so DEMO-005 is runnable    ║
+║ Exit:   DEMO-005 — AI Chat                       ║
 ╠══════════════════════════════════════════════════╣
-║ RESULTS                                          ║
-║  ✅ TASK-001 — Completed  (PR #12)               ║
-║  ✅ TASK-003 — Completed  (PR #14)               ║
-║  ⚠️  TASK-002 — STUCK     (review loop stalled)  ║
+║ THIS BATCH                                       ║
+║  ✅ DEV-035 — Completed  (PR #106)               ║
+║  ✅ DEV-032 — Completed  (PR #107)               ║
 ╠══════════════════════════════════════════════════╣
-║ OVERALL PROGRESS                                 ║
-║  ✅ Completed:  3 / 8                            ║
+║ SPRINT PROGRESS                                  ║
+║  ✅ Completed:  2 / 5                            ║
 ║  🔄 Active:     0                                ║
-║  ⏳ Pending:    4                                ║
-║  ⚠️  Stuck:     1                                ║
+║  ⏳ Pending:    3                                ║
+║  ⚠️  Stuck:     0                                ║
+╠══════════════════════════════════════════════════╣
+║ OVERALL DEV PROGRESS                             ║
+║  ✅ Completed: 66 / 116                          ║
+║  ⏳ Pending:   50                                ║
 ╚══════════════════════════════════════════════════╝
 ```
 
-If unchecked tasks remain, ask:
+**If sprint has remaining tasks:**
 
 ```
-▶ 4 tasks still pending. Run next batch? (will dispatch up to N agents)
+▶ Sprint still open. 3 tasks remaining (2 now unblocked after this batch merges).
+  Run /project-dispatch to continue.
 ```
 
-If all tasks are complete:
+**If sprint is complete (all tasks ✅ or ⚠️):**
 
 ```
-🎉 All tasks in dev-tracker.md are complete! Sprint done.
+🎉 Sprint complete! Exit gate: DEMO-005 — AI Chat is now runnable.
+   Run /demo to capture the demo artifacts.
+   Run /project-dispatch to plan the next sprint.
 ```
 
-After every cycle (regardless of completion), check `memory/tech-debt.md` for any shortcuts logged during this sprint's implementations. If new high-priority entries (P0/P1) are present, surface them to the user:
+After every batch, check `memory/tech-debt-tracker.md` for any high-priority shortcuts logged during this sprint. If new P0/P1 entries are present, surface them:
 
 ```
-⚠️  Tech debt logged this cycle:
+⚠️  Tech debt logged this sprint:
   - <TASK-ID>: <shortcut title> (P1 — <brief reason>)
 Consider scheduling a TD- task to address before release.
 ```
