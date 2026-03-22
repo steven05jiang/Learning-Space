@@ -1,15 +1,18 @@
 """Tests for conversation and message models."""
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
 
 from models.conversation import MessageRole as ModelMessageRole
 from schemas.conversation import (
     ConversationCreate,
+    ConversationResponse,
     ConversationUpdate,
     MessageCreate,
     MessageResponse,
-    ConversationResponse,
+)
+from schemas.conversation import (
     MessageRole as SchemaMessageRole,
 )
 
@@ -100,11 +103,7 @@ class TestSchemaResponses:
         """Test ConversationResponse can be created."""
         now = datetime.now(UTC)
         data = ConversationResponse(
-            id=1,
-            user_id=1,
-            title="Test",
-            created_at=now,
-            updated_at=now
+            id=1, user_id=1, title="Test", created_at=now, updated_at=now
         )
         assert data.id == 1
         assert data.user_id == 1
@@ -120,7 +119,7 @@ class TestSchemaResponses:
             conversation_id=1,
             role=SchemaMessageRole.USER,
             content="Hello!",
-            created_at=now
+            created_at=now,
         )
         assert data.id == 1
         assert data.conversation_id == 1
