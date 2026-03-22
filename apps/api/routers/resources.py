@@ -12,6 +12,7 @@ from models.database import get_db
 from models.resource import Resource
 from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
+from services.queue_service import queue_service
 from schemas.resource import (
     ContentType,
     ResourceCreate,
@@ -334,11 +335,22 @@ async def delete_resource(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
         )
 
+    # Capture before delete
+    owner_id = resource.owner_id
+    tags = resource.tags or []
+
     # Delete the resource
     await db.delete(resource)
     await db.commit()
 
-    # TODO: enqueue graph_sync job (DEV-019)
+    # Enqueue graph sync (non-blocking — don't await the job result)
+    if tags:
+        try:
+            await queue_service.enqueue_graph_sync(str(resource_id), operation="delete", owner_id=owner_id, tags=tags)
+        except Exception as e:
+            # Don't fail the delete response for graph sync errors
+            logger.warning(f"Graph sync job enqueueing failed for deleted resource {resource_id}: {e}")
+
     logger.info(f"Deleted resource {resource_id} for user {current_user.id}")
 
     # Return 204 No Content (FastAPI automatically handles this with the status_code)
