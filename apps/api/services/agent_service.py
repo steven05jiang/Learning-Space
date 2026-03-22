@@ -1,5 +1,6 @@
 """LangGraph-based conversational agent service for resource queries."""
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -157,7 +158,9 @@ class AgentService:
     async def _search_resources_wrapper(self, query: str) -> str:
         """Wrapper for search_resources tool that handles database session."""
         try:
-            user_id = self._current_user_id or 1  # Fallback for testing
+            if self._current_user_id is None:
+                raise RuntimeError("Agent not initialized with user context")
+            user_id = self._current_user_id
             async for db in get_db():
                 result = await self._search_resources(db, user_id, query)
                 return f"Found {len(result)} resources: {result}"
@@ -182,7 +185,7 @@ class AgentService:
                     func.lower(Resource.summary).contains(search_term),
                     func.lower(Resource.original_content).contains(search_term),
                     Resource.tags.op("@>")(
-                        f'["{query.lower()}"]'
+                        json.dumps([query.lower()])
                     ),  # PostgreSQL contains
                 ),
             )
@@ -211,7 +214,9 @@ class AgentService:
     async def _get_graph_context_wrapper(self, tag: str) -> str:
         """Wrapper for get_graph_context tool."""
         try:
-            user_id = self._current_user_id or 1  # Fallback for testing
+            if self._current_user_id is None:
+                raise RuntimeError("Agent not initialized with user context")
+            user_id = self._current_user_id
             result = await self._get_graph_context(user_id, tag)
             return f"Graph context for '{tag}': {result}"
         except Exception as e:
@@ -240,7 +245,9 @@ class AgentService:
     async def _get_resource_detail_wrapper(self, resource_id: str) -> str:
         """Wrapper for get_resource_detail tool."""
         try:
-            user_id = self._current_user_id or 1  # Fallback for testing
+            if self._current_user_id is None:
+                raise RuntimeError("Agent not initialized with user context")
+            user_id = self._current_user_id
             async for db in get_db():
                 result = await self._get_resource_detail(db, user_id, resource_id)
                 return (

@@ -180,6 +180,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_search_resources_tool(self, agent_service):
         """Test the search_resources tool wrapper."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch("services.agent_service.get_db") as mock_get_db:
             # Mock async generator for database session
             async def mock_generator():
@@ -206,6 +209,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_search_resources_tool_exception(self, agent_service):
         """Test the search_resources tool handles exceptions."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch("services.agent_service.get_db") as mock_get_db:
             mock_get_db.side_effect = Exception("Database connection failed")
 
@@ -217,6 +223,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_get_graph_context_tool(self, agent_service):
         """Test the get_graph_context tool wrapper."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch.object(agent_service, "_get_graph_context") as mock_context:
             mock_context.return_value = {
                 "root_tag": "python",
@@ -232,6 +241,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_get_graph_context_tool_exception(self, agent_service):
         """Test the get_graph_context tool handles exceptions."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch.object(agent_service, "_get_graph_context") as mock_context:
             mock_context.side_effect = Exception("Graph service failed")
 
@@ -243,6 +255,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_get_resource_detail_tool(self, agent_service):
         """Test the get_resource_detail tool wrapper."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch("services.agent_service.get_db") as mock_get_db:
             # Mock async generator for database session
             async def mock_generator():
@@ -266,6 +281,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_get_resource_detail_tool_not_found(self, agent_service):
         """Test the get_resource_detail tool when resource not found."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch("services.agent_service.get_db") as mock_get_db:
             # Mock async generator for database session
             async def mock_generator():
@@ -284,6 +302,9 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_get_resource_detail_tool_exception(self, agent_service):
         """Test the get_resource_detail tool handles exceptions."""
+        # Set user context for security fix
+        agent_service._current_user_id = 1
+
         with patch("services.agent_service.get_db") as mock_get_db:
             mock_get_db.side_effect = Exception("Database error")
 
