@@ -4,12 +4,11 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import Tool
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph, MessagesState
+from langgraph.graph import MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
-from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,8 +16,7 @@ from core.config import settings
 from models.database import get_db
 from models.resource import Resource
 from models.user import User
-from schemas.agent import AgentQuery, AgentResponse, ConversationMessage, ToolCallResult
-from schemas.resource import ContentType, ResourceStatus
+from schemas.agent import AgentQuery, AgentResponse, ToolCallResult
 from services.graph_service import graph_service
 
 logger = logging.getLogger(__name__)
@@ -32,7 +30,7 @@ class AgentState(MessagesState):
 
 
 class AgentService:
-    """LangGraph-based conversational agent that can answer questions about user resources."""
+    """LangGraph-based conversational agent for user resource queries."""
 
     def __init__(self):
         """Initialize the agent service with LLM and tools."""
@@ -47,8 +45,11 @@ class AgentService:
         if self._initialized:
             return
 
-        if not settings.anthropic_api_key or settings.anthropic_api_key == "test-anthropic-key-for-development":
-            logger.warning("Anthropic API key not configured - agent will not work properly")
+        if (
+            not settings.anthropic_api_key
+            or settings.anthropic_api_key == "test-anthropic-key-for-development"
+        ):
+            logger.warning("Anthropic API key not configured - agent will not work")
             self._initialized = False
             return
 
@@ -100,17 +101,26 @@ class AgentService:
         return [
             Tool(
                 name="search_resources",
-                description="Search user's resources by text content, title, summary, or tags. Use this to find relevant resources based on a query.",
+                description=(
+                    "Search user's resources by text content, title, summary, or tags. "
+                    "Use this to find relevant resources based on a query."
+                ),
                 func=self._search_resources_wrapper,
             ),
             Tool(
                 name="get_graph_context",
-                description="Get related tags and concepts from the user's knowledge graph. Use this to explore topic relationships.",
+                description=(
+                    "Get related tags and concepts from the user's knowledge graph. "
+                    "Use this to explore topic relationships."
+                ),
                 func=self._get_graph_context_wrapper,
             ),
             Tool(
                 name="get_resource_detail",
-                description="Get full details for a specific resource by ID. Use this to get complete information about a resource.",
+                description=(
+                    "Get full details for a specific resource by ID. "
+                    "Use this to get complete information about a resource."
+                ),
                 func=self._get_resource_detail_wrapper,
             ),
         ]
@@ -119,7 +129,11 @@ class AgentService:
         """Call the model with the current state."""
         if not self.llm:
             logger.error("LLM not initialized")
-            return {"messages": [AIMessage(content="Sorry, the AI service is not available.")]}
+            return {
+                "messages": [
+                    AIMessage(content="Sorry, the AI service is not available.")
+                ]
+            }
 
         # Bind tools to the model
         tools = await self._create_tools()
@@ -151,21 +165,29 @@ class AgentService:
             logger.error(f"Error searching resources: {e}")
             return f"Error searching resources: {str(e)}"
 
-    async def _search_resources(self, db: AsyncSession, user_id: int, query: str) -> List[Dict[str, Any]]:
+    async def _search_resources(
+        self, db: AsyncSession, user_id: int, query: str
+    ) -> List[Dict[str, Any]]:
         """Search user's resources by content, title, summary, or tags."""
         search_term = f"%{query.lower()}%"
 
         # Search across title, summary, original_content, and tags
-        search_query = select(Resource).where(
-            Resource.owner_id == user_id,
-            Resource.status == "READY",  # Only search ready resources
-            or_(
-                func.lower(Resource.title).contains(search_term),
-                func.lower(Resource.summary).contains(search_term),
-                func.lower(Resource.original_content).contains(search_term),
-                Resource.tags.op("@>")(f'["{query.lower()}"]'),  # PostgreSQL array contains
-            ),
-        ).limit(5)  # Limit to 5 most relevant results
+        search_query = (
+            select(Resource)
+            .where(
+                Resource.owner_id == user_id,
+                Resource.status == "READY",  # Only search ready resources
+                or_(
+                    func.lower(Resource.title).contains(search_term),
+                    func.lower(Resource.summary).contains(search_term),
+                    func.lower(Resource.original_content).contains(search_term),
+                    Resource.tags.op("@>")(
+                        f'["{query.lower()}"]'
+                    ),  # PostgreSQL contains
+                ),
+            )
+            .limit(5)
+        )  # Limit to 5 most relevant results
 
         result = await db.execute(search_query)
         resources = result.scalars().all()
@@ -177,7 +199,11 @@ class AgentService:
                 "summary": resource.summary,
                 "tags": resource.tags or [],
                 "content_type": resource.content_type,
-                "url": resource.original_content if resource.content_type == "url" else None,
+                "url": (
+                    resource.original_content
+                    if resource.content_type == "url"
+                    else None
+                ),
             }
             for resource in resources
         ]
@@ -198,11 +224,15 @@ class AgentService:
         graph_data = await graph_service.get_graph(user_id, root=tag)
 
         # Get neighbors for additional context
-        neighbors_data = await graph_service.get_neighbors(user_id, tag, direction="both")
+        neighbors_data = await graph_service.get_neighbors(
+            user_id, tag, direction="both"
+        )
 
         return {
             "root_tag": tag,
-            "related_nodes": [node["id"] for node in graph_data.get("nodes", []) if node["id"] != tag],
+            "related_nodes": [
+                node["id"] for node in graph_data.get("nodes", []) if node["id"] != tag
+            ],
             "connections": len(graph_data.get("edges", [])),
             "neighbors": [node["id"] for node in neighbors_data.get("nodes", [])],
         }
@@ -213,12 +243,18 @@ class AgentService:
             user_id = self._current_user_id or 1  # Fallback for testing
             async for db in get_db():
                 result = await self._get_resource_detail(db, user_id, resource_id)
-                return f"Resource details: {result}" if result else f"Resource {resource_id} not found"
+                return (
+                    f"Resource details: {result}"
+                    if result
+                    else f"Resource {resource_id} not found"
+                )
         except Exception as e:
             logger.error(f"Error getting resource detail: {e}")
             return f"Error getting resource detail: {str(e)}"
 
-    async def _get_resource_detail(self, db: AsyncSession, user_id: int, resource_id: str) -> Optional[Dict[str, Any]]:
+    async def _get_resource_detail(
+        self, db: AsyncSession, user_id: int, resource_id: str
+    ) -> Optional[Dict[str, Any]]:
         """Get full details for a specific resource."""
         try:
             resource_id_int = int(resource_id)
@@ -253,7 +289,10 @@ class AgentService:
 
         if not self._initialized or not self.graph:
             return AgentResponse(
-                response="Sorry, the AI agent is not available. Please check the configuration.",
+                response=(
+                    "Sorry, the AI agent is not available. "
+                    "Please check the configuration."
+                ),
                 sources=None,
             )
 
@@ -278,13 +317,16 @@ class AgentService:
 
             # Run the graph
             final_state = await self.graph.ainvoke(
-                {"messages": messages, "user_id": user.id},
-                config=config
+                {"messages": messages, "user_id": user.id}, config=config
             )
 
             # Extract the response
             last_message = final_state["messages"][-1]
-            response_content = last_message.content if hasattr(last_message, "content") else str(last_message)
+            response_content = (
+                last_message.content
+                if hasattr(last_message, "content")
+                else str(last_message)
+            )
 
             # Extract any tool results for sources
             sources = final_state.get("tool_results", [])
@@ -297,7 +339,10 @@ class AgentService:
         except Exception as e:
             logger.error(f"Error processing agent query: {e}", exc_info=True)
             return AgentResponse(
-                response="Sorry, I encountered an error while processing your query. Please try again.",
+                response=(
+                    "Sorry, I encountered an error while processing your query. "
+                    "Please try again."
+                ),
                 sources=None,
             )
         finally:

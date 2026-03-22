@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # LLM/AI Settings
     anthropic_api_key: str = ""  # Optional for development
-    anthropic_model: str = "claude-haiku-4-5-20251001"  # Default model for LLM operations
+    anthropic_model: str = "claude-haiku-4-5-20251001"  # Default model
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

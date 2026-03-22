@@ -1,7 +1,6 @@
 """Tests for the agent service."""
 
 from unittest.mock import AsyncMock, Mock, patch
-from uuid import uuid4
 
 import pytest
 
@@ -108,16 +107,20 @@ class TestAgentService:
             assert "not available" in response.response
             assert response.sources is None
 
-    async def test_query_with_empty_conversation_history(self, agent_service_with_mocked_llm, mock_user):
+    async def test_query_with_empty_conversation_history(
+        self, agent_service_with_mocked_llm, mock_user
+    ):
         """Test query with no conversation history."""
         query = AgentQuery(query="What resources do I have about Python?")
 
         # Mock the graph execution
         mock_final_state = {
             "messages": [Mock(content="I found 3 resources about Python.")],
-            "tool_results": []
+            "tool_results": [],
         }
-        agent_service_with_mocked_llm.graph.ainvoke = AsyncMock(return_value=mock_final_state)
+        agent_service_with_mocked_llm.graph.ainvoke = AsyncMock(
+            return_value=mock_final_state
+        )
 
         response = await agent_service_with_mocked_llm.query(mock_user, query)
 
@@ -125,23 +128,31 @@ class TestAgentService:
         assert "Python" in response.response
         assert response.sources is None
 
-    async def test_query_with_conversation_history(self, agent_service_with_mocked_llm, mock_user):
+    async def test_query_with_conversation_history(
+        self, agent_service_with_mocked_llm, mock_user
+    ):
         """Test query with conversation history."""
         conversation_history = [
             ConversationMessage(role="user", content="Hello"),
-            ConversationMessage(role="assistant", content="Hi! How can I help you today?"),
+            ConversationMessage(
+                role="assistant", content="Hi! How can I help you today?"
+            ),
         ]
         query = AgentQuery(
             query="Tell me about my machine learning resources",
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
         )
 
         # Mock the graph execution
         mock_final_state = {
             "messages": [Mock(content="You have 5 machine learning resources.")],
-            "tool_results": [{"tool": "search_resources", "results": ["resource1", "resource2"]}]
+            "tool_results": [
+                {"tool": "search_resources", "results": ["resource1", "resource2"]}
+            ],
         }
-        agent_service_with_mocked_llm.graph.ainvoke = AsyncMock(return_value=mock_final_state)
+        agent_service_with_mocked_llm.graph.ainvoke = AsyncMock(
+            return_value=mock_final_state
+        )
 
         response = await agent_service_with_mocked_llm.query(mock_user, query)
 
@@ -149,7 +160,9 @@ class TestAgentService:
         assert "machine learning" in response.response
         assert response.sources is not None
 
-    async def test_query_handles_exception(self, agent_service_with_mocked_llm, mock_user):
+    async def test_query_handles_exception(
+        self, agent_service_with_mocked_llm, mock_user
+    ):
         """Test query handles exceptions gracefully."""
         query = AgentQuery(query="What resources do I have?")
 
@@ -177,7 +190,11 @@ class TestAgentService:
             # Mock the search results
             with patch.object(agent_service, "_search_resources") as mock_search:
                 mock_search.return_value = [
-                    {"id": "1", "title": "Python Guide", "tags": ["python", "programming"]}
+                    {
+                        "id": "1",
+                        "title": "Python Guide",
+                        "tags": ["python", "programming"],
+                    }
                 ]
 
                 result = await agent_service._search_resources_wrapper("Python")
@@ -204,7 +221,7 @@ class TestAgentService:
             mock_context.return_value = {
                 "root_tag": "python",
                 "related_nodes": ["machine-learning", "web-development"],
-                "connections": 3
+                "connections": 3,
             }
 
             result = await agent_service._get_graph_context_wrapper("python")
@@ -237,7 +254,7 @@ class TestAgentService:
                 mock_detail.return_value = {
                     "id": "123",
                     "title": "Python Tutorial",
-                    "summary": "Complete Python guide"
+                    "summary": "Complete Python guide",
                 }
 
                 result = await agent_service._get_resource_detail_wrapper("123")
@@ -299,7 +316,10 @@ class TestAgentService:
 
         # Mock database query result
         mock_result = Mock()
-        mock_result.scalars.return_value.all.return_value = [mock_resource1, mock_resource2]
+        mock_result.scalars.return_value.all.return_value = [
+            mock_resource1,
+            mock_resource2,
+        ]
         mock_db.execute.return_value = mock_result
 
         resources = await agent_service._search_resources(mock_db, 1, "Python")
@@ -313,18 +333,24 @@ class TestAgentService:
         """Test the _get_graph_context implementation."""
         with patch("services.agent_service.graph_service") as mock_graph_service:
             # Mock graph service responses as async functions
-            mock_graph_service.get_graph = AsyncMock(return_value={
-                "nodes": [
-                    {"id": "python", "label": "python"},
-                    {"id": "machine-learning", "label": "machine-learning"},
-                ],
-                "edges": [{"source": "python", "target": "machine-learning", "weight": 5}]
-            })
+            mock_graph_service.get_graph = AsyncMock(
+                return_value={
+                    "nodes": [
+                        {"id": "python", "label": "python"},
+                        {"id": "machine-learning", "label": "machine-learning"},
+                    ],
+                    "edges": [
+                        {"source": "python", "target": "machine-learning", "weight": 5}
+                    ],
+                }
+            )
 
-            mock_graph_service.get_neighbors = AsyncMock(return_value={
-                "nodes": [{"id": "web-development", "label": "web-development"}],
-                "edges": []
-            })
+            mock_graph_service.get_neighbors = AsyncMock(
+                return_value={
+                    "nodes": [{"id": "web-development", "label": "web-development"}],
+                    "edges": [],
+                }
+            )
 
             result = await agent_service._get_graph_context(1, "python")
 
@@ -385,7 +411,9 @@ class TestAgentService:
     def test_should_continue_with_tool_calls(self, agent_service):
         """Test _should_continue when message has tool calls."""
         mock_message = Mock()
-        mock_message.tool_calls = [{"name": "search_resources", "args": {"query": "test"}}]
+        mock_message.tool_calls = [
+            {"name": "search_resources", "args": {"query": "test"}}
+        ]
 
         state = {"messages": [mock_message]}
         result = agent_service._should_continue(state)
@@ -411,16 +439,20 @@ class TestAgentService:
 
         assert result == "end"
 
-    async def test_user_context_management(self, agent_service_with_mocked_llm, mock_user):
+    async def test_user_context_management(
+        self, agent_service_with_mocked_llm, mock_user
+    ):
         """Test that user context is properly set and reset."""
         query = AgentQuery(query="Test query")
 
         # Mock the graph execution
         mock_final_state = {
             "messages": [Mock(content="Test response")],
-            "tool_results": []
+            "tool_results": [],
         }
-        agent_service_with_mocked_llm.graph.ainvoke = AsyncMock(return_value=mock_final_state)
+        agent_service_with_mocked_llm.graph.ainvoke = AsyncMock(
+            return_value=mock_final_state
+        )
 
         # Verify user ID is None before query
         assert agent_service_with_mocked_llm._current_user_id is None
