@@ -4,7 +4,7 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-22 (DEV-056–DEV-065 added — feedback implementation tasks planned)
+**Last Updated:** 2026-03-23 (DEMO-006 added; Sprint 2026-03-23-A opened for FB-001–FB-005)
 
 ---
 
@@ -194,3 +194,4 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [x] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (run-1 ✅)
 - [x] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (run-1 ✅)
 - [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: DEV-032, DEV-033, DEV-034, DEV-035, DEV-053 pending)
+- [ ] DEMO-006: Feedback Verification — verify FB-001 to FB-005: tiered fetch, processing_status, category taxonomy, tag editor, node popup fix (blocked: DEV-056–DEV-065)

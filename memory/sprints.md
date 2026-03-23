@@ -5,6 +5,39 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
+## Sprint 2026-03-23-A — Feedback Implementation
+
+**Status:** 🔄 Active
+**Sprint Goal:** Implement all FB-001 through FB-005 feedback items so DEMO-006 (Feedback Verification) is runnable
+**Exit Gate:** DEMO-006 — Feedback Verification demo executes successfully
+**Started:** 2026-03-23
+**Completed:** (pending)
+
+### Notes
+
+- DEV-056 (tiered fetch) is the heaviest task (L) — includes Playwright headless browser in worker Docker image
+- Layer 0 tasks are independently dispatchable; Layer 1 tasks unlock after their Layer 0 prereqs merge
+- DEV-061 also updates INT-029–035 integration tests (Neo4j schema change)
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-056 | Tiered URL fetch strategy (FB-001) | ⏳ Pending |
+| DEV-057 | processing_status field + Alembic migration (FB-002) | ⏳ Pending |
+| DEV-060 | Categories table, seed 10 root categories, /categories API (FB-003) | ⏳ Pending |
+| DEV-065 | Fix graph node popup overflow (FB-005) | ⏳ Pending |
+| DEV-058 | Worker pipeline state machine (FB-002) — needs DEV-057 | ⏳ Pending |
+| DEV-059 | Re-process action in resource detail UI (FB-002) — needs DEV-057 | ⏳ Pending |
+| DEV-061 | Neo4j Root/Category/Tag three-level hierarchy (FB-003) — needs DEV-060 | ⏳ Pending |
+| DEV-062 | LLM prompt: tag reuse + top_level_categories (FB-003) — needs DEV-060 | ⏳ Pending |
+| DEV-063 | Category management UI in Settings (FB-003) — needs DEV-060 | ⏳ Pending |
+| DEV-064 | Tag editor in resource detail UI (FB-004) — needs DEV-061 | ⏳ Pending |
+| DEMO-006 | Feedback Verification Demo — needs DEV-056–DEV-065 | ⏳ Pending |
+
+---
+
 ## Sprint 2026-03-22-B — Local Dev Stack Commands
 
 **Status:** ✅ Complete
