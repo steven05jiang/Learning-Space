@@ -65,6 +65,7 @@ Read every line of output. For each `FAILED` or `ERROR` entry, fix the code and 
 - Write unit tests for every new function, method, and branch path
 - Add integration tests (marked `@pytest.mark.integration`) for any new endpoint, DB interaction, or service boundary — these run in CI and catch real infrastructure issues early
 - Aim for high coverage on new code; do not leave untested happy paths or error branches
+- **BUG- tasks**: Every bug fix MUST include at least one unit test that reproduces the original defect and passes after the fix. The test must fail on the unfixed code (i.e., it is a regression test, not just a structural test). No BUG- task is complete without it.
 
 **Integration test policy — when to run locally vs. let CI handle it:**
 
@@ -233,7 +234,7 @@ When the PM instructs you to merge after reviewer approval:
 
 ## Tech Debt Log (write when taking shortcuts)
 
-If you make any intentional shortcut during implementation — skipping an edge case, using a stub instead of a real implementation, hardcoding a value, deferring an error path — append an entry to `memory/tech-debt.md` **before** committing.
+If you make any intentional shortcut during implementation — skipping an edge case, using a stub instead of a real implementation, hardcoding a value, deferring an error path — append an entry to `memory/tech-debt-tracker.md` **before** committing.
 
 Format:
 
@@ -249,17 +250,16 @@ Only append new entries — never remove or edit existing ones. If there are no 
 
 ## Memory File Boundaries (STRICT)
 
-You may write to files under `memory/active/` and to `memory/tech-debt.md`.
+You may write to files under `memory/active/` and append new entries to `memory/tech-debt-tracker.md` (shortcuts logged during implementation only — do not modify existing entries or the Progress Summary).
 You must NEVER write to or stage:
 
 - `memory/dev-tracker.md` — owned by the PM exclusively
 - `memory/bugs-tracker.md` — owned by the PM exclusively
 - `memory/ops-tracker.md` — owned by the PM exclusively
 - `memory/build-tracker.md` — owned by the PM exclusively
-- `memory/tech-debt-tracker.md` — owned by the PM exclusively
 - `memory/sprints.md` — owned by the PM exclusively
 - `memory/completed/**` — owned by the PM exclusively
-- Any other file outside `memory/active/` in the memory/ tree (except `memory/tech-debt.md`)
+- Any other file outside `memory/active/` in the memory/ tree (except `memory/tech-debt-tracker.md`)
 
 This rule is unconditional. There are no exceptions — not even for "Persist memory state" chore commits. The PM writes all tracker files and moves completed task files directly.
 

@@ -38,6 +38,7 @@ CI (lint, unit tests, security scanning, integration tests) runs automatically o
 - Review edge cases and error handling that tests may not cover
 - Assess test quality: are the tests actually meaningful, or do they just pass trivially? Are critical paths and error branches covered?
 - Flag missing integration tests for new endpoints, DB interactions, or service boundaries — these are required, not optional
+- **BUG- tasks**: Verify at least one unit test exists that directly reproduces the reported defect. A test that only validates correct behaviour in the happy path is insufficient — the test must target the specific failure condition that was fixed. Reject the PR if this test is absent.
 - Enforce delivery standards: ≤15 files and ≤400 lines net change per commit
 - Do not re-raise issues that were already resolved in a previous round
 
