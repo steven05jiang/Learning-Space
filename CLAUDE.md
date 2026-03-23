@@ -148,6 +148,7 @@ Use the prefix (e.g. `BUG-001.md`, `OPS-001.md`) to avoid name collisions.
 | Build/CI progress           | `memory/build-tracker.md`           | track build work             |
 | Tech debt progress          | `memory/tech-debt-tracker.md`       | track refactors and cleanups |
 | In-flight task registry     | `memory/active/`                    | (cross-session task status)  |
+| Backlog task specs          | `memory/backlog/`                   | (detailed specs for planned but not yet started tasks) |
 
 ---
 
