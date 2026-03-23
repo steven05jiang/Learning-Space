@@ -99,7 +99,7 @@ _Last updated: 2026-03-17_
 - Added: DEV-063 — Category management UI in Settings page
 - Added: DEV-064 — Tag editor component in resource detail UI
 - Added: DEV-065 — Fix graph node popup overflow (constrain size, remove summary, truncate title)
-- Total tasks: 53 → 63
+- Total tasks: 55 → 65
 
 **Dependencies:**
 
