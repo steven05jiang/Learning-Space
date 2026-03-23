@@ -13,12 +13,24 @@ to describe what they want to plan before proceeding.
 
 ## Phase 1 — Load Existing Plan Context
 
-Read the following files to understand the current state before proposing any
-changes:
+Read the following files in parallel to understand the current state before
+proposing any changes:
 
 1. `exec-plans/current-plan.md` — active version, version history, and constraints
 2. `exec-plans/<active-version>/dev-plan.md` — full current task list
-3. `memory/dev-tracker.md` — which tasks are done, active, or pending
+3. `docs/requirement-changelog.md` — recent requirement changes and additions
+4. `docs/design-changelog.md` — recent design decisions and technical changes
+5. `memory/dev-tracker.md` — DEV and INT task progress
+6. `memory/bugs-tracker.md` — BUG task progress
+7. `memory/ops-tracker.md` — OPS task progress
+8. `memory/build-tracker.md` — BUILD task progress
+9. `memory/tech-debt-tracker.md` — TD task progress
+10. `memory/ui-tracker.md` — UI task progress
+
+**Do NOT load `docs/requirements.md` or `docs/technical-design.md`** unless
+the new requirements explicitly touch areas that require reading the full
+document (e.g., a dependency check on a specific schema or API contract).
+The changelogs are sufficient to understand recent state.
 
 Log what you loaded:
 
@@ -26,6 +38,8 @@ Log what you loaded:
 📋 Current plan: exec-plans/v2/dev-plan.md (active version: v2)
    Tasks: 53 total | ✅ 22 done | ⏳ 31 pending
    Constraints noted: ESLint 8.57.1, react-force-graph-2d, ...
+   Recent req changes: <latest entry date and title from requirement-changelog.md>
+   Recent design changes: <latest entry date and title from design-changelog.md>
 ```
 
 ---
