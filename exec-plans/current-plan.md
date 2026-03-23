@@ -80,6 +80,61 @@ _Last updated: 2026-03-17_
 
 ---
 
+### v2.1 — Feedback Implementation (2026-03-22)
+
+**Status:** Active
+**Summary:** Plans implementation tasks for all five open feedback items (FB-001 through FB-005) identified during demos on 2026-03-22. Design specs were already committed in the same session (`docs/design-resource-fetching.md` for the tiered fetch strategy, `docs/design-category-taxonomy.md` for the category taxonomy). This update adds 10 new DEV tasks (DEV-056–DEV-065) covering: tiered URL fetch with Playwright fallback (FB-001), processing state machine (FB-002, 3 tasks), category taxonomy with Neo4j hierarchy and LLM prompt update (FB-003, 4 tasks), manual tag editing UI (FB-004), and graph node popup overflow fix (FB-005).
+
+#### Changes from v2
+
+**Dev Tasks:**
+
+- Added: DEV-056 — Tiered URL fetch strategy (domain blocklist + HTTP + Playwright + fetch_tier/fetch_error_type tracking)
+- Added: DEV-057 — Add processing_status field to resources + Alembic migration
+- Added: DEV-058 — Update worker pipeline to use processing_status state machine
+- Added: DEV-059 — Add manual Re-process action to resource detail UI
+- Added: DEV-060 — Implement categories table, seed 10 root categories, /categories endpoints
+- Added: DEV-061 — Update Neo4j schema to Root/Category/Tag three-level hierarchy
+- Added: DEV-062 — Update LLM prompt for tag reuse + require top_level_categories
+- Added: DEV-063 — Category management UI in Settings page
+- Added: DEV-064 — Tag editor component in resource detail UI
+- Added: DEV-065 — Fix graph node popup overflow (constrain size, remove summary, truncate title)
+- Total tasks: 55 → 65
+
+**Dependencies:**
+
+- New: DEV-056 depends on DEV-020 ✅, DEV-023 ✅
+- New: DEV-057 depends on DEV-002 ✅
+- New: DEV-058 depends on DEV-057, DEV-023 ✅
+- New: DEV-059 depends on DEV-057, DEV-043 ✅
+- New: DEV-060 depends on DEV-002 ✅, DEV-006 ✅
+- New: DEV-061 depends on DEV-025 ✅, DEV-060
+- New: DEV-062 depends on DEV-022 ✅, DEV-060
+- New: DEV-063 depends on DEV-060, DEV-040 ✅
+- New: DEV-064 depends on DEV-043 ✅, DEV-061
+- New: DEV-065 depends on DEV-052 ✅
+
+**Priority / Tier Changes:**
+
+- DEV-056 added to Tier 3 (priority 30)
+- DEV-057 added to Tier 3 (priority 31)
+- DEV-058 added to Tier 3 (priority 32)
+- DEV-059 added to Tier 3 (priority 33)
+- DEV-060 added to Tier 3 (priority 34)
+- DEV-061 added to Tier 3 (priority 35)
+- DEV-062 added to Tier 3 (priority 36)
+- DEV-063 added to Tier 3 (priority 37)
+- DEV-064 added to Tier 3 (priority 38)
+- DEV-065 added to Tier 3 (priority 39)
+
+**Structural notes:**
+
+- Schema changes: `resources` table gains `fetch_tier`, `fetch_error_type`, `processing_status` columns; new `categories` table added
+- Neo4j model changes: flat `Tag` schema replaced with three-node hierarchy (`Root`, `Category`, `Tag`) + `CHILD_OF` and `BELONGS_TO` relationships
+- Integration tests INT-029–035 (graph group) will require updates after DEV-061 lands
+
+---
+
 ### v1 — Initial Plan (2026-03-14)
 
 **Status:** Superseded by v2
