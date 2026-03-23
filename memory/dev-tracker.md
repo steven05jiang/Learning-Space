@@ -10,7 +10,7 @@
 
 ## Progress Summary
 
-- Total: 128 tasks (65 DEV + 6 DEMO + 1 INT-framework + 56 INT-BDD)
+- Total: 127 tasks (65 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD)
 - ✅ Completed: 82
 - 🔄 Active: 0
 - ⏳ Pending: 45
