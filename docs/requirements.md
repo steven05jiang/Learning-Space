@@ -26,7 +26,7 @@ Supported actions include:
   - a URL (article, blog post, documentation, etc.)
   - pasted text content
 
-- Edit an existing resource
+- Edit an existing resource (title, tags, top-level categories). When editing tags or categories, at least one top-level category must remain associated — the system rejects edits that would leave a resource with no top-level category.
 - Delete a resource
 - View all previously uploaded resources
 
@@ -42,7 +42,8 @@ Each Resource should include the following fields:
 - Creation timestamp
 - Last updated timestamp
 - Owner (user)
-- Optional: preferred provider (for URL resources that require login; hints which linked account to use when fetching, e.g. Twitter)
+- Top-level categories (one or more; assigned by LLM; see §2.1 Category System)
+- Optional: preferred provider (for URL resources; hints which linked account to use when fetching, e.g. Twitter)
 
 ---
 
@@ -50,13 +51,19 @@ Each Resource should include the following fields:
 
 After a Resource is submitted:
 
-1. **Fetching URL content**: For URL resources, the system fetches the content from the target site. If the content is **only accessible with login** (e.g. a paywalled article or a post on a social platform that requires authentication):
-   - The system uses the **user's linked account** for that provider (e.g. Twitter) to log in and access the content, when the user has linked such an account.
-   - If the user has **no linked account** for that provider, the system cannot fetch the content. The app must inform the user clearly (e.g. "This link requires login. Link your Twitter account in Settings to save content from this site.") and allow them to link the account in settings, then retry or re-add the resource.
+1. **Fetching URL content**: For URL resources, the system fetches content using a tiered strategy. Full specification: `docs/design-resource-fetching.md`.
+
+   - **Tier 1 — API-integrated domains**: A system-maintained blocklist of domains that require official API access (e.g. `twitter.com`, `x.com`). For these URLs, the system uses the user's linked account for that provider. If the user has no linked account, the resource fails with a clear user-facing message and an actionable prompt (e.g. "Link your Twitter account in Settings"). If no API integration exists yet for that domain, the resource fails with "not yet supported".
+
+   - **Tier 2 — General HTTP with Playwright fallback**: For all other URLs, the system first attempts a direct HTTP fetch. If that is blocked (e.g. HTTP 403, bot detection), it falls back to a Playwright headless browser fetch.
+
+   - **Error classification**: If all tiers fail, the resource enters `FAILED` state with a classified error type (`API_REQUIRED`, `NOT_SUPPORTED`, `BOT_BLOCKED`, `FETCH_ERROR`) and a user-facing message explaining the issue.
+
 2. The system sends the (fetched or pasted) content to an LLM.
 3. The LLM performs:
    - Content summarization
-   - Tag generation (topics, concepts, technologies, etc.)
+   - Top-level category assignment (selects from the known category list; at least one required)
+   - Tag generation (topics, concepts, technologies; reuses existing tags where applicable)
 
 4. The system stores the generated metadata.
 
@@ -81,35 +88,40 @@ Tags:
 
 ---
 
+## 2.1 Category System
+
+The knowledge graph is organized under a two-level taxonomy of **top-level categories** and **topic nodes**. Full specification: `docs/design-category-taxonomy.md`.
+
+**System-seeded categories** (predefined, cannot be deleted):
+
+Science & Technology · Business & Economics · Politics & Government · Society & Culture · Education & Knowledge · Health & Medicine · Environment & Sustainability · Arts & Entertainment · Sports & Recreation · Lifestyle & Personal Life
+
+**User-created categories**: Users may add custom top-level categories from the settings or graph view.
+
+**Rules:**
+- Every resource must be associated with at least one top-level category (assigned by LLM on processing).
+- When a user manually edits tags on a resource, at least one top-level category must remain.
+- LLM tag generation must include the current category list so it can select from known values.
+- LLM tag generation must include the user's existing tags so it can reuse them instead of creating near-duplicates.
+
+---
+
 ## 3. Knowledge Graph Generation
 
-The system maintains a **knowledge graph for each user**.
+The system maintains a **knowledge graph for each user** with a three-level hierarchy:
 
-The graph structure:
+- **Root node**: "My Learning Space" — single root per user, always present
+- **Category nodes** (level 1): top-level categories — always shown in the graph
+- **Topic nodes** (level 2+): LLM-generated tags — only shown when at least one resource is associated
 
-- **Nodes** represent tags or topics
-- **Edges** represent relationships between tags based on shared resources
+**Edges:**
+- Category nodes connect upward to the root node
+- Topic nodes connect upward to one or more category nodes
+- Topic nodes connect laterally to related topic nodes (co-occurrence based on shared resources)
 
 When a resource is created, updated, or deleted:
-
-- The knowledge graph should be updated accordingly.
-
-For example:
-
-If a resource has tags:
-
-```
-AI
-Coding Agents
-Developer Tools
-```
-
-Edges may be created:
-
-```
-AI -> Coding Agents
-Coding Agents -> Developer Tools
-```
+- The knowledge graph is updated accordingly (asynchronously)
+- Topic nodes with no associated resources are hidden from the graph (not deleted)
 
 Graph updates should occur asynchronously.
 

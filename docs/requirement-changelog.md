@@ -57,3 +57,26 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ### Open Questions
 - None
+
+---
+
+## 2026-03-22 — Tiered fetch strategy, category taxonomy, tag editing constraint
+
+**Type:** Requirements
+**Trigger:** New requirements (feedback review — FB-001, FB-003, FB-004)
+**Docs Affected:** `docs/requirements.md`, `docs/design-resource-fetching.md` (new), `docs/design-category-taxonomy.md` (new)
+**Summary:** Three open feedbacks translated into concrete requirements. FB-001 replaces the simple "linked account" fetch description with a two-path tiered strategy (API-blocklist path + HTTP/Playwright general path) and defines four error types. FB-003 introduces a two-level category taxonomy with 10 system-seeded categories, user-created categories, and a rooted graph hierarchy; every resource must be associated with at least one top-level category. FB-004 extension adds a validation rule: editing tags on a resource must preserve at least one top-level category. Two supplement design docs created to own the full specs for each domain, keeping `requirements.md` and `technical-design.md` focused on core architecture.
+
+### Changes
+
+#### Requirements
+- Modified `docs/requirements.md` §1 (Resource Management): Added `top_level_categories` to required resource fields; updated "Edit an existing resource" action to state the category-must-remain constraint (FB-004 extension)
+- Modified `docs/requirements.md` §2 (Automatic Resource Processing): Replaced single-path fetch description with tiered strategy summary (Tier 1 API-blocklist, Tier 2 HTTP+Playwright, error classification) referencing `docs/design-resource-fetching.md` for full spec (FB-001)
+- Added `docs/requirements.md` §2.1 (Category System): Defines 10 system-seeded categories, user-created categories, and category association rules — every resource must have at least one; LLM prompt must include category list and existing tags (FB-003)
+- Modified `docs/requirements.md` §3 (Knowledge Graph Generation): Updated graph structure to three-level hierarchy (root → category → topic); topic nodes only shown when resources exist (FB-003)
+
+### Conflicts Resolved
+- `docs/requirements.md` §2 previously described a single fetch path (linked account fallback). Replaced with tiered strategy — the linked account path is now Tier 1 (API-integrated domains only), not a universal fallback.
+
+### Open Questions
+- Backfill of existing resources (assign top_level_categories retroactively) is deferred to an OPS task.
