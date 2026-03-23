@@ -154,14 +154,44 @@ If the user says "skip", stop and summarize what was proposed but not committed.
 
 After user approval, update all affected files. Do these in order:
 
-### 5a — Update exec-plans/<version>/dev-plan.md
+### 5a — Create backlog task files in memory/backlog/
 
-Append the new tasks to the appropriate priority tier section. Follow the
-existing table format exactly. If tasks span multiple tiers, add to each tier.
+For each new task, create a file at `memory/backlog/<TASK-ID>.md` with the
+full details from Phase 4. Use this format:
 
-If the scope is large enough to warrant a new plan version (major new
-initiative, significant dependency restructuring, or user requests it explicitly),
-**stop and ask** whether to create a new version folder before editing.
+```markdown
+# <TASK-ID>: <Title>
+
+**Status:** ⏳ Pending
+**Feedback:** <FB-NNN or N/A>
+**Priority:** HIGH | MEDIUM | LOW | **Effort:** XS/S/M/L/XL
+**Depends on:** <DEV-NNN ✅, DEV-NNN, ...>
+**Design spec:** <path to relevant design doc, if any>
+
+## Description
+
+<One paragraph describing what needs to be built and why.>
+
+## Acceptance Criteria
+
+- [ ] <criterion>
+- [ ] <criterion>
+- [ ] ...
+
+## Branch name
+(TBD)
+
+## Current PR
+(TBD)
+
+## Progress Log
+YYYY-MM-DD — Task created from <source> planning
+```
+
+**Do NOT modify any files under `exec-plans/vN/`.** Those folders contain
+the initial generated baseline plan and are not updated incrementally.
+All incremental planning artifacts live in `current-plan.md`, `dev-tracker.md`,
+and `memory/backlog/`.
 
 ### 5b — Update exec-plans/current-plan.md
 
@@ -237,9 +267,10 @@ Stage only the planning files:
 
 ```bash
 git add exec-plans/current-plan.md
-git add exec-plans/<version>/dev-plan.md
 git add memory/dev-tracker.md
+git add memory/backlog/
 # Add CLAUDE.md only if it was modified
+# Do NOT stage exec-plans/vN/ — those are baseline-only, not incrementally updated
 ```
 
 ```bash
@@ -276,7 +307,8 @@ Dispatch the `pr-reviewer` subagent. Tell it:
 - The PR number
 - Review scope: **accuracy only** — verify task IDs are sequential, dependency
   references are valid, counts in dev-tracker match the new task list,
-  current-plan.md changelog matches the actual changes
+  current-plan.md changelog matches the actual changes, backlog files exist
+  for all proposed tasks and contain acceptance criteria
 - **Do NOT write to any memory files** — post findings as a PR comment only
 
 **If APPROVED:**
