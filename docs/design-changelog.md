@@ -9,20 +9,21 @@ Each entry records what changed, why, and any conflicts resolved.
 
 **Type:** Design
 **Trigger:** Technical thoughts (system architecture from product requirements)
+**Docs Affected:** `docs/technical-design.md`
 **Summary:** Established the full technical design for Learning Space, translating `docs/requirements.md` into a concrete implementation blueprint. Defined the layered architecture (UI, API, Resource Update, Resource Viewer, AI Agent, Data), data models for PostgreSQL (users, user_accounts, resources, resource_processing_log) and Neo4j (tag nodes and co-occurrence edges), REST API schemas, event flows for resource lifecycle, sequence diagrams for key operations, Kubernetes/Helm/ArgoCD deployment strategy, and implementation guidance for AI coding agents.
 
 ### Changes
 
 #### Design
-- Added §1 System Overview: Architecture summary table (6 layers), data store responsibility split (PostgreSQL vs Neo4j)
-- Added §2 Data Models: `users`, `user_accounts` (multi-provider OAuth), `resources` (PENDING/PROCESSING/READY/FAILED status lifecycle, prefer_provider for login-required URLs), `resource_processing_log` (observability)
-- Added §2 Data Models: Neo4j schema — `Tag` nodes and `CO_OCCURS` weighted edges
-- Added §3 API Schemas: Pydantic/OpenAPI shapes for resource create/update/list, auth endpoints, graph query responses
-- Added §4 Example Endpoints: REST endpoint definitions for resource CRUD, auth (OAuth login, logout, me, accounts), graph traversal, agent chat
-- Added §5 Event Flows: Resource submission → worker → LLM → graph update async flow; status state machine
-- Added §6 Sequence Diagrams: Resource creation, OAuth login, graph exploration, AI agent chat
-- Added §7 Deployment Strategy: Docker images per service, Helm chart, ArgoCD GitOps pipeline
-- Added §8 Implementation Guidance: Service boundaries, async worker patterns, LangGraph agent tool setup, encryption for OAuth tokens
+- Added `docs/technical-design.md` §1 System Overview: Architecture summary table (6 layers), data store responsibility split (PostgreSQL vs Neo4j)
+- Added `docs/technical-design.md` §2 Data Models: `users`, `user_accounts` (multi-provider OAuth), `resources` (PENDING/PROCESSING/READY/FAILED status lifecycle, prefer_provider for login-required URLs), `resource_processing_log` (observability)
+- Added `docs/technical-design.md` §2 Data Models: Neo4j schema — `Tag` nodes and `CO_OCCURS` weighted edges
+- Added `docs/technical-design.md` §3 API Schemas: Pydantic/OpenAPI shapes for resource create/update/list, auth endpoints, graph query responses
+- Added `docs/technical-design.md` §4 Example Endpoints: REST endpoint definitions for resource CRUD, auth (OAuth login, logout, me, accounts), graph traversal, agent chat
+- Added `docs/technical-design.md` §5 Event Flows: Resource submission → worker → LLM → graph update async flow; status state machine
+- Added `docs/technical-design.md` §6 Sequence Diagrams: Resource creation, OAuth login, graph exploration, AI agent chat
+- Added `docs/technical-design.md` §7 Deployment Strategy: Docker images per service, Helm chart, ArgoCD GitOps pipeline
+- Added `docs/technical-design.md` §8 Implementation Guidance: Service boundaries, async worker patterns, LangGraph agent tool setup, encryption for OAuth tokens
 
 ### Conflicts Resolved
 - None (initial document)
@@ -36,6 +37,7 @@ Each entry records what changed, why, and any conflicts resolved.
 
 **Type:** Design
 **Trigger:** Technical thoughts (UI-001 prototype implementation, PR #38 + commit `e5054599`)
+**Docs Affected:** `docs/ux-tech-spec.md`
 **Summary:** Added `docs/ux-tech-spec.md` — an AI-optimized UI specification intended for single-generation production UI output. Captured all key design decisions made during the UI-001 prototype implementation including technology choices, design system, color system, layout structure, and component specifications. A second pass during the full UI-001 prototype migration updated the spec to reflect the final implemented decisions (blur orbs background, icon-only Sparkles toggle, react-force-graph-2d for knowledge graph).
 
 ### Changes
@@ -59,6 +61,7 @@ Each entry records what changed, why, and any conflicts resolved.
 
 **Type:** Design
 **Trigger:** Technical thoughts (BDD integration test framework design)
+**Docs Affected:** `docs/integration-test-design.md`
 **Summary:** Added `docs/integration-test-design.md` to define the three-layer integration test strategy for Learning Space: Layer 1 (API integration tests using pytest + real PostgreSQL/Neo4j), Layer 2 (frontend integration tests using Jest + MSW), Layer 3 (E2E tests using Playwright). Defined BDD scenarios for all major functional areas, INT task prefixes, and the test execution pipeline (CI-default groups vs full suite). This design drives the INT-001 through INT-055 task set tracked in `memory/dev-tracker.md`.
 
 ### Changes
