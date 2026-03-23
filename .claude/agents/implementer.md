@@ -250,14 +250,13 @@ Only append new entries — never remove or edit existing ones. If there are no 
 
 ## Memory File Boundaries (STRICT)
 
-You may write to files under `memory/active/` and to `memory/tech-debt-tracker.md`.
+You may write to files under `memory/active/` and append new entries to `memory/tech-debt-tracker.md` (shortcuts logged during implementation only — do not modify existing entries or the Progress Summary).
 You must NEVER write to or stage:
 
 - `memory/dev-tracker.md` — owned by the PM exclusively
 - `memory/bugs-tracker.md` — owned by the PM exclusively
 - `memory/ops-tracker.md` — owned by the PM exclusively
 - `memory/build-tracker.md` — owned by the PM exclusively
-- `memory/tech-debt-tracker.md` — owned by the PM exclusively
 - `memory/sprints.md` — owned by the PM exclusively
 - `memory/completed/**` — owned by the PM exclusively
 - Any other file outside `memory/active/` in the memory/ tree (except `memory/tech-debt-tracker.md`)
