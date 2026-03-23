@@ -12,6 +12,11 @@ to main in one clean chore commit.
 
 - **Never use `git stash`** — not for reading, not for saving state, not for any reason.
   If uncommitted changes are in the way, stop and report them to the user. The user handles stashing manually.
+- **Never stage or modify `exec-plans/vN/` files.** Those folders contain the initial generated
+  baseline plan and are never updated incrementally. Task progress is tracked in `dev-tracker.md`
+  and the task files under `memory/`.
+- **Task lifecycle:** `memory/backlog/` → `memory/active/` → `memory/completed/`.
+  Detailed specs for planned but not-yet-started tasks live in `memory/backlog/`.
 
 ---
 
@@ -22,19 +27,21 @@ status does not match the actual GitHub PR state.
 
 ### 1a — Check active tasks
 
-For each file in `memory/active/`:
+For each file in `memory/active/` and `memory/backlog/` that has a PR number recorded:
 
 ```bash
 GH_TOKEN=$GH_TOKEN_REVIEWER gh pr view <PR> --json state,mergedAt,title
 ```
 
-| Recorded status | Actual PR state | Action |
-| --------------- | --------------- | ------ |
-| 🔄 Active       | PR merged       | Promote to completed (see Phase 2) |
-| 🔄 Active       | PR closed (unmerged) | Mark ⚠️ Stuck, update tracker |
-| ⏸️ Paused       | PR merged       | Promote to completed |
-| ⏸️ Paused       | PR still open   | Leave as-is (will resume next /project-dispatch) |
-| ⚠️ Stuck        | PR merged       | Promote to completed (override stuck) |
+| File location   | Recorded status | Actual PR state | Action |
+| --------------- | --------------- | --------------- | ------ |
+| active/         | 🔄 Active       | PR merged       | Promote to completed (see Phase 2) |
+| active/         | 🔄 Active       | PR closed (unmerged) | Mark ⚠️ Stuck, update tracker |
+| active/         | ⏸️ Paused       | PR merged       | Promote to completed |
+| active/         | ⏸️ Paused       | PR still open   | Leave as-is (will resume next /project-dispatch) |
+| active/         | ⚠️ Stuck        | PR merged       | Promote to completed (override stuck) |
+| backlog/        | ⏳ Pending      | No PR           | Leave as-is — task not yet started |
+| backlog/        | ⏳ Pending      | PR exists       | Move to active/, update status → 🔄 Active |
 
 ### 1b — Check completed tasks
 
@@ -71,7 +78,7 @@ Log what was found and corrected:
 
 ## Phase 2 — Promote Merged Tasks
 
-For each active task identified as merged in Phase 1:
+For each task identified as merged in Phase 1:
 
 1. Update the file content:
    - Set `**Status:** ✅ Completed`
@@ -79,7 +86,9 @@ For each active task identified as merged in Phase 1:
    - Add `## Implementation Summary` section (pull from PR body if available)
    - Update `**PR:**` field to include `(merged)`
 
-2. Move the file: `mv memory/active/TASK-XXX.md memory/completed/TASK-XXX.md`
+2. Move the file to completed:
+   - From `memory/active/`: `mv memory/active/TASK-XXX.md memory/completed/TASK-XXX.md`
+   - From `memory/backlog/` (if it was never moved to active first): `mv memory/backlog/TASK-XXX.md memory/completed/TASK-XXX.md`
 
 3. Update the appropriate tracker:
    - Change `[~]` → `[x]` with `(PR #N ✅)`
@@ -100,11 +109,14 @@ Stage every changed file explicitly (never use `git add .` blindly — review th
 Categorize what you see:
 
 - **Modified tracker files** (dev-tracker.md, bugs-tracker.md, etc.)
+- **New or modified backlog/ files** — task specs added or updated during planning
 - **New or modified active/ files** — task files updated during audit
 - **New completed/ files** — tasks just promoted
 - **Any other memory/ files** (MEMORY.md, infra.md, etc.)
 - **Code changes** — modified or untracked source files outside memory/
 - **Config / tooling changes** — Makefile, CI config, etc.
+
+**Never stage `exec-plans/vN/` files** — those are the baseline plan, generated once and not updated incrementally. If you see changes there, do not include them in the sync commit; flag them to the user.
 
 If there are **no changes** (nothing to stage), output:
 
