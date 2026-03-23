@@ -104,7 +104,33 @@ These components were built with mock data before their backend APIs existed. Th
 | 28       | DEV-011: Unit tests — Authentication                | Testing  | M      | DEV-007, DEV-008                                  | Verify full auth                                 |
 | 29       | DEV-018: Unit tests — Resource API                  | Testing  | M      | DEV-015, DEV-016, DEV-017                         | Verify resource CRUD                             |
 
-**Tier 3 exit gate:** All features working end-to-end with real data: account linking, authenticated URL fetching, resource processing pipeline, knowledge graph exploration, LangGraph chat agent responding to real questions. Graph UI and chat UI wired to live APIs (not mock data).
+#### Feedback Implementation (FB-001 – FB-005, 2026-03-22)
+
+_Addresses all open feedback items. Design specs: `docs/design-resource-fetching.md`, `docs/design-category-taxonomy.md`._
+
+| Priority | Task                                                         | Type     | Effort | Depends On                    | Feedback |
+| -------- | ------------------------------------------------------------ | -------- | ------ | ----------------------------- | -------- |
+| 30       | DEV-056: Implement tiered URL fetch strategy                 | Backend  | L      | DEV-020 ✅, DEV-023 ✅        | FB-001   |
+| 31       | DEV-057: Add processing_status field + migration             | Backend  | S      | DEV-002 ✅                    | FB-002   |
+| 32       | DEV-058: Update worker to use processing_status state machine | Backend  | S      | DEV-057, DEV-023 ✅           | FB-002   |
+| 33       | DEV-059: Add manual Re-process action to resource detail UI  | Frontend | S      | DEV-057, DEV-043 ✅           | FB-002   |
+| 34       | DEV-060: Implement categories table + seed + /categories API | Backend  | M      | DEV-002 ✅, DEV-006 ✅        | FB-003   |
+| 35       | DEV-061: Update Neo4j schema to Root/Category/Tag hierarchy  | Backend  | M      | DEV-025 ✅, DEV-060           | FB-003   |
+| 36       | DEV-062: Update LLM prompt for tag reuse + top_level_categories | Backend | S     | DEV-022 ✅, DEV-060           | FB-003   |
+| 37       | DEV-063: Category management UI in Settings                  | Frontend | M      | DEV-060, DEV-040 ✅           | FB-003   |
+| 38       | DEV-064: Tag editor component in resource detail UI          | Frontend | S      | DEV-043 ✅, DEV-061           | FB-004   |
+| 39       | DEV-065: Fix graph node popup overflow                       | Frontend | XS     | DEV-052 ✅                    | FB-005   |
+
+**Dependency graph (feedback tasks):**
+- DEV-056 (independent)
+- DEV-057 → DEV-058
+- DEV-057 → DEV-059
+- DEV-060 → DEV-061 → DEV-064
+- DEV-060 → DEV-062
+- DEV-060 → DEV-063
+- DEV-065 (independent)
+
+**Tier 3 exit gate:** All features working end-to-end with real data: account linking, authenticated URL fetching, resource processing pipeline, knowledge graph exploration, LangGraph chat agent responding to real questions. Graph UI and chat UI wired to live APIs (not mock data). All five open feedback items resolved.
 
 ---
 

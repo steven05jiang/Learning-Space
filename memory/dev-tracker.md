@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-22 (DEV-035 + DEV-032 merged — chat backend foundation complete)
+**Last Updated:** 2026-03-22 (DEV-056–DEV-065 added — feedback implementation tasks planned)
 
 ---
 
 ## Progress Summary
 
-- Total: 116 tasks (55 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
+- Total: 126 tasks (65 DEV + 5 DEMO + 1 INT-framework + 55 INT-BDD)
 - ✅ Completed: 83
 - 🔄 Active: 0
-- ⏳ Pending: 33
+- ⏳ Pending: 43
 - ⚠️ Stuck: 0
 
 ---
@@ -76,6 +76,21 @@
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
 - [x] DEV-054: Duplicate URL detection with user-facing notification — 409 on duplicate submit + "already added" toast (PR #64 ✅)
 - [ ] DEV-055: Dashboard statistics panel — in-processing count, total added, categories identified, category rankings
+
+## Feedback Implementation (FB-001 – FB-005)
+
+_Design specs: `docs/design-resource-fetching.md` (FB-001), `docs/design-category-taxonomy.md` (FB-003/004)_
+
+- [ ] DEV-056: Tiered URL fetch strategy — domain blocklist + HTTP + Playwright fallback + fetch_tier/fetch_error_type tracking (FB-001)
+- [ ] DEV-057: Add processing_status field to resources + Alembic migration (pending/processing/success/failed) (FB-002)
+- [ ] DEV-058: Update worker pipeline to use processing_status state machine — skip success/failed, set state on start/complete (FB-002)
+- [ ] DEV-059: Add manual Re-process action to resource detail UI — POST /resources/{id}/reprocess endpoint + button (FB-002)
+- [ ] DEV-060: Implement categories table, seed 10 root categories, GET/POST/DELETE /categories endpoints (FB-003)
+- [ ] DEV-061: Update Neo4j schema to Root/Category/Tag three-level hierarchy + CHILD_OF/BELONGS_TO relationships + graph service update (FB-003)
+- [ ] DEV-062: Update LLM prompt to include existing tags + require top_level_categories in output; add CATEGORY_REQUIRED/INVALID_CATEGORY validation (FB-003)
+- [ ] DEV-063: Category management UI in Settings — list system + user categories, add/delete user categories (FB-003)
+- [ ] DEV-064: Tag editor component in resource detail UI — add/remove tag chips, save triggers graph resync (FB-004)
+- [ ] DEV-065: Fix graph node popup overflow — max-width/height, remove summary, truncate title, URL link + tag chips only (FB-005)
 
 ## 🟢 Tier 4 — Hardening
 
