@@ -14,9 +14,9 @@ they want to design before proceeding.
 ## Hard Rules
 
 - **Never proceed past an approval gate without explicit user confirmation.**
-- **Never modify `docs/requirements.md` or `docs/technical-design.md` directly** —
-  those are SSO files owned by the user. Propose additions/changes and wait for
-  the user to confirm the changelog entries represent the intended delta.
+- **Always update `docs/requirements.md` and `docs/technical-design.md` directly**
+  when design decisions are approved — changelogs track what changed and why.
+  Never leave the main docs stale while only updating changelogs.
 - If the input is ambiguous (could be requirements or technical thoughts), ask
   once before proceeding — do not guess.
 - **Act as an architecture expert, not a yes-man.** Challenge requirements or
@@ -105,6 +105,11 @@ Read the following files in parallel to understand current state:
 4. `docs/ux-tech-spec.md` — current UX technical spec (if it exists)
 5. `docs/requirement-changelog.md` — history of requirement changes (create if missing)
 6. `docs/design-changelog.md` — history of design changes (create if missing)
+
+Also load any **supplement design docs** relevant to the current input. Supplement
+docs are domain-specific specs that extend the core docs without bloating them.
+Check `CLAUDE.md` On-demand Loading Index for the current list. Load any whose
+domain overlaps with the input.
 
 If a changelog file does not exist, note it — you will initialize it in Phase 5.
 
@@ -290,6 +295,18 @@ Requirement implications (N):
 Approve this proposal? (yes / adjust / skip)
 ```
 
+**Supplement doc strategy** — when proposing design changes, decide whether to:
+- **Edit the core docs directly**: for schema field additions, endpoint additions,
+  and small targeted changes that fit cleanly in the existing doc structure.
+- **Create a new supplement doc** (`docs/design-<domain>.md`): when the design
+  area is large enough to have its own sections, event flows, or sequence diagrams
+  (typically >1 page of spec), and the core doc would grow unwieldy. The supplement
+  doc owns the full spec for its domain; the core doc gets a compact summary + pointer.
+- **Update an existing supplement doc**: if a supplement doc for this domain already
+  exists, extend it rather than creating a new one or duplicating into the core doc.
+- **Update `CLAUDE.md` On-demand Loading Index**: always add a row for any new
+  supplement doc so agents know when to load it.
+
 **Never proceed to Phase 4 without explicit user approval.**
 
 If the user says "adjust", ask what they want changed and re-propose.
@@ -342,10 +359,10 @@ Wait for final approval before Phase 5.
 
 ---
 
-## Phase 5 — Update Changelogs
+## Phase 5 — Update Docs and Changelogs
 
-After final approval, update the changelog files. Do NOT edit the main design docs
-(`requirements.md`, `technical-design.md`) — only the changelogs.
+After final approval, update everything: the main design docs, any new supplement
+docs, and the changelogs. All changes are tracked via changelogs.
 
 ### Changelog entry format
 
@@ -424,14 +441,16 @@ git checkout main && git pull origin main
 git checkout -b chore/design-update-YYYY-MM-DD
 ```
 
-Stage only the changelog files (never stage the main design docs here):
+Stage all changed docs — main docs, supplement docs, and changelogs:
 
 ```bash
-# Mode A: stage both changelogs
-git add docs/requirement-changelog.md docs/design-changelog.md
-
-# Mode B: stage only design changelog
+# Stage everything that was modified in this session
+git add docs/requirements.md docs/technical-design.md   # if modified
+git add docs/design-<domain>.md                         # new/updated supplement docs
+git add docs/requirement-changelog.md                   # Mode A only
 git add docs/design-changelog.md
+git add CLAUDE.md                                       # if On-demand Index was updated
+git add .claude/commands/project-design.md              # if command was updated
 ```
 
 Commit:

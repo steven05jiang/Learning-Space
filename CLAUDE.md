@@ -172,15 +172,17 @@ Routes determine write targets. Unlisted projects share the main MEMORY.md.
 
 ## On-demand Loading Index
 
-| Scenario            | Load file                          |
-| ------------------- | ---------------------------------- |
-| Technical design    | `Read docs/technical-design.md`    |
-| Requirements        | `Read docs/requirements.md`        |
-| Feature goals/todos | `Read memory/dev-tracker.md`       |
-| Bug status          | `Read memory/bugs-tracker.md`      |
-| Ops status          | `Read memory/ops-tracker.md`       |
-| Build/CI status     | `Read memory/build-tracker.md`     |
-| Tech debt status    | `Read memory/tech-debt-tracker.md` |
-| Project overview    | `Read memory/projects.md`          |
+| Scenario                      | Load file                                     |
+| ----------------------------- | --------------------------------------------- |
+| Technical design              | `Read docs/technical-design.md`               |
+| Requirements                  | `Read docs/requirements.md`                   |
+| Resource fetching strategy    | `Read docs/design-resource-fetching.md`        |
+| Category taxonomy / graph     | `Read docs/design-category-taxonomy.md`        |
+| Feature goals/todos           | `Read memory/dev-tracker.md`                  |
+| Bug status                    | `Read memory/bugs-tracker.md`                 |
+| Ops status                    | `Read memory/ops-tracker.md`                  |
+| Build/CI status               | `Read memory/build-tracker.md`                |
+| Tech debt status              | `Read memory/tech-debt-tracker.md`            |
+| Project overview              | `Read memory/projects.md`                     |
 
 ---

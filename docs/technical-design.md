@@ -88,11 +88,14 @@ One row per linked social (OAuth) account. A user can have multiple accounts (e.
 | `tags`             | JSONB        | default '[]'                  | Array of tag strings from LLM                                                                                                                                   |
 | `status`           | VARCHAR(20)  | NOT NULL, default 'PENDING'   | `PENDING`, `PROCESSING`, `READY`, `FAILED`                                                                                                                      |
 | `status_message`   | VARCHAR(500) |                               | Optional error or progress message (e.g. "Link your Twitter account in Settings to save content from this site.")                                               |
-| `prefer_provider`  | VARCHAR(50)  |                               | Optional. For URL resources: which linked account to use when the target site requires login (e.g. `twitter`, `google`). Worker can also infer from URL domain. |
-| `created_at`       | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
-| `updated_at`       | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
+| `prefer_provider`        | VARCHAR(50)  |                               | Optional. Hint for which linked account to use. Authoritative resolution uses the domain blocklist; see `docs/design-resource-fetching.md`. |
+| `fetch_tier`             | VARCHAR(20)  |                               | Which fetch tier succeeded: `http`, `playwright`, `api`. NULL for text resources or before fetch completes. |
+| `fetch_error_type`       | VARCHAR(30)  |                               | Error class if fetch failed: `API_REQUIRED`, `NOT_SUPPORTED`, `BOT_BLOCKED`, `FETCH_ERROR`. NULL if fetch succeeded. |
+| `top_level_categories`   | JSONB        | NOT NULL, default '[]'        | Array of top-level category names assigned by LLM or user. Min 1 entry after processing. See `docs/design-category-taxonomy.md`. |
+| `created_at`             | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
+| `updated_at`             | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
 
-**Indexes**: `owner_id`, `status`, `created_at`, GIN on `tags` for search.
+**Indexes**: `owner_id`, `status`, `created_at`, GIN on `tags` for search, GIN on `top_level_categories` for filtering.
 
 #### 2.1.4 `resource_processing_log` (optional, for observability)
 
@@ -104,17 +107,60 @@ One row per linked social (OAuth) account. A user can have multiple accounts (e.
 | `payload`     | JSONB       |                  | Event-specific data                                                                   |
 | `created_at`  | TIMESTAMPTZ | NOT NULL         |                                                                                       |
 
+#### 2.1.5 `categories`
+
+Stores system-seeded and user-created top-level categories. Full specification: `docs/design-category-taxonomy.md`.
+
+| Column | Type | Constraints | Description |
+| -------------- | ------------ | --------------------------------- | --------------------------------------------- |
+| `id` | UUID | PK, default gen_random_uuid() | Category ID |
+| `user_id` | UUID | FK(users.id), nullable | NULL = system-seeded; non-null = user-created |
+| `name` | VARCHAR(255) | NOT NULL | Display name |
+| `is_system` | BOOLEAN | NOT NULL, default false | True for the 10 seeded categories |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default now() | |
+
+**Unique constraints**: `(user_id, LOWER(name))` per user; partial unique index on `LOWER(name) WHERE user_id IS NULL` for system categories.
+
+---
+
 ### 2.2 Neo4j (Knowledge Graph)
 
-#### 2.2.1 Node: `Tag`
+Full specification: `docs/design-category-taxonomy.md` §4.
+
+#### 2.2.1 Node: `Root`
+
+- **Label**: `Root`
+- **Properties**: `owner_id` (UUID string), `name` (“My Learning Space”)
+- One per user. Created on first graph interaction.
+
+#### 2.2.2 Node: `Category`
+
+- **Label**: `Category`
+- **Properties**: `id` (category name), `owner_id` (UUID string), `is_system` (boolean)
+- One node per category per user. System categories are merged for each user on first graph interaction.
+
+#### 2.2.3 Node: `Tag`
 
 - **Label**: `Tag`
 - **Properties**:
-  - `id`: string (unique tag name, e.g. `"AI"`, `"Coding Agents"`)
+  - `id`: string (unique tag name, e.g. `”AI”`, `”Coding Agents”`)
   - `owner_id`: string (UUID of user; used for multi-tenancy)
   - `created_at`: datetime (optional)
 
-#### 2.2.2 Relationship: `RELATED_TO`
+#### 2.2.4 Relationship: `CHILD_OF`
+
+- **Type**: `CHILD_OF`
+- **Direction**: `Category → Root`
+- No additional properties. Created when category nodes are first merged for a user.
+
+#### 2.2.5 Relationship: `BELONGS_TO`
+
+- **Type**: `BELONGS_TO`
+- **Direction**: `Tag → Category`
+- **Properties**: `weight` (integer — number of resources linking this tag to this category)
+- A tag can belong to multiple categories.
+
+#### 2.2.6 Relationship: `RELATED_TO`
 
 - **Type**: `RELATED_TO`
 - **Direction**: Tag → Tag (bidirectional semantics via query)
@@ -122,12 +168,9 @@ One row per linked social (OAuth) account. A user can have multiple accounts (e.
   - `weight`: integer (number of resources that share both tags)
   - `updated_at`: datetime
 
-#### 2.2.3 Resource–Tag linkage
+#### 2.2.7 Resource–Tag linkage
 
-- **Option A**: Store `resource_id` on a relationship from a synthetic `Resource` node to `Tag` (Resource -[:HAS_TAG]-> Tag).
-- **Option B**: Resolve “resources for tag” via PostgreSQL only: query resources where `tags` array contains the tag name.
-
-**Recommendation**: Option B for simplicity; keep Neo4j for tag–tag graph only. Resources and their tags stay in PostgreSQL.
+Resolved via PostgreSQL only: query resources where `tags` array contains the tag name, and `top_level_categories` contains the category name. Neo4j is used for graph structure only.
 
 ### 2.3 ER Diagram (PostgreSQL)
 
@@ -212,11 +255,17 @@ Only fields that are allowed to be updated by the user (e.g. for manual override
 ```json
 {
   "title": "Optional user override",
-  "original_content": "https://updated-url.com/article"
+  "original_content": "https://updated-url.com/article",
+  "tags": ["Machine Learning", "Python", "Neural Networks"],
+  "top_level_categories": ["Science & Technology", "Education & Knowledge"]
 }
 ```
 
-All fields optional; only provided fields are updated. Changing `original_content` should trigger re-processing (status → `PROCESSING`).
+All fields optional; only provided fields are updated. Rules:
+- Changing `original_content` triggers re-processing (status → `PROCESSING`).
+- If `top_level_categories` is provided, it must contain at least one valid category name — returns `400 CATEGORY_REQUIRED` otherwise.
+- If `top_level_categories` contains unknown category names — returns `400 INVALID_CATEGORY`.
+- Updating `tags` or `top_level_categories` enqueues a graph resync job for this resource.
 
 #### 3.1.3 Resource (response)
 
@@ -242,19 +291,21 @@ All fields optional; only provided fields are updated. Changing `original_conten
 
 ```json
 {
-  "id": "AI",
-  "label": "AI",
+  "id": "Science & Technology",
+  "label": "Science & Technology",
+  "node_type": "category",
   "level": "current",
-  "resource_count": 5
+  "resource_count": 12
 }
 ```
 
-| Field            | Type    | Description                         |
-| ---------------- | ------- | ----------------------------------- |
-| `id`             | string  | Tag name (unique per user)          |
-| `label`          | string  | Display label (same as id for tags) |
-| `level`          | string  | `parent` \| `current` \| `child`    |
-| `resource_count` | integer | Number of resources with this tag   |
+| Field            | Type    | Description                                                              |
+| ---------------- | ------- | ------------------------------------------------------------------------ |
+| `id`             | string  | Node name (unique per user)                                              |
+| `label`          | string  | Display label (same as id)                                               |
+| `node_type`      | string  | `root` \| `category` \| `topic`                                          |
+| `level`          | string  | `parent` \| `current` \| `child`                                         |
+| `resource_count` | integer | Number of resources with this tag/category (0 for root and category nodes if no resources yet) |
 
 #### 3.2.2 Graph edge
 
@@ -423,7 +474,17 @@ Base path: `/api/v1`. All endpoints except auth and health require authenticatio
 | PATCH  | `/resources/{id}` | Update resource (user-editable fields). If original_content changes, trigger re-processing.                                                                                               |
 | DELETE | `/resources/{id}` | Delete resource and update graph asynchronously.                                                                                                                                          |
 
-### 4.3 Knowledge Graph
+### 4.3 Categories
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/categories` | List all categories visible to current user (system + user-created). |
+| POST | `/categories` | Create a custom category. Body: `{"name": "..."}`. Returns 201. Returns 409 if name conflicts. |
+| DELETE | `/categories/{id}` | Delete user-created category. Returns 400 `CATEGORY_IN_USE` if resources reference it. Returns 403 for system categories. |
+
+See full spec: `docs/design-category-taxonomy.md` §6.3.
+
+### 4.4 Knowledge Graph
 
 | Method | Path                               | Description                                                                                                               |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -431,7 +492,7 @@ Base path: `/api/v1`. All endpoints except auth and health require authenticatio
 | GET    | `/graph/nodes/{node_id}/resources` | List resources that have the given tag.                                                                                   |
 | POST   | `/graph/expand`                    | Expand graph (body or query: `node_id`, optional `direction`). Returns updated nodes/edges for next level.                |
 
-### 4.4 Chat
+### 4.5 Chat
 
 | Method | Path                                | Description                                                                                             |
 | ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -439,7 +500,7 @@ Base path: `/api/v1`. All endpoints except auth and health require authenticatio
 | GET    | `/chat/conversations`               | List conversations for current user.                                                                    |
 | GET    | `/chat/conversations/{id}/messages` | Get messages in a conversation.                                                                         |
 
-### 4.5 Example Request/Response
+### 4.6 Example Request/Response
 
 **POST /api/v1/resources**
 
@@ -510,21 +571,15 @@ Response (200):
 2. Client sends `POST /resources` with `content_type`, `original_content`, and optionally `prefer_provider` (for URL resources that require login on the target site).
 3. API creates row in PostgreSQL with `status = PENDING` (or `PROCESSING`), returns 202 and resource.
 4. Job is enqueued (e.g. Redis/Celery, or in-process task queue).
-5. Worker: **fetch content** — see [5.1.1 Fetching URL content (including login-required)](#511-fetching-url-content-including-login-required). Then call LLM for title/summary/tags; update resource row (`title`, `summary`, `tags`, `status = READY` or `FAILED`).
-6. Worker: update Neo4j (ensure Tag nodes for each tag, create/update RELATED_TO edges based on co-occurrence; ensure owner_id scoping).
+5. Worker: **fetch content** — see [5.1.1 Fetching URL content](#511-fetching-url-content). Then call LLM for title/summary/top_level_categories/tags (prompt includes current category list and user's existing tags); update resource row (`title`, `summary`, `tags`, `top_level_categories`, `fetch_tier`, `status = READY` or `FAILED`).
+6. Worker: update Neo4j — ensure Root/Category/Tag nodes for this user; create/update `CHILD_OF`, `BELONGS_TO`, and `RELATED_TO` edges; ensure `owner_id` scoping. See `docs/design-category-taxonomy.md` §5.3.
 7. Optionally emit `resource.ready` or `resource.failed` for UI (e.g. WebSocket or polling).
 
-#### 5.1.1 Fetching URL content (including login-required)
+#### 5.1.1 Fetching URL content
 
-When the resource is a URL, the worker fetches the content as follows:
+The worker uses a tiered fetch strategy: domain blocklist (Tier 1: official API), direct HTTP (Tier 2a), Playwright headless browser fallback (Tier 2b). Full specification, event flow, and sequence diagram: `docs/design-resource-fetching.md`.
 
-1. **Try unauthenticated fetch** (e.g. HTTP GET). If the response is successful and contains usable content, proceed to LLM.
-2. **If the response indicates login is required** (e.g. HTTP 401/403, redirect to login page, or known “auth-required” domain such as twitter.com, x.com), the worker uses the **resource owner’s linked account** for that provider:
-   - **Resolve provider**: From the URL domain (e.g. twitter.com → `twitter`) or from the optional `prefer_provider` stored with the resource (or passed in the job payload).
-   - **Load linked account**: Look up `user_accounts` for the resource’s `owner_id` and matching `provider`. Use that account’s `access_token` (refresh first if expired and `refresh_token` is available).
-   - **Fetch with token**: Call the provider’s API or perform an authenticated fetch (e.g. Twitter API, or authenticated scrape) to obtain the content.
-3. **If the user has no linked account for that provider**, set resource `status = FAILED` and `status_message` to a user-facing message, e.g. _"This link requires login. Link your Twitter account in Settings to save content from Twitter."_ The UI can show this and offer a link to Settings to add the account.
-4. For **pasted text** (`content_type = text`), no fetch is needed; use `original_content` as-is.
+For **pasted text** (`content_type = text`), no fetch is needed; use `original_content` as-is.
 
 ### 5.2 Resource update (re-process)
 
@@ -601,29 +656,26 @@ sequenceDiagram
         Queue->>Worker: process_resource(resource_id)
         Worker->>DB: UPDATE status=PROCESSING
         alt content_type=url
-            Worker->>Target: Fetch URL (unauthenticated)
-            alt Content requires login (401/403 or auth-required domain)
-                Worker->>DB: Get owner's user_accounts for provider (from domain or prefer_provider)
-                alt User has linked account
-                    Worker->>DB: Read access_token (and refresh if needed)
-                    Worker->>Target: Fetch with provider token (e.g. Twitter API)
-                    Target-->>Worker: content
-                else No linked account
-                    Worker->>DB: UPDATE resource status=FAILED, status_message="Link your Twitter account..."
-                end
-            else Success
-                Target-->>Worker: content
+            Note over Worker,Target: Tiered fetch strategy — see docs/design-resource-fetching.md
+            Worker->>Target: Tier 1 (API) or Tier 2a (HTTP) or Tier 2b (Playwright)
+            alt Fetch succeeded
+                Target-->>Worker: content, fetch_tier recorded
+            else All tiers failed
+                Worker->>DB: UPDATE status=FAILED, fetch_error_type, status_message
             end
         end
-        Worker->>LLM: Summarize + extract tags
-        LLM-->>Worker: title, summary, tags
-        Worker->>DB: UPDATE resource (title, summary, tags, status=READY)
-        Worker->>Neo4j: Merge Tag nodes, update RELATED_TO edges (owner_id)
+        Worker->>LLM: Summarize + assign top_level_categories + extract tags
+        Note over Worker,LLM: Prompt includes current category list + user's existing tags
+        LLM-->>Worker: title, summary, top_level_categories, tags
+        Worker->>DB: UPDATE resource (title, summary, tags, top_level_categories, fetch_tier, status=READY)
+        Worker->>Neo4j: Merge Root/Category/Tag nodes; update CHILD_OF, BELONGS_TO, RELATED_TO edges
         Worker->>DB: Optional: processing_log
     end
 ```
 
 ### 6.2 Knowledge graph update (after resource ready)
+
+See full specification: `docs/design-category-taxonomy.md` §5.3.
 
 ```mermaid
 sequenceDiagram
@@ -631,10 +683,15 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant Neo4j
 
-    Worker->>DB: Get resource tags (owner_id, resource_id)
+    Worker->>DB: Get resource tags + top_level_categories (owner_id, resource_id)
+    Worker->>Neo4j: MERGE Root node (owner_id)
+    Worker->>Neo4j: MERGE Category nodes for each top_level_category; MERGE CHILD_OF → Root
     Worker->>Neo4j: MERGE Tag nodes for each tag (owner_id)
+    loop For each tag × each top_level_category
+        Worker->>Neo4j: MERGE (tag)-[BELONGS_TO weight+=1]->(category)
+    end
     loop For each pair of tags on the resource
-        Worker->>Neo4j: MERGE (t1)-[RELATED_TO]-(t2), SET weight += 1
+        Worker->>Neo4j: MERGE (t1)-[RELATED_TO weight+=1]-(t2)
     end
     Worker->>Neo4j: Optional: cleanup zero-weight edges
 ```
@@ -855,8 +912,13 @@ Learning-Space/
 │   └── argocd/
 │       └── application.yaml
 ├── docs/
-│   ├── requirements.md
-│   └── technical-design.md
+│   ├── requirements.md                    # Core product requirements
+│   ├── technical-design.md                # Core architecture, data models, APIs
+│   ├── design-resource-fetching.md        # Tiered URL fetch strategy (supplement)
+│   ├── design-category-taxonomy.md        # Category taxonomy + graph hierarchy (supplement)
+│   ├── ux-requirements.md
+│   ├── ux-tech-spec.md
+│   └── integration-test-design.md
 └── README.md
 ```
 
@@ -867,12 +929,12 @@ Learning-Space/
 - **Resources**: POST create requires auth (return 401 if unauthenticated); store optional `prefer_provider` on resource; enqueue job. GET list (filter by `owner_id`, optional `tag`, `status`); GET by id; PATCH update (and re-enqueue if content changed); DELETE soft-delete or hard-delete + enqueue graph sync.
 - **Graph**: One service that talks to Neo4j (driver or `neo4j` package). Methods: `get_graph(owner_id, root?)`, `expand(owner_id, node_id, direction)`, and (if needed) `update_from_resource(owner_id, resource_id, tags[])`. Resource-by-tag listing from PostgreSQL.
 - **Chat**: One route that receives message, loads or creates conversation, calls LangGraph agent with tools; tools are thin wrappers that call the same Resource and Graph services or HTTP to same API; return assistant message and persist.
-- **Worker**: Either same process (background tasks with `asyncio` or `celery`) or separate process. Job: load resource → **fetch content** (for URLs: try unauthenticated; if login required or auth-required domain, load resource owner’s linked account for that provider from `user_accounts`, use access_token to fetch via provider API; if no linked account, set status FAILED and user-facing status_message) → LLM → save to DB → call graph service to update Neo4j. Maintain a domain→provider map (e.g. twitter.com, x.com → twitter) for auth-required sites.
+- **Worker**: Either same process (background tasks with `asyncio` or `celery`) or separate process. Job: load resource → **fetch content** (tiered strategy: domain blocklist → Tier 1 API fetch; HTTP → Tier 2a; Playwright fallback → Tier 2b; error classification on failure — full spec: `docs/design-resource-fetching.md`) → LLM (prompt includes current category list + user’s existing tags; output: title, summary, `top_level_categories`, `tags`) → save to DB → call graph service to update Neo4j (Root/Category/Tag nodes, CHILD_OF/BELONGS_TO/RELATED_TO edges — full spec: `docs/design-category-taxonomy.md`). Note: Playwright requires a separate Docker image (`Dockerfile.worker-playwright`) and Kubernetes Deployment; see `docs/design-resource-fetching.md` §8.3.
 
 ### 8.3 Frontend (Next.js) checklist
 
 - **Auth**: NextAuth.js or custom OAuth flow that calls backend `/auth/login/{provider}` for each provider and stores session/JWT (httpOnly cookie or secure storage). Settings UI: list linked accounts from `GET /auth/me`, “Add Google/Twitter/GitHub” → `/auth/link/{provider}`, “Disconnect” → `DELETE /auth/accounts/{id}`. Handle “cannot unlink last account” error.
-- **Resources**: If user is not logged in and tries to add a resource, show login prompt (POST /resources returns 401). Form to submit URL or text (POST /resources; optional prefer_provider for login-required URLs); list view with status (PENDING/PROCESSING/READY/FAILED); detail view; edit/delete. When status is FAILED, show status_message (e.g. “Link your Twitter account in Settings to save content from this site”) and link to Settings. Poll or WebSocket for status updates.
+- **Resources**: If user is not logged in and tries to add a resource, show login prompt (POST /resources returns 401). Form to submit URL or text (POST /resources; optional prefer_provider); list view with status (PENDING/PROCESSING/READY/FAILED); detail view; edit/delete. When status is FAILED, show `status_message` (e.g. “Link your Twitter account in Settings”) and link to Settings. Poll or WebSocket for status updates. Tag editor: allow add/remove tags and top_level_categories; enforce at least one top_level_category (client-side + server returns 400 CATEGORY_REQUIRED). Category selector: populate from GET /categories.
 - **Graph**: Use React Flow or Cytoscape.js; fetch `GET /graph` and `POST /graph/expand`; three-level display (parent / current / child); on node click, fetch `GET /graph/nodes/{id}/resources` and show list.
 - **Chat**: Chat UI; POST /chat with message and optional conversation_id; display assistant reply; optional streaming if backend supports it.
 

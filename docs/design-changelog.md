@@ -77,3 +77,41 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ### Open Questions
 - INT tasks blocked on DEV dependencies are deferred; see `memory/dev-tracker.md` for per-task dependency status
+
+---
+
+## 2026-03-22 — Resource fetching and category taxonomy design; supplement doc strategy adopted
+
+**Type:** Design
+**Trigger:** Technical thoughts (feedback review — FB-001, FB-003, FB-004) + doc organization strategy
+**Docs Affected:** `docs/technical-design.md`, `docs/design-resource-fetching.md` (new), `docs/design-category-taxonomy.md` (new)
+**Summary:** Two new supplement design documents created to hold domain-specific specs without bloating `technical-design.md` (which was already hitting context limits at 12k+ tokens). `docs/design-resource-fetching.md` specifies the tiered URL fetch strategy (domain blocklist, HTTP fetch, Playwright fallback, error classification). `docs/design-category-taxonomy.md` specifies the category taxonomy (10 seeded categories, user-created categories, Neo4j three-level hierarchy, LLM prompt changes, /categories endpoints, tag editing validation). `technical-design.md` is updated with new schema fields, the updated Neo4j model, new endpoints, and pointers to the supplement docs, replacing all stale inline fetch descriptions. The supplement doc strategy is now documented in `CLAUDE.md` On-demand Loading Index and `.claude/commands/project-design.md`.
+
+### Changes
+
+#### Design
+- Added `docs/design-resource-fetching.md`: Full spec for tiered URL fetch strategy — domain blocklist, Tier 1 (API), Tier 2a (HTTP), Tier 2b (Playwright), error classification, data model additions (`fetch_tier`, `fetch_error_type`), updated event flow, sequence diagram, implementation guidance (Playwright Docker image, domain config format)
+- Added `docs/design-category-taxonomy.md`: Full spec for category taxonomy — `categories` PostgreSQL table, `top_level_categories` JSONB field on resources, Neo4j `Root` + `Category` nodes + `CHILD_OF` + `BELONGS_TO` relationships, LLM output schema update, /categories endpoints, validation rules (CATEGORY_REQUIRED, INVALID_CATEGORY), seeding/migration notes
+- Modified `docs/technical-design.md` §2.1.3 (resources): Added `fetch_tier`, `fetch_error_type`, `top_level_categories` fields; updated `prefer_provider` description
+- Added `docs/technical-design.md` §2.1.5 (categories): New PostgreSQL `categories` table definition
+- Modified `docs/technical-design.md` §2.2 (Neo4j): Replaced flat Tag schema with three-node schema (Root, Category, Tag); added CHILD_OF and BELONGS_TO relationships; updated resource-tag linkage note
+- Modified `docs/technical-design.md` §3.1.2 (Update resource): Added `tags` and `top_level_categories` as editable fields; added validation rules
+- Modified `docs/technical-design.md` §3.2.1 (Graph node schema): Added `node_type` field (`root` | `category` | `topic`)
+- Added `docs/technical-design.md` §4.3 (Categories endpoints): GET/POST/DELETE /categories
+- Modified `docs/technical-design.md` §5.1.1 (Fetch flow): Replaced stale inline description with pointer to `docs/design-resource-fetching.md`
+- Modified `docs/technical-design.md` §5.1 step 5–6: Updated to reference `top_level_categories`, category-aware Neo4j update
+- Modified `docs/technical-design.md` §6.1 (Sequence diagram): Updated worker fetch and LLM/Neo4j steps
+- Modified `docs/technical-design.md` §6.2 (Graph update sequence): Updated to include Root/Category merge and CHILD_OF/BELONGS_TO edges
+- Modified `docs/technical-design.md` §8.1 (Repo layout): Updated docs/ listing to include new supplement docs
+- Modified `docs/technical-design.md` §8.2 (Worker checklist): Replaced stale fetch logic with pointers to supplement docs
+- Modified `docs/technical-design.md` §8.3 (Frontend checklist): Added category management UI and tag editor constraint note
+- Modified `CLAUDE.md` On-demand Loading Index: Added rows for new supplement docs
+- Modified `.claude/commands/project-design.md`: Documented supplement doc strategy (when to create, how to load, how to stage/commit)
+
+### Conflicts Resolved
+- `docs/technical-design.md` §5.1.1 contained a full inline fetch flow that conflicted with the new tiered strategy. Replaced with a compact pointer to `docs/design-resource-fetching.md`.
+- `docs/technical-design.md` §2.2 contained a flat `Tag`-only Neo4j schema. Replaced with the three-node hierarchy.
+
+### Open Questions
+- Playwright worker as separate Kubernetes Deployment vs single worker image: deferred to OPS task. Single image acceptable for early development.
+- Existing resource backfill (assign top_level_categories) deferred to OPS task.
