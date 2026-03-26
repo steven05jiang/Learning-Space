@@ -7,7 +7,7 @@ import pytest
 
 from models.resource import Resource, ResourceStatus
 from services.llm_processor import LLMResult
-from services.url_fetcher import FetchResult
+from services.tiered_url_fetcher import TieredFetchResult
 from workers.tasks import process_resource
 
 
@@ -56,22 +56,24 @@ class TestProcessResource:
     @pytest.fixture
     def mock_fetch_success(self):
         """Mock successful URL fetch result."""
-        return FetchResult(
+        return TieredFetchResult(
             success=True,
             content="<html><body><h1>Test Article</h1>"
             "<p>Some content here</p></body></html>",
             content_type="text/html",
             status_code=200,
             final_url="https://example.com",
+            fetch_tier="http",
         )
 
     @pytest.fixture
     def mock_fetch_failure(self):
         """Mock failed URL fetch result."""
-        return FetchResult(
+        return TieredFetchResult(
             success=False,
             error_message="HTTP 404: Not Found",
             error_type="not_found",
+            fetch_tier="http",
             status_code=404,
         )
 
@@ -172,7 +174,7 @@ class TestProcessResource:
 
         # Verify services were called
         mock_url_fetcher.fetch_url_content.assert_called_once_with(
-            "https://example.com"
+            "https://example.com", 456
         )
         mock_llm_processor.process_content.assert_called_once_with(
             mock_fetch_success.content, "text/html"
@@ -310,11 +312,11 @@ class TestProcessResource:
         assert result["resource_id"] == "123"
         assert result["status"] == "failed"
         assert result["stage"] == "content_fetch"
-        assert "Failed to fetch content: HTTP 404: Not Found" in result["error"]
+        assert "The page was not found (404)" in result["error"]
 
         # Verify resource was marked as FAILED
         assert mock_resource.status == ResourceStatus.FAILED
-        assert "Failed to fetch content" in mock_resource.status_message
+        assert "The page was not found (404)" in mock_resource.status_message
 
     @pytest.mark.asyncio
     async def test_process_resource_llm_failure(

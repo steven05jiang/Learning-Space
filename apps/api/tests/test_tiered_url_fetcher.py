@@ -55,8 +55,8 @@ async def test_very_long_url_validation(fetcher):
     result = await fetcher.fetch_url_content(long_url, 1)
     # We don't assert success/failure here as it depends on URL parsing limits
     # Just ensure it doesn't crash and returns a proper result
-    assert hasattr(result, 'success')
-    assert hasattr(result, 'error_type')
+    assert hasattr(result, "success")
+    assert hasattr(result, "error_type")
 
 
 @pytest.mark.asyncio
@@ -315,6 +315,7 @@ def test_load_api_required_domains_error():
             class BadConfigObject:
                 def split(self, *args):
                     raise ValueError("Mock parsing error")
+
                 def __bool__(self):
                     return True  # Make it truthy so we enter the if block
 

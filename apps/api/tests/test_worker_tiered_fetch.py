@@ -239,5 +239,3 @@ def test_get_user_friendly_error_message():
         "unknown_error", "Some unknown error"
     )
     assert "Some unknown error" in fallback_msg
-
-
