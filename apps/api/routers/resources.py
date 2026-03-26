@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
 from models.database import get_db
+from models.resource import ProcessingStatus as ModelProcessingStatus
 from models.resource import Resource
 from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
@@ -311,6 +312,55 @@ async def update_resource(
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
+
+
+@router.post("/{resource_id}/reprocess", status_code=status.HTTP_202_ACCEPTED)
+async def reprocess_resource(
+    resource_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """
+    Reprocess an existing resource.
+
+    - **resource_id**: The resource ID to reprocess
+
+    Resets the processing_status to PENDING and enqueues a new processing job.
+    This is useful for retrying failed resources or forcing re-summarization.
+    Returns 202 on successful enqueueing.
+    Returns 404 if the resource doesn't exist.
+    Returns 403 if the resource belongs to another user.
+    """
+    # First check if resource exists
+    resource_exists_query = select(Resource).where(Resource.id == resource_id)
+    result = await db.execute(resource_exists_query)
+    resource = result.scalar_one_or_none()
+
+    if not resource:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
+        )
+
+    # Check ownership
+    if resource.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
+
+    # Reset processing status to pending
+    resource.processing_status = ModelProcessingStatus.PENDING
+    await db.commit()
+    await db.refresh(resource)
+
+    # Enqueue background processing job
+    background_tasks.add_task(process_resource_background_job, resource.id)
+
+    logger.info(
+        f"Resource {resource_id} marked for reprocessing by user {current_user.id}"
+    )
+
+    return {"message": "Resource queued for reprocessing"}
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)

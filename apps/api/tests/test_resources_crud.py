@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.resource import Resource, ResourceStatus
+from models.resource import ProcessingStatus, Resource, ResourceStatus
 from models.user import User
 
 
@@ -598,3 +598,103 @@ class TestDeleteResource:
         result = await db_session.execute(stmt)
         deleted_resource = result.scalar_one_or_none()
         assert deleted_resource is None
+
+
+class TestReprocessResource:
+    """Test cases for POST /resources/{id}/reprocess."""
+
+    @pytest.mark.asyncio
+    async def test_reprocess_resource_success(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        auth_headers: dict,
+        test_user,
+    ):
+        """Test reprocessing a resource successfully."""
+        # Create a resource with FAILED processing status
+        resource = Resource(
+            owner_id=test_user.id,
+            content_type="url",
+            original_content="https://example.com/failed-resource",
+            title="Failed Resource",
+            status=ResourceStatus.FAILED,
+            processing_status=ProcessingStatus.FAILED,
+        )
+        db_session.add(resource)
+        await db_session.commit()
+        await db_session.refresh(resource)
+
+        # Mock the queue service
+        with patch(
+            "routers.resources.queue_service.enqueue_resource_processing"
+        ) as mock_enqueue:
+            mock_enqueue.return_value = "job123"
+
+            # Reprocess the resource
+            response = await client.post(
+                f"/resources/{resource.id}/reprocess", headers=auth_headers
+            )
+
+            # Verify response
+            assert response.status_code == 202
+            data = response.json()
+            assert data["message"] == "Resource queued for reprocessing"
+
+            # Verify background task was enqueued
+            mock_enqueue.assert_called_once()
+
+        # Verify processing status was reset to PENDING in database
+        await db_session.refresh(resource)
+        assert resource.processing_status == ProcessingStatus.PENDING
+        # Status unchanged, only processing_status resets
+        assert resource.status == ResourceStatus.FAILED
+
+    @pytest.mark.asyncio
+    async def test_reprocess_resource_not_found(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        """Test reprocessing a non-existent resource returns 404."""
+        response = await client.post("/resources/99999/reprocess", headers=auth_headers)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Resource not found"
+
+    @pytest.mark.asyncio
+    async def test_reprocess_resource_not_owned(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        auth_headers: dict,
+        test_user_2,
+    ):
+        """Test reprocessing a resource owned by another user returns 403."""
+        # Create a resource owned by another user
+        resource = Resource(
+            owner_id=test_user_2.id,
+            content_type="text",
+            original_content="This belongs to another user",
+            status=ResourceStatus.FAILED,
+            processing_status=ProcessingStatus.FAILED,
+        )
+        db_session.add(resource)
+        await db_session.commit()
+        await db_session.refresh(resource)
+
+        original_processing_status = resource.processing_status
+
+        # Try to reprocess the resource
+        response = await client.post(
+            f"/resources/{resource.id}/reprocess", headers=auth_headers
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Access denied"
+
+        # Verify resource processing status was not changed
+        await db_session.refresh(resource)
+        assert resource.processing_status == original_processing_status
+
+    @pytest.mark.asyncio
+    async def test_reprocess_resource_unauthenticated(self, client: AsyncClient):
+        """Test that unauthenticated requests return 401."""
+        response = await client.post("/resources/1/reprocess")
+        assert response.status_code == 401
