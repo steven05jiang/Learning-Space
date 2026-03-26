@@ -7,9 +7,8 @@ from urllib.parse import urlparse
 
 import httpx
 
-from services.url_fetcher import FetchResult
-from services.playwright_fetcher import playwright_fetcher_service
 from core.config import settings
+from services.playwright_fetcher import playwright_fetcher_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +40,14 @@ class TieredURLFetcherService:
         self.timeout = timeout
         self.max_redirects = max_redirects
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/webp,*/*;q=0.8"
+            ),
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate",
             "DNT": "1",
@@ -68,7 +73,9 @@ class TieredURLFetcherService:
                     domain, provider = pair.split(":", 1)
                     domain_map[domain.strip()] = provider.strip()
 
-        logger.info(f"Loaded {len(domain_map)} API-required domains: {list(domain_map.keys())}")
+        logger.info(
+            f"Loaded {len(domain_map)} API-required domains: {list(domain_map.keys())}"
+        )
         return domain_map
 
     async def fetch_url_content(self, url: str, owner_id: int) -> TieredFetchResult:
@@ -121,7 +128,9 @@ class TieredURLFetcherService:
             # Fall back to Tier 2b (Playwright)
             return await self._tier2b_playwright_fetch(url)
 
-    async def _tier1_api_fetch(self, url: str, domain: str, owner_id: int) -> TieredFetchResult:
+    async def _tier1_api_fetch(
+        self, url: str, domain: str, owner_id: int
+    ) -> TieredFetchResult:
         """Tier 1: API-based fetch for blocklisted domains.
 
         Args:
@@ -171,7 +180,10 @@ class TieredURLFetcherService:
 
                 # Check for bot-blocking signals
                 if self._is_bot_blocked(response):
-                    logger.info(f"Bot blocking detected for {url}, status: {response.status_code}")
+                    logger.info(
+                        f"Bot blocking detected for {url}, "
+                        f"status: {response.status_code}"
+                    )
                     return TieredFetchResult(
                         success=False,
                         status_code=response.status_code,
@@ -184,7 +196,9 @@ class TieredURLFetcherService:
                 # Check for other HTTP errors
                 if response.status_code >= 400:
                     error_type = self._classify_http_error(response.status_code)
-                    error_message = f"HTTP {response.status_code}: {response.reason_phrase}"
+                    error_message = (
+                        f"HTTP {response.status_code}: {response.reason_phrase}"
+                    )
 
                     logger.warning(f"HTTP error fetching {url}: {error_message}")
 
@@ -275,7 +289,9 @@ class TieredURLFetcherService:
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            logger.error(f"Unexpected error fetching {url}: {error_message}", exc_info=True)
+            logger.error(
+                f"Unexpected error fetching {url}: {error_message}", exc_info=True
+            )
             return TieredFetchResult(
                 success=False,
                 error_type="unknown_error",
@@ -308,7 +324,9 @@ class TieredURLFetcherService:
                 )
             else:
                 # Classify the error type for failed Playwright fetch
-                error_type = self._classify_playwright_error(playwright_result.error_type)
+                error_type = self._classify_playwright_error(
+                    playwright_result.error_type
+                )
 
                 return TieredFetchResult(
                     success=False,

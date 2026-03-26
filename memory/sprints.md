@@ -24,7 +24,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 | Task | Description | Status |
 |------|-------------|--------|
-| DEV-056 | Tiered URL fetch strategy (FB-001) | ⏳ Pending |
+| DEV-056 | Tiered URL fetch strategy (FB-001) | 🔄 Active |
 | DEV-057 | processing_status field + Alembic migration (FB-002) | ⏳ Pending |
 | DEV-060 | Categories table, seed 10 root categories, /categories API (FB-003) | ⏳ Pending |
 | DEV-065 | Fix graph node popup overflow (FB-005) | ⏳ Pending |

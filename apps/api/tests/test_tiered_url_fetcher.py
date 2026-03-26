@@ -1,10 +1,11 @@
 """Tests for tiered URL fetcher service."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-import httpx
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from services.tiered_url_fetcher import TieredURLFetcherService, TieredFetchResult
+import httpx
+import pytest
+
+from services.tiered_url_fetcher import TieredURLFetcherService
 from services.url_fetcher import FetchResult
 
 
@@ -92,15 +93,21 @@ async def test_http_403_fallback_to_playwright(fetcher):
         mock_client.return_value.__aenter__.return_value = mock_context
         mock_context.get.return_value = mock_http_response
 
-        with patch("services.tiered_url_fetcher.playwright_fetcher_service") as mock_playwright:
-            mock_playwright.fetch_url_content = AsyncMock(return_value=mock_playwright_result)
+        with patch(
+            "services.tiered_url_fetcher.playwright_fetcher_service"
+        ) as mock_playwright:
+            mock_playwright.fetch_url_content = AsyncMock(
+                return_value=mock_playwright_result
+            )
 
             result = await fetcher.fetch_url_content("https://example.com", 1)
 
             assert result.success
             assert result.fetch_tier == "playwright"
             assert result.content == "Playwright content"
-            mock_playwright.fetch_url_content.assert_called_once_with("https://example.com")
+            mock_playwright.fetch_url_content.assert_called_once_with(
+                "https://example.com"
+            )
 
 
 @pytest.mark.asyncio
@@ -112,13 +119,17 @@ async def test_http_timeout(fetcher):
         mock_context.get.side_effect = httpx.TimeoutException("Request timed out")
 
         # Mock Playwright service to prevent it from being called
-        with patch("services.tiered_url_fetcher.playwright_fetcher_service") as mock_playwright:
+        with patch(
+            "services.tiered_url_fetcher.playwright_fetcher_service"
+        ) as mock_playwright:
             mock_playwright_result = FetchResult(
                 success=False,
                 error_type="timeout",
                 error_message="Playwright timed out",
             )
-            mock_playwright.fetch_url_content = AsyncMock(return_value=mock_playwright_result)
+            mock_playwright.fetch_url_content = AsyncMock(
+                return_value=mock_playwright_result
+            )
 
             result = await fetcher.fetch_url_content("https://example.com", 1)
 
@@ -148,8 +159,12 @@ async def test_content_too_short_bot_blocked(fetcher):
             error_message="Still blocked",
         )
 
-        with patch("services.tiered_url_fetcher.playwright_fetcher_service") as mock_playwright:
-            mock_playwright.fetch_url_content = AsyncMock(return_value=mock_playwright_result)
+        with patch(
+            "services.tiered_url_fetcher.playwright_fetcher_service"
+        ) as mock_playwright:
+            mock_playwright.fetch_url_content = AsyncMock(
+                return_value=mock_playwright_result
+            )
 
             result = await fetcher.fetch_url_content("https://example.com", 1)
 
@@ -163,7 +178,9 @@ async def test_bot_blocking_detection_cloudflare(fetcher):
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.headers = {"content-type": "text/html"}
-    mock_response.text = "Please wait while we check if you're human. Cloudflare security check."
+    mock_response.text = (
+        "Please wait while we check if you're human. Cloudflare security check."
+    )
     mock_response.url = "https://example.com"
 
     with patch("httpx.AsyncClient") as mock_client:
@@ -179,8 +196,12 @@ async def test_bot_blocking_detection_cloudflare(fetcher):
             status_code=200,
         )
 
-        with patch("services.tiered_url_fetcher.playwright_fetcher_service") as mock_playwright:
-            mock_playwright.fetch_url_content = AsyncMock(return_value=mock_playwright_result)
+        with patch(
+            "services.tiered_url_fetcher.playwright_fetcher_service"
+        ) as mock_playwright:
+            mock_playwright.fetch_url_content = AsyncMock(
+                return_value=mock_playwright_result
+            )
 
             result = await fetcher.fetch_url_content("https://example.com", 1)
 
@@ -205,8 +226,12 @@ async def test_all_tiers_fail(fetcher):
             error_message="Playwright timed out",
         )
 
-        with patch("services.tiered_url_fetcher.playwright_fetcher_service") as mock_playwright:
-            mock_playwright.fetch_url_content = AsyncMock(return_value=mock_playwright_result)
+        with patch(
+            "services.tiered_url_fetcher.playwright_fetcher_service"
+        ) as mock_playwright:
+            mock_playwright.fetch_url_content = AsyncMock(
+                return_value=mock_playwright_result
+            )
 
             result = await fetcher.fetch_url_content("https://example.com", 1)
 
@@ -217,7 +242,9 @@ async def test_all_tiers_fail(fetcher):
 def test_load_api_required_domains():
     """Test loading API-required domains from config."""
     with patch("services.tiered_url_fetcher.settings") as mock_settings:
-        mock_settings.api_required_domains = "twitter.com:twitter,x.com:twitter,youtube.com:youtube"
+        mock_settings.api_required_domains = (
+            "twitter.com:twitter,x.com:twitter,youtube.com:youtube"
+        )
 
         fetcher = TieredURLFetcherService()
 

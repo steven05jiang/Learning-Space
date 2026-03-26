@@ -1,12 +1,12 @@
 """Tests for worker task integration with tiered URL fetcher."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime
 
 from models.resource import Resource, ResourceStatus
-from workers.tasks import process_resource
 from services.tiered_url_fetcher import TieredFetchResult
+from workers.tasks import process_resource
 
 
 @pytest.mark.asyncio
@@ -208,26 +208,31 @@ def test_get_user_friendly_error_message():
     from workers.tasks import _get_user_friendly_error_message
 
     # Test standard error types
-    assert "linked account" in _get_user_friendly_error_message(
-        "API_REQUIRED", "API error"
-    ).lower()
+    assert (
+        "linked account"
+        in _get_user_friendly_error_message("API_REQUIRED", "API error").lower()
+    )
 
-    assert "not yet supported" in _get_user_friendly_error_message(
-        "NOT_SUPPORTED", "Not supported"
-    ).lower()
+    assert (
+        "not yet supported"
+        in _get_user_friendly_error_message("NOT_SUPPORTED", "Not supported").lower()
+    )
 
-    assert "blocked automated access" in _get_user_friendly_error_message(
-        "BOT_BLOCKED", "Bot blocked"
-    ).lower()
+    assert (
+        "blocked automated access"
+        in _get_user_friendly_error_message("BOT_BLOCKED", "Bot blocked").lower()
+    )
 
-    assert "could not reach" in _get_user_friendly_error_message(
-        "FETCH_ERROR", "Network error"
-    ).lower()
+    assert (
+        "could not reach"
+        in _get_user_friendly_error_message("FETCH_ERROR", "Network error").lower()
+    )
 
     # Test passthrough for validation errors
-    assert _get_user_friendly_error_message(
-        "validation_error", "URL cannot be empty"
-    ) == "URL cannot be empty"
+    assert (
+        _get_user_friendly_error_message("validation_error", "URL cannot be empty")
+        == "URL cannot be empty"
+    )
 
     # Test fallback for unknown error types
     fallback_msg = _get_user_friendly_error_message(

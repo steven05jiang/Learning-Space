@@ -7,13 +7,10 @@ from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings
 from models.database import AsyncSessionLocal
 from models.resource import Resource, ResourceStatus
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
-from services.playwright_fetcher import playwright_fetcher_service
-from services.url_fetcher import url_fetcher_service
 from services.tiered_url_fetcher import tiered_url_fetcher_service
 
 # Use tiered fetcher by default now
@@ -108,7 +105,8 @@ async def process_resource(
                 final_content_type = fetch_result.content_type or "text/html"
 
                 logger.info(
-                    f"Fetched content for resource {resource_id} via {fetch_result.fetch_tier}: "
+                    f"Fetched content for resource {resource_id} "
+                    f"via {fetch_result.fetch_tier}: "
                     f"{len(content_to_process)} chars, type: {final_content_type}"
                 )
             else:
@@ -229,9 +227,13 @@ def _get_user_friendly_error_message(error_type: str, original_error: str) -> st
         User-friendly error message
     """
     error_messages = {
-        "API_REQUIRED": "This link requires a linked account. Go to Settings to link your account.",
+        "API_REQUIRED": (
+            "This link requires a linked account. Go to Settings to link your account."
+        ),
         "NOT_SUPPORTED": "Fetching content from this platform is not yet supported.",
-        "BOT_BLOCKED": "This page blocked automated access. Try pasting the content manually.",
+        "BOT_BLOCKED": (
+            "This page blocked automated access. Try pasting the content manually."
+        ),
         "FETCH_ERROR": "Could not reach this URL. Check the link and try again.",
         "validation_error": original_error,
         "not_found": "The page was not found (404).",
