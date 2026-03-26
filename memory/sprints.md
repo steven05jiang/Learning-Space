@@ -26,8 +26,8 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 |------|-------------|--------|
 | DEV-056 | Tiered URL fetch strategy (FB-001) | ✅ Completed (PR #135) |
 | DEV-057 | processing_status field + Alembic migration (FB-002) | ✅ Completed (PR #137) |
-| DEV-060 | Categories table, seed 10 root categories, /categories API (FB-003) | 🔄 Active |
-| DEV-065 | Fix graph node popup overflow (FB-005) | ⏳ Pending |
+| DEV-060 | Categories table, seed 10 root categories, /categories API (FB-003) | ✅ Completed (PR #143) |
+| DEV-065 | Fix graph node popup overflow (FB-005) | 🔄 Active |
 | DEV-058 | Worker pipeline state machine (FB-002) — needs DEV-057 | ✅ Completed (PR #140) |
 | DEV-059 | Re-process action in resource detail UI (FB-002) — needs DEV-057 | ✅ Completed (PR #141) |
 | DEV-061 | Neo4j Root/Category/Tag three-level hierarchy (FB-003) — needs DEV-060 | ⏳ Pending |
