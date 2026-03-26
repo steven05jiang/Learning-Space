@@ -5,7 +5,7 @@ import logging
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import cast, func, select
+from sqlalchemy import String, cast, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -56,7 +56,7 @@ async def get_node_resources(
     else:
         # For SQLite (and other databases), use JSON search
         # This searches for the tag value in the JSON array
-        tag_condition = Resource.tags.op("LIKE")(f"%{json.dumps(node_id)}%")
+        tag_condition = cast(Resource.tags, String).like(f"%{json.dumps(node_id)}%")
 
     query = (
         select(Resource)

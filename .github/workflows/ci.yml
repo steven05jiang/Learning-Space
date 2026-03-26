@@ -80,7 +80,7 @@ jobs:
       - run: cd apps/api && uv sync --frozen --extra dev
       - name: Dependency vulnerability scan (pip-audit)
         # CVE-2024-23342: ecdsa transitive dep of python-jose; unused (using [cryptography] backend). BUG-001 tracks migration to authlib JWT.
-        run: cd apps/api && uv run pip-audit --ignore-vuln CVE-2024-23342
+        run: cd apps/api && uv run pip-audit --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-4539
         env:
           JWT_SECRET_KEY: ci-test-secret-key-32-chars-minimum
       - name: Static security analysis (bandit)

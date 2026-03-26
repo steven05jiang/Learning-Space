@@ -7,20 +7,14 @@ from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings
 from models.database import AsyncSessionLocal
 from models.resource import Resource, ResourceStatus
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
-from services.playwright_fetcher import playwright_fetcher_service
-from services.url_fetcher import url_fetcher_service
+from services.tiered_url_fetcher import tiered_url_fetcher_service
 
-# Select fetcher backend from config: "httpx" (default) or "playwright"
-_fetcher = (
-    playwright_fetcher_service
-    if settings.url_fetcher_backend == "playwright"
-    else url_fetcher_service
-)
+# Use tiered fetcher by default now
+_fetcher = tiered_url_fetcher_service
 
 logger = logging.getLogger(__name__)
 
@@ -81,25 +75,38 @@ async def process_resource(
             final_content_type = resource.content_type
 
             if resource.content_type == "url":
-                # Use URL fetcher for URL resources
+                # Use tiered URL fetcher for URL resources
                 fetch_result = await _fetcher.fetch_url_content(
-                    resource.original_content
+                    resource.original_content, resource.owner_id
                 )
 
                 if not fetch_result.success:
-                    error_msg = f"Failed to fetch content: {fetch_result.error_message}"
+                    # Set appropriate error fields based on fetch result
+                    resource.fetch_error_type = fetch_result.error_type
+
+                    # Map error types to user-friendly messages
+                    error_msg = _get_user_friendly_error_message(
+                        fetch_result.error_type, fetch_result.error_message
+                    )
+
                     await _set_resource_failed(session, resource, error_msg)
                     return {
                         "resource_id": resource_id,
                         "status": "failed",
                         "error": error_msg,
                         "stage": "content_fetch",
+                        "fetch_tier": fetch_result.fetch_tier,
+                        "fetch_error_type": fetch_result.error_type,
                     }
 
+                # Record which tier succeeded
+                resource.fetch_tier = fetch_result.fetch_tier
                 content_to_process = fetch_result.content
                 final_content_type = fetch_result.content_type or "text/html"
+
                 logger.info(
-                    f"Fetched content for resource {resource_id}: "
+                    f"Fetched content for resource {resource_id} "
+                    f"via {fetch_result.fetch_tier}: "
                     f"{len(content_to_process)} chars, type: {final_content_type}"
                 )
             else:
@@ -171,6 +178,7 @@ async def process_resource(
                 "title": llm_result.title,
                 "summary_length": len(llm_result.summary) if llm_result.summary else 0,
                 "tags_count": len(llm_result.tags) if llm_result.tags else 0,
+                "fetch_tier": resource.fetch_tier,
                 "stages_completed": [
                     "status_update",
                     (
@@ -206,6 +214,37 @@ async def process_resource(
                 # If we can't even set the status, just log and re-raise
                 logger.error(f"Failed to set error status for resource {resource_id}")
             raise
+
+
+def _get_user_friendly_error_message(error_type: str, original_error: str) -> str:
+    """Map error types to user-friendly messages.
+
+    Args:
+        error_type: Machine-readable error type
+        original_error: Original error message
+
+    Returns:
+        User-friendly error message
+    """
+    error_messages = {
+        "API_REQUIRED": (
+            "This link requires a linked account. Go to Settings to link your account."
+        ),
+        "NOT_SUPPORTED": "Fetching content from this platform is not yet supported.",
+        "BOT_BLOCKED": (
+            "This page blocked automated access. Try pasting the content manually."
+        ),
+        "FETCH_ERROR": "Could not reach this URL. Check the link and try again.",
+        "validation_error": original_error,
+        "not_found": "The page was not found (404).",
+        "forbidden": "Access to this page is forbidden.",
+        "unauthorized": "Authentication required to access this page.",
+        "rate_limited": "Rate limit exceeded. Please try again later.",
+        "timeout": "Request timed out. The page may be slow or unavailable.",
+        "network_error": "Network error. Check your connection and try again.",
+    }
+
+    return error_messages.get(error_type, f"Failed to fetch content: {original_error}")
 
 
 async def _set_resource_failed(

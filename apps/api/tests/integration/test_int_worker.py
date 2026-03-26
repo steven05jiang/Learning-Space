@@ -18,7 +18,7 @@ from models.account import Account
 from models.resource import Resource, ResourceStatus
 from models.user import User
 from services.llm_processor import LLMResult
-from services.url_fetcher import FetchResult
+from services.tiered_url_fetcher import TieredFetchResult
 from workers.tasks import process_resource
 
 
@@ -64,10 +64,18 @@ async def test_worker_processes_url_resource_successfully(db_session, respx_mock
     await db_session.flush()
     await db_session.commit()
 
-    # Mock successful URL fetch
+    # Mock successful URL fetch (content must exceed 500-char bot-detection threshold)
     mock_html = (
         "<html><head><title>Test Article</title></head>"
-        "<body>Article content here.</body></html>"
+        "<body>"
+        "<h1>Test Article</h1>"
+        "<p>This is a detailed article with enough content to pass the bot-detection "
+        "threshold in the tiered URL fetcher. The fetcher requires at least 500 "
+        "characters of meaningful content before it considers the page successfully "
+        "fetched via HTTP. This paragraph provides that required content length so "
+        "that the test does not inadvertently trigger the Playwright fallback path, "
+        "which is not available in the CI environment.</p>"
+        "</body></html>"
     )
     respx_mock.get("https://example.com/article").mock(
         return_value=Response(200, text=mock_html)
@@ -216,14 +224,14 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
     await db_session.flush()
     await db_session.commit()
 
-    # Mock the url_fetcher_service to return successful provider fetch
-    # (simulates the service detecting 401 and using provider authentication)
+    # Mock the tiered fetcher to return successful provider fetch
+    # (simulates Tier 1 API fetch for a Twitter URL with linked account)
     mock_tweet_content = "This is tweet content fetched via Twitter API."
-    mock_fetch_result = FetchResult(
+    mock_fetch_result = TieredFetchResult(
         success=True,
         content=mock_tweet_content,
         content_type="text/plain",
-        status_code=200,
+        fetch_tier="api",
     )
 
     # Mock LLM processing with deterministic results
@@ -238,7 +246,7 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
     mock_session_ctx = await mock_session_context(db_session)
 
     with patch(
-        "workers.tasks.url_fetcher_service.fetch_url_content",
+        "workers.tasks._fetcher.fetch_url_content",
         return_value=mock_fetch_result,
     ):
         with patch(
@@ -293,19 +301,18 @@ async def test_worker_url_requires_login_no_linked_account_fails(db_session):
     await db_session.flush()
     await db_session.commit()
 
-    # Mock the URL fetcher to return 401 failure
-    mock_fetch_result = FetchResult(
+    # Mock the tiered fetcher to return AUTH_REQUIRED failure
+    mock_fetch_result = TieredFetchResult(
         success=False,
-        status_code=401,
-        error_type="unauthorized",
-        error_message="HTTP 401: Unauthorized",
+        error_type="API_REQUIRED",
+        error_message="Authentication required to fetch this URL.",
     )
 
     # Mock AsyncSessionLocal to return test session
     mock_session_ctx = await mock_session_context(db_session)
 
     with patch(
-        "workers.tasks.url_fetcher_service.fetch_url_content",
+        "workers.tasks._fetcher.fetch_url_content",
         return_value=mock_fetch_result,
     ):
         with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
@@ -315,13 +322,14 @@ async def test_worker_url_requires_login_no_linked_account_fails(db_session):
     # Verify result - should fail due to authentication required
     assert result["status"] == "failed"
     assert result["resource_id"] == str(resource.id)
-    assert "HTTP 401" in result["error"]
+    # API_REQUIRED maps to "...Go to Settings to link your account."
+    assert "linked account" in result["error"]
     assert result["stage"] == "content_fetch"
 
     # Verify resource in database
     await db_session.refresh(resource)
     assert resource.status == ResourceStatus.FAILED
-    assert "HTTP 401" in resource.status_message
+    assert "linked account" in resource.status_message
     assert resource.title is None
     assert resource.summary is None
     assert resource.tags is None or resource.tags == []

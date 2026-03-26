@@ -4,7 +4,7 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-23 (DEMO-006 added; Sprint 2026-03-23-A opened for FB-001–FB-005)
+**Last Updated:** 2026-03-25 (DEV-056 dispatched — Sprint 2026-03-23-A)
 
 ---
 
@@ -12,8 +12,8 @@
 
 - Total: 127 tasks (65 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD)
 - ✅ Completed: 82
-- 🔄 Active: 0
-- ⏳ Pending: 45
+- 🔄 Active: 1
+- ⏳ Pending: 44
 - ⚠️ Stuck: 0
 
 ---
@@ -81,7 +81,7 @@
 
 _Design specs: `docs/design-resource-fetching.md` (FB-001), `docs/design-category-taxonomy.md` (FB-003/004)_
 
-- [ ] DEV-056: Tiered URL fetch strategy — domain blocklist + HTTP + Playwright fallback + fetch_tier/fetch_error_type tracking (FB-001)
+- [~] DEV-056: Tiered URL fetch strategy — domain blocklist + HTTP + Playwright fallback + fetch_tier/fetch_error_type tracking (FB-001)
 - [ ] DEV-057: Add processing_status field to resources + Alembic migration (pending/processing/success/failed) (FB-002)
 - [ ] DEV-058: Update worker pipeline to use processing_status state machine — skip success/failed, set state on start/complete (FB-002)
 - [ ] DEV-059: Add manual Re-process action to resource detail UI — POST /resources/{id}/reprocess endpoint + button (FB-002)
