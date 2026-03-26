@@ -38,6 +38,14 @@ class ResourceStatus(enum.Enum):
     FAILED = "FAILED"
 
 
+class ProcessingStatus(enum.Enum):
+    """Processing status for resource content analysis and enrichment."""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
 class Resource(Base):
     __tablename__ = "resources"
 
@@ -55,6 +63,9 @@ class Resource(Base):
     status_message = Column(String, nullable=True)
     fetch_tier = Column(String(20), nullable=True)  # 'api', 'http', 'playwright'
     fetch_error_type = Column(String(30), nullable=True)  # Error classification
+    processing_status = Column(
+        Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
+    )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
         DateTime,

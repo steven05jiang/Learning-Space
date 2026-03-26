@@ -23,6 +23,15 @@ class ResourceStatus(str, enum.Enum):
     FAILED = "FAILED"
 
 
+class ProcessingStatus(str, enum.Enum):
+    """Processing status for resource content analysis and enrichment."""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
 class ResourceCreate(BaseModel):
     """Request schema for creating a new resource."""
 
@@ -68,6 +77,7 @@ class ResourceResponse(BaseModel):
     summary: Optional[str] = None
     tags: list[str] = []
     status: ResourceStatus
+    processing_status: ProcessingStatus
     created_at: datetime
     updated_at: datetime
 
@@ -83,6 +93,7 @@ class ResourceListItem(BaseModel):
     summary: Optional[str] = None
     tags: list[str] = []
     status: ResourceStatus
+    processing_status: ProcessingStatus
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -97,6 +108,7 @@ class ResourceNodeItem(BaseModel):
     original_content: str
     content_type: ContentType
     status: ResourceStatus
+    processing_status: ProcessingStatus
     created_at: datetime
     tags: list[str] = []
 
