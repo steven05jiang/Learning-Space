@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.database import AsyncSessionLocal
-from models.resource import Resource, ResourceStatus, ProcessingStatus
+from models.resource import ProcessingStatus, Resource, ResourceStatus
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
 from services.tiered_url_fetcher import tiered_url_fetcher_service
@@ -59,15 +59,18 @@ async def process_resource(
                 raise ValueError(f"Resource with id {resource_id} not found")
 
             # Check if resource is already in terminal processing state
-            if resource.processing_status in [ProcessingStatus.SUCCESS, ProcessingStatus.FAILED]:
+            terminal_states = [ProcessingStatus.SUCCESS, ProcessingStatus.FAILED]
+            if resource.processing_status in terminal_states:
+                status_value = resource.processing_status.value
                 logger.info(
-                    f"Skipping resource {resource_id}: already in terminal processing state {resource.processing_status.value}"
+                    f"Skipping resource {resource_id}: already in terminal "
+                    f"processing state {status_value}"
                 )
                 return {
                     "resource_id": resource_id,
                     "status": "skipped",
-                    "reason": f"Already in terminal state: {resource.processing_status.value}",
-                    "processing_status": resource.processing_status.value,
+                    "reason": f"Already in terminal state: {status_value}",
+                    "processing_status": status_value,
                 }
 
             logger.info(

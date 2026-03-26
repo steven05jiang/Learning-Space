@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from models.resource import Resource, ResourceStatus, ProcessingStatus
+from models.resource import ProcessingStatus, Resource, ResourceStatus
 from services.llm_processor import LLMResult
 from services.tiered_url_fetcher import TieredFetchResult
 from workers.tasks import process_resource
@@ -29,9 +29,15 @@ async def test_process_resource_start_to_processing_transition():
         processing_status_history.append(value)
 
     # Mock setting processing_status to track changes
+    default_status = ProcessingStatus.PENDING
+
+    def get_status(self):
+        if processing_status_history:
+            return processing_status_history[-1]
+        return default_status
+
     type(mock_resource).processing_status = property(
-        lambda self: processing_status_history[-1] if processing_status_history else ProcessingStatus.PENDING,
-        lambda self, value: track_processing_status_changes(value)
+        get_status, lambda self, value: track_processing_status_changes(value)
     )
 
     # Mock successful LLM processing
@@ -61,7 +67,9 @@ async def test_process_resource_start_to_processing_transition():
                 assert ProcessingStatus.SUCCESS in processing_status_history
 
                 # Verify PROCESSING was set before SUCCESS
-                processing_idx = processing_status_history.index(ProcessingStatus.PROCESSING)
+                processing_idx = processing_status_history.index(
+                    ProcessingStatus.PROCESSING
+                )
                 success_idx = processing_status_history.index(ProcessingStatus.SUCCESS)
                 assert processing_idx < success_idx
 
@@ -243,7 +251,7 @@ async def test_process_resource_skip_if_already_failed():
 
 @pytest.mark.asyncio
 async def test_process_resource_processing_state_allows_retry():
-    """Test that worker processes resource if it's in PROCESSING state (allows retry)."""
+    """Test worker processes resource if in PROCESSING state (allows retry)."""
     # Mock resource in PROCESSING state (could be stale/stuck)
     mock_resource = MagicMock(spec=Resource)
     mock_resource.id = 123
