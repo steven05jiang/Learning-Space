@@ -5,15 +5,14 @@ Revises: 4c41c5ec190a
 Create Date: 2026-03-25 21:41:30.696024
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '111e5b3d61af'
-down_revision: Union[str, Sequence[str], None] = '4c41c5ec190a'
+revision: str = "111e5b3d61af"
+down_revision: Union[str, Sequence[str], None] = "4c41c5ec190a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
