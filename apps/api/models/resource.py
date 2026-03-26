@@ -65,7 +65,9 @@ class Resource(Base):
     fetch_tier = Column(String(20), nullable=True)  # 'api', 'http', 'playwright'
     fetch_error_type = Column(String(30), nullable=True)  # Error classification
     processing_status = Column(
-        Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
+        Enum(ProcessingStatus, values_callable=lambda x: [e.value for e in x]),
+        default=ProcessingStatus.PENDING,
+        nullable=False,
     )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
