@@ -36,6 +36,30 @@ async def test_invalid_url_validation(fetcher):
 
 
 @pytest.mark.asyncio
+async def test_whitespace_only_url_validation(fetcher):
+    """Test that whitespace-only URLs are rejected."""
+    result = await fetcher.fetch_url_content("   \t  \n  ", 1)
+    assert not result.success
+    assert result.error_type == "validation_error"
+    assert "cannot be empty" in result.error_message
+
+
+@pytest.mark.asyncio
+async def test_very_long_url_validation(fetcher):
+    """Test that very long URLs are handled gracefully."""
+    # Create a URL that's longer than most reasonable limits
+    long_path = "a" * 10000
+    long_url = f"https://example.com/{long_path}"
+
+    # Should not crash, but may fail in URL parsing
+    result = await fetcher.fetch_url_content(long_url, 1)
+    # We don't assert success/failure here as it depends on URL parsing limits
+    # Just ensure it doesn't crash and returns a proper result
+    assert hasattr(result, 'success')
+    assert hasattr(result, 'error_type')
+
+
+@pytest.mark.asyncio
 async def test_api_blocklist_hit_not_supported(fetcher):
     """Test domain blocklist hit with no integration."""
     result = await fetcher.fetch_url_content("https://twitter.com/example", 1)
@@ -144,7 +168,7 @@ async def test_content_too_short_bot_blocked(fetcher):
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.headers = {"content-type": "text/html"}
-    mock_response.text = "Short"  # Only 5 chars, below threshold
+    mock_response.text = "Short" * 80  # 400 chars, below 500 threshold
     mock_response.url = "https://example.com"
 
     with patch("httpx.AsyncClient") as mock_client:
@@ -255,6 +279,55 @@ def test_load_api_required_domains():
         }
 
         assert fetcher.api_required_domains == expected_domains
+
+
+def test_load_malformed_api_required_domains():
+    """Test handling of malformed API_REQUIRED_DOMAINS config."""
+    with patch("services.tiered_url_fetcher.settings") as mock_settings:
+        # Mix of valid and invalid entries
+        mock_settings.api_required_domains = (
+            "twitter.com:twitter,invalid-no-colon,x.com:twitter,:empty-domain,"
+            "empty-provider:, , good.com:good"
+        )
+
+        fetcher = TieredURLFetcherService()
+
+        # Should only load valid entries and skip malformed ones
+        expected_domains = {
+            "twitter.com": "twitter",
+            "x.com": "twitter",
+            "good.com": "good",
+        }
+
+        assert fetcher.api_required_domains == expected_domains
+
+
+def test_load_api_required_domains_error():
+    """Test graceful handling of config parsing errors."""
+    # Create a fetcher instance first
+    fetcher = TieredURLFetcherService()
+
+    with patch("services.tiered_url_fetcher.logger") as mock_logger:
+        # Directly call the method with an object that will cause an exception
+        # when we try to call split on it
+        with patch("services.tiered_url_fetcher.settings") as mock_settings:
+            # Make api_required_domains an object that raises when split() is called
+            class BadConfigObject:
+                def split(self, *args):
+                    raise ValueError("Mock parsing error")
+                def __bool__(self):
+                    return True  # Make it truthy so we enter the if block
+
+            mock_settings.api_required_domains = BadConfigObject()
+
+            # Call the method that should handle errors
+            result = fetcher._load_api_required_domains()
+
+            # Should return empty dict on error
+            assert result == {}
+
+            # Should log error
+            mock_logger.error.assert_called_once()
 
 
 def test_bot_blocking_detection():

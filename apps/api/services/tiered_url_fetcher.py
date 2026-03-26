@@ -68,10 +68,38 @@ class TieredURLFetcherService:
         domain_map = {}
 
         if domains_config:
-            for pair in domains_config.split(","):
-                if ":" in pair:
-                    domain, provider = pair.split(":", 1)
-                    domain_map[domain.strip()] = provider.strip()
+            try:
+                for pair in domains_config.split(","):
+                    pair = pair.strip()
+                    if not pair:
+                        continue
+
+                    if ":" not in pair:
+                        logger.warning(
+                            f"Invalid API_REQUIRED_DOMAINS format: '{pair}' "
+                            f"(expected 'domain:provider'). Skipping."
+                        )
+                        continue
+
+                    parts = pair.split(":", 1)
+                    domain = parts[0].strip()
+                    provider = parts[1].strip()
+
+                    if not domain or not provider:
+                        logger.warning(
+                            f"Invalid API_REQUIRED_DOMAINS entry: '{pair}' "
+                            f"(domain and provider cannot be empty). Skipping."
+                        )
+                        continue
+
+                    domain_map[domain] = provider
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to parse API_REQUIRED_DOMAINS config: {e}. "
+                    f"Using empty domain map."
+                )
+                return {}
 
         logger.info(
             f"Loaded {len(domain_map)} API-required domains: {list(domain_map.keys())}"
@@ -144,9 +172,12 @@ class TieredURLFetcherService:
         provider = self.api_required_domains[domain]
         logger.info(f"Domain {domain} requires API fetch via provider {provider}")
 
-        # Check if we have an integration for this provider
+        # TODO: Implementation pending linked account lookup system
+        # When account linking is implemented:
+        # 1. Check if user has linked account for this provider (owner_id)
+        # 2. If yes, use provider-specific API client to fetch content
+        # 3. If no linked account, return AUTH_REQUIRED error
         # For now, we don't have any API integrations implemented
-        # This is a placeholder that follows the design
 
         return TieredFetchResult(
             success=False,
@@ -226,7 +257,7 @@ class TieredURLFetcherService:
                     )
 
                 # Check for minimal content threshold
-                if len(content.strip()) < 200:
+                if len(content.strip()) < 500:
                     logger.info(f"Content too short for {url}: {len(content)} chars")
                     return TieredFetchResult(
                         success=False,
