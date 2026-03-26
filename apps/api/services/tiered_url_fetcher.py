@@ -406,8 +406,7 @@ class TieredURLFetcherService:
                 if indicator in content:
                     return True
 
-        except Exception:
-            # If we can't read content, don't assume it's blocked
+        except Exception:  # nosec B110 — intentional: content read failure != bot blocked
             pass
 
         return False
