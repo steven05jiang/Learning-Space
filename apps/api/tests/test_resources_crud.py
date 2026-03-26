@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.resource import Resource, ResourceStatus, ProcessingStatus
+from models.resource import ProcessingStatus, Resource, ResourceStatus
 from models.user import User
 
 
@@ -644,7 +644,8 @@ class TestReprocessResource:
         # Verify processing status was reset to PENDING in database
         await db_session.refresh(resource)
         assert resource.processing_status == ProcessingStatus.PENDING
-        assert resource.status == ResourceStatus.FAILED  # Status unchanged, only processing_status resets
+        # Status unchanged, only processing_status resets
+        assert resource.status == ResourceStatus.FAILED
 
     @pytest.mark.asyncio
     async def test_reprocess_resource_not_found(

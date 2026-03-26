@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
 from models.database import get_db
+from models.resource import ProcessingStatus as ModelProcessingStatus
 from models.resource import Resource
 from models.resource import ResourceStatus as ModelResourceStatus
-from models.resource import ProcessingStatus as ModelProcessingStatus
 from models.user import User
 from schemas.resource import (
     ContentType,
