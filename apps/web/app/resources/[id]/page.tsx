@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Edit2, Save, X, Trash2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Edit2, Save, X, Trash2, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,7 @@ interface Resource {
   summary?: string;
   tags: string[];
   status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  processing_status: "pending" | "processing" | "success" | "failed";
   content_type: string;
   original_content: string;
   created_at: string;
@@ -94,6 +95,12 @@ function toApiResource(r: (typeof mockResources)[0]): Resource {
         : r.status === "pending"
           ? "PENDING"
           : "FAILED",
+    processing_status:
+      r.status === "processed"
+        ? "success"
+        : r.status === "pending"
+          ? "pending"
+          : "failed",
     content_type: "url",
     original_content: r.url,
     created_at: r.createdAt,
@@ -111,6 +118,9 @@ export default function ResourceDetailPage() {
   const [resource, setResource] = useState<Resource | null>(null);
   const [isLoadingResource, setIsLoadingResource] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Reprocess state
+  const [isReprocessing, setIsReprocessing] = useState(false);
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -343,6 +353,78 @@ export default function ResourceDetailPage() {
     }
   };
 
+  const handleReprocess = async () => {
+    if (!resource) return;
+
+    setIsReprocessing(true);
+    setError(null);
+
+    try {
+      if (isMock) {
+        await new Promise((r) => setTimeout(r, 500));
+        // Update resource with pending processing status
+        setResource({ ...resource, processing_status: "pending" });
+        // Show success message (could use a toast here in future)
+        setIsReprocessing(false);
+        return;
+      }
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      const response = await fetch(`${apiBase}/resources/${resource.id}/reprocess`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
+      }
+
+      if (response.status === 404) {
+        setError("Resource not found");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to reprocess resource: ${response.statusText}`);
+      }
+
+      // On successful reprocess, refresh the resource data to get updated processing status
+      const refreshResponse = await fetch(`${apiBase}/resources/${resource.id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (refreshResponse.ok) {
+        const updatedResource: Resource = await refreshResponse.json();
+        setResource(updatedResource);
+      }
+
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to reprocess resource"
+      );
+    } finally {
+      setIsReprocessing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-56px)] items-center justify-center">
@@ -420,6 +502,25 @@ export default function ResourceDetailPage() {
         <div className="flex items-center gap-2">
           {!isEditing && (
             <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReprocess}
+                disabled={resource.processing_status === "processing" || isReprocessing}
+                className="gap-2"
+              >
+                {isReprocessing ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    Re-processing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Re-process
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -612,11 +713,21 @@ export default function ResourceDetailPage() {
           )}
 
           {/* Metadata */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Content Type</Label>
               <div className="text-sm text-muted-foreground">
                 {resource.content_type}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Processing Status</Label>
+              <div className="text-sm text-muted-foreground">
+                {resource.processing_status === "pending" && "Pending"}
+                {resource.processing_status === "processing" && "Processing"}
+                {resource.processing_status === "success" && "Completed"}
+                {resource.processing_status === "failed" && "Failed"}
               </div>
             </div>
 

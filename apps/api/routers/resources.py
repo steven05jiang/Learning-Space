@@ -11,6 +11,7 @@ from core.deps import get_current_user
 from models.database import get_db
 from models.resource import Resource
 from models.resource import ResourceStatus as ModelResourceStatus
+from models.resource import ProcessingStatus as ModelProcessingStatus
 from models.user import User
 from schemas.resource import (
     ContentType,
@@ -311,6 +312,50 @@ async def update_resource(
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
+
+
+@router.post("/{resource_id}/reprocess", status_code=status.HTTP_202_ACCEPTED)
+async def reprocess_resource(
+    resource_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """
+    Reprocess an existing resource.
+
+    - **resource_id**: The resource ID to reprocess
+
+    Resets the processing_status to PENDING and enqueues a new processing job.
+    This is useful for retrying failed resources or forcing re-summarization.
+    Returns 202 on successful enqueueing.
+    Returns 404 if the resource doesn't exist or is not owned by the user.
+    """
+    # Query for the resource, ensuring ownership
+    query = select(Resource).where(
+        Resource.id == resource_id, Resource.owner_id == current_user.id
+    )
+    result = await db.execute(query)
+    resource = result.scalar_one_or_none()
+
+    if not resource:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
+        )
+
+    # Reset processing status to pending
+    resource.processing_status = ModelProcessingStatus.PENDING
+    await db.commit()
+    await db.refresh(resource)
+
+    # Enqueue background processing job
+    background_tasks.add_task(process_resource_background_job, resource.id)
+
+    logger.info(
+        f"Resource {resource_id} marked for reprocessing by user {current_user.id}"
+    )
+
+    return {"message": "Resource queued for reprocessing"}
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
