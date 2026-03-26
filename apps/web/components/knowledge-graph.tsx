@@ -42,6 +42,7 @@ interface ApiResource {
   summary: string | null;
   status: string;
   tags: string[];
+  url?: string;
 }
 interface ApiNodeResourcesResponse {
   items: ApiResource[];
@@ -426,7 +427,7 @@ export function KnowledgeGraph() {
 
       {/* Node Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="overflow-hidden" style={{ maxWidth: "320px", maxHeight: "240px" }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span
@@ -499,15 +500,20 @@ export function KnowledgeGraph() {
                           <FileText className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-sm font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {resource.title}
                           </p>
-                          {resource.summary && (
-                            <p className="text-xs text-muted-foreground">
-                              {resource.summary}
-                            </p>
+                          {resource.url && (
+                            <a
+                              href={resource.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:text-blue-800 overflow-hidden text-ellipsis whitespace-nowrap block"
+                            >
+                              {resource.url}
+                            </a>
                           )}
-                          <div className="mt-1 flex items-center gap-2">
+                          <div className="mt-1 flex flex-wrap items-center gap-2 overflow-hidden">
                             <Badge
                               variant="outline"
                               className="text-xs capitalize"
