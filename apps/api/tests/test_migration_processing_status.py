@@ -1,10 +1,8 @@
-"""Test processing_status migration (ea78e7455c2f) idempotency and backfill correctness."""
+"""Test processing_status migration (ea78e7455c2f) idempotency and backfill."""
 
-import pytest
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.resource import Resource, ResourceStatus, ProcessingStatus
+from models.resource import ProcessingStatus, Resource, ResourceStatus
 
 
 async def test_processing_status_enum_values():
@@ -46,11 +44,9 @@ async def test_migration_backfill_logic():
 async def test_resource_model_has_processing_status():
     """Test that Resource model includes processing_status field."""
     # Verify the model has the processing_status attribute
-    assert hasattr(Resource, 'processing_status')
+    assert hasattr(Resource, "processing_status")
 
-    # Verify the default value
-    resource = Resource()
-    # The default should be set by the column default, but let's verify the enum exists
+    # Verify the enum exists and has the expected default
     assert ProcessingStatus.PENDING is not None
 
 
@@ -64,7 +60,7 @@ async def test_processing_status_default_value(db_session: AsyncSession, test_us
         content_type="url",
         original_content="https://example.com/test",
         created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        updated_at=datetime.utcnow(),
     )
 
     db_session.add(resource)
@@ -87,7 +83,7 @@ async def test_processing_status_can_be_set(db_session: AsyncSession, test_user)
             original_content=f"https://example.com/test-{status.value}",
             processing_status=status,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
 
         db_session.add(resource)

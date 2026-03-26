@@ -40,6 +40,7 @@ class ResourceStatus(enum.Enum):
 
 class ProcessingStatus(enum.Enum):
     """Processing status for resource content analysis and enrichment."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     SUCCESS = "success"

@@ -5,15 +5,16 @@ Revises: 111e5b3d61af
 Create Date: 2026-03-25 22:25:48.164695
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'ea78e7455c2f'
-down_revision: Union[str, Sequence[str], None] = '111e5b3d61af'
+revision: str = "ea78e7455c2f"
+down_revision: Union[str, Sequence[str], None] = "111e5b3d61af"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -21,16 +22,21 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     # Create enum type
-    processing_status_enum = sa.Enum('pending', 'processing', 'success', 'failed', name='processingstatus')
+    processing_status_enum = sa.Enum(
+        "pending", "processing", "success", "failed", name="processingstatus"
+    )
     processing_status_enum.create(op.get_bind())
 
     # Add column with default value
-    op.add_column('resources', sa.Column(
-        'processing_status',
-        processing_status_enum,
-        nullable=False,
-        server_default='pending'
-    ))
+    op.add_column(
+        "resources",
+        sa.Column(
+            "processing_status",
+            processing_status_enum,
+            nullable=False,
+            server_default="pending",
+        ),
+    )
 
     # Backfill existing rows based on status column
     # status=READY → processing_status=success
@@ -46,13 +52,13 @@ def upgrade() -> None:
     """)
 
     # Remove server default after backfill
-    op.alter_column('resources', 'processing_status', server_default=None)
+    op.alter_column("resources", "processing_status", server_default=None)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # Drop column
-    op.drop_column('resources', 'processing_status')
+    op.drop_column("resources", "processing_status")
 
     # Drop enum type
-    sa.Enum(name='processingstatus').drop(op.get_bind())
+    sa.Enum(name="processingstatus").drop(op.get_bind())

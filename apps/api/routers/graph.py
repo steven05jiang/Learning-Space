@@ -14,7 +14,7 @@ from models.database import get_db
 from models.resource import Resource
 from models.user import User
 from schemas.graph import GraphExpandRequest, GraphResponse
-from schemas.resource import ResourceNodeItem, ResourceNodeResponse
+from schemas.resource import ProcessingStatus, ResourceNodeItem, ResourceNodeResponse
 from services.graph_service import GraphService, get_graph_service
 
 logger = logging.getLogger(__name__)
@@ -89,6 +89,7 @@ async def get_node_resources(
             original_content=resource.original_content,
             content_type=resource.content_type,
             status=resource.status.value,
+            processing_status=ProcessingStatus(resource.processing_status.value),
             created_at=resource.created_at,
             tags=resource.tags or [],
         )

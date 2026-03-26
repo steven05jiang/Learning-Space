@@ -310,6 +310,7 @@ class TestListResources:
             # Required fields
             assert "id" in item
             assert "status" in item
+            assert "processing_status" in item
             assert "created_at" in item
             assert "tags" in item
 
