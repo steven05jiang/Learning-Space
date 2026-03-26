@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from core.jwt import create_access_token
 from main import app
+from models.category import Category
 from models.database import Base, get_db
 from models.user import User
 
@@ -40,6 +41,25 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
+        # Seed system categories
+        system_categories = [
+            "Technology",
+            "Science",
+            "Business",
+            "Arts",
+            "Health",
+            "Education",
+            "Politics",
+            "Entertainment",
+            "Sports",
+            "Philosophy",
+        ]
+
+        for category_name in system_categories:
+            category = Category(name=category_name, is_system=True, owner_id=None)
+            session.add(category)
+
+        await session.commit()
         yield session
 
     await engine.dispose()

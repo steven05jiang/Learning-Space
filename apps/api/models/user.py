@@ -31,3 +31,6 @@ class User(Base):
     conversations = relationship(
         "Conversation", back_populates="user", cascade="all, delete-orphan"
     )
+    categories = relationship(
+        "Category", back_populates="user", cascade="all, delete-orphan"
+    )

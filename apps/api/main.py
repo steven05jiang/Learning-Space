@@ -13,7 +13,7 @@ from core.errors import (
     http_exception_wrapper,
 )
 from models.database import get_db
-from routers import agent, auth, graph, health, jobs, resources
+from routers import agent, auth, categories, graph, health, jobs, resources
 from services.neo4j_driver import neo4j_driver
 
 
@@ -47,6 +47,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(resources.router)
+app.include_router(categories.router)
 app.include_router(jobs.router)
 app.include_router(graph.router)
 app.include_router(agent.router)
