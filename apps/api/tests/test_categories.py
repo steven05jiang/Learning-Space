@@ -26,11 +26,7 @@ async def test_user_2(db_session: AsyncSession) -> User:
 @pytest.fixture
 async def test_category(db_session: AsyncSession, test_user: User) -> Category:
     """Create a test user category in the database."""
-    category = Category(
-        name="Test Category",
-        is_system=False,
-        owner_id=test_user.id
-    )
+    category = Category(name="Test Category", is_system=False, owner_id=test_user.id)
     db_session.add(category)
     await db_session.commit()
     await db_session.refresh(category)
@@ -44,7 +40,10 @@ class TestListCategories:
     async def test_list_categories_unauthenticated(
         self, client: AsyncClient, db_session: AsyncSession
     ):
-        """Test listing categories without authentication returns only system categories."""
+        """Test listing categories without authentication.
+
+        Should return only system categories.
+        """
         response = await client.get("/categories")
         assert response.status_code == 200
 
@@ -63,8 +62,16 @@ class TestListCategories:
         # Check that all expected system categories are present
         category_names = {cat["name"] for cat in data}
         expected_names = {
-            "Technology", "Science", "Business", "Arts", "Health",
-            "Education", "Politics", "Entertainment", "Sports", "Philosophy"
+            "Technology",
+            "Science",
+            "Business",
+            "Arts",
+            "Health",
+            "Education",
+            "Politics",
+            "Entertainment",
+            "Sports",
+            "Philosophy",
         }
         assert category_names == expected_names
 
@@ -108,19 +115,15 @@ class TestListCategories:
         db_session: AsyncSession,
         test_user: User,
         test_user_2: User,
-        auth_headers: dict
+        auth_headers: dict,
     ):
         """Test that users only see their own categories, not other users'."""
         # Create categories for both users
         user1_category = Category(
-            name="User 1 Category",
-            is_system=False,
-            owner_id=test_user.id
+            name="User 1 Category", is_system=False, owner_id=test_user.id
         )
         user2_category = Category(
-            name="User 2 Category",
-            is_system=False,
-            owner_id=test_user_2.id
+            name="User 2 Category", is_system=False, owner_id=test_user_2.id
         )
         db_session.add(user1_category)
         db_session.add(user2_category)
@@ -146,7 +149,9 @@ class TestCreateCategory:
         """Test creating a category successfully."""
         category_data = {"name": "My Research"}
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 201
 
         data = response.json()
@@ -171,7 +176,9 @@ class TestCreateCategory:
         """Test creating a category with empty name fails."""
         category_data = {"name": ""}
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
@@ -181,7 +188,9 @@ class TestCreateCategory:
         """Test creating a category with whitespace-only name fails."""
         category_data = {"name": "   "}
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
@@ -191,7 +200,9 @@ class TestCreateCategory:
         """Test creating a category with duplicate name for same user fails."""
         category_data = {"name": "Test Category"}
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"]
 
@@ -202,7 +213,9 @@ class TestCreateCategory:
         """Test creating a category with duplicate system category name fails."""
         category_data = {"name": "Technology"}
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"]
 
@@ -213,7 +226,9 @@ class TestCreateCategory:
         """Test creating a category with case variation of system category fails."""
         category_data = {"name": "technology"}  # lowercase
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 409
 
     @pytest.mark.asyncio
@@ -222,16 +237,19 @@ class TestCreateCategory:
         client: AsyncClient,
         db_session: AsyncSession,
         test_user_2: User,
-        auth_headers: dict
+        auth_headers: dict,
     ):
         """Test that different users can create categories with same name."""
         # Create category for user 1
         category_data = {"name": "My Research"}
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 201
 
         # Create JWT for user 2
         from core.jwt import create_access_token
+
         token_data = {
             "sub": str(test_user_2.id),
             "email": test_user_2.email,
@@ -241,7 +259,9 @@ class TestCreateCategory:
         user2_headers = {"Authorization": f"Bearer {token}"}
 
         # Create same-named category for user 2 - should succeed
-        response = await client.post("/categories", json=category_data, headers=user2_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=user2_headers
+        )
         assert response.status_code == 201
 
     @pytest.mark.asyncio
@@ -251,7 +271,9 @@ class TestCreateCategory:
         """Test that category names are trimmed of whitespace."""
         category_data = {"name": "  My Research  "}
 
-        response = await client.post("/categories", json=category_data, headers=auth_headers)
+        response = await client.post(
+            "/categories", json=category_data, headers=auth_headers
+        )
         assert response.status_code == 201
 
         data = response.json()
@@ -266,7 +288,9 @@ class TestDeleteCategory:
         self, client: AsyncClient, auth_headers: dict, test_category: Category
     ):
         """Test deleting a category successfully."""
-        response = await client.delete(f"/categories/{test_category.id}", headers=auth_headers)
+        response = await client.delete(
+            f"/categories/{test_category.id}", headers=auth_headers
+        )
         assert response.status_code == 204
 
     @pytest.mark.asyncio
@@ -291,21 +315,21 @@ class TestDeleteCategory:
         client: AsyncClient,
         db_session: AsyncSession,
         test_user_2: User,
-        auth_headers: dict
+        auth_headers: dict,
     ):
         """Test deleting category not owned by user fails."""
         # Create category for user 2
         other_category = Category(
-            name="Other User Category",
-            is_system=False,
-            owner_id=test_user_2.id
+            name="Other User Category", is_system=False, owner_id=test_user_2.id
         )
         db_session.add(other_category)
         await db_session.commit()
         await db_session.refresh(other_category)
 
         # Try to delete with user 1's auth
-        response = await client.delete(f"/categories/{other_category.id}", headers=auth_headers)
+        response = await client.delete(
+            f"/categories/{other_category.id}", headers=auth_headers
+        )
         assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -314,12 +338,14 @@ class TestDeleteCategory:
     ):
         """Test deleting a system category fails."""
         # Get a system category
-        stmt = select(Category).where(Category.is_system == True)
+        stmt = select(Category).where(Category.is_system)
         result = await db_session.execute(stmt)
         system_category = result.scalars().first()
         assert system_category is not None
 
-        response = await client.delete(f"/categories/{system_category.id}", headers=auth_headers)
+        response = await client.delete(
+            f"/categories/{system_category.id}", headers=auth_headers
+        )
         assert response.status_code == 403
         assert "system category" in response.json()["detail"]
 
@@ -329,13 +355,15 @@ class TestDeleteCategory:
         client: AsyncClient,
         db_session: AsyncSession,
         auth_headers: dict,
-        test_category: Category
+        test_category: Category,
     ):
         """Test that category is actually removed from database."""
         category_id = test_category.id
 
         # Delete the category
-        response = await client.delete(f"/categories/{category_id}", headers=auth_headers)
+        response = await client.delete(
+            f"/categories/{category_id}", headers=auth_headers
+        )
         assert response.status_code == 204
 
         # Verify it's gone from database

@@ -12,7 +12,9 @@ class Category(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     is_system = Column(Boolean, nullable=False, default=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # NULL for system categories
+    owner_id = Column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )  # NULL for system categories
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships

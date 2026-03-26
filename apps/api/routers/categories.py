@@ -32,15 +32,14 @@ async def list_categories(
     """
     if current_user:
         # Return system categories + user's own categories
-        stmt = select(Category).where(
-            or_(
-                Category.is_system == True,
-                Category.owner_id == current_user.id
-            )
-        ).order_by(Category.is_system.desc(), Category.name)
+        stmt = (
+            select(Category)
+            .where(or_(Category.is_system, Category.owner_id == current_user.id))
+            .order_by(Category.is_system.desc(), Category.name)
+        )
     else:
         # Return only system categories
-        stmt = select(Category).where(Category.is_system == True).order_by(Category.name)
+        stmt = select(Category).where(Category.is_system).order_by(Category.name)
 
     result = await db.execute(stmt)
     categories = result.scalars().all()
@@ -48,13 +47,15 @@ async def list_categories(
     # Convert to response objects, renaming owner_id to user_id
     response_categories = []
     for category in categories:
-        response_categories.append(CategoryResponse(
-            id=category.id,
-            name=category.name,
-            is_system=category.is_system,
-            user_id=category.owner_id,
-            created_at=category.created_at
-        ))
+        response_categories.append(
+            CategoryResponse(
+                id=category.id,
+                name=category.name,
+                is_system=category.is_system,
+                user_id=category.owner_id,
+                created_at=category.created_at,
+            )
+        )
 
     return response_categories
 
@@ -75,10 +76,7 @@ async def create_category(
     # Check both system categories and user's own categories
     stmt = select(Category).where(
         func.lower(Category.name) == func.lower(category_data.name),
-        or_(
-            Category.is_system == True,
-            Category.owner_id == current_user.id
-        )
+        or_(Category.is_system, Category.owner_id == current_user.id),
     )
     result = await db.execute(stmt)
     existing_category = result.scalar_one_or_none()
@@ -86,14 +84,12 @@ async def create_category(
     if existing_category:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Category '{category_data.name}' already exists"
+            detail=f"Category '{category_data.name}' already exists",
         )
 
     # Create new category
     new_category = Category(
-        name=category_data.name,
-        is_system=False,
-        owner_id=current_user.id
+        name=category_data.name, is_system=False, owner_id=current_user.id
     )
 
     db.add(new_category)
@@ -107,7 +103,7 @@ async def create_category(
         name=new_category.name,
         is_system=new_category.is_system,
         user_id=new_category.owner_id,
-        created_at=new_category.created_at
+        created_at=new_category.created_at,
     )
 
 
@@ -131,25 +127,26 @@ async def delete_category(
 
     if not category:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
         )
 
     # Check if it's a system category
     if category.is_system:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot delete system category"
+            detail="Cannot delete system category",
         )
 
     # Check if user owns the category
     if category.owner_id != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
         )
 
     await db.delete(category)
     await db.commit()
 
-    logger.info(f"Deleted category '{category.name}' (id={category_id}) for user {current_user.id}")
+    logger.info(
+        f"Deleted category '{category.name}' (id={category_id}) "
+        f"for user {current_user.id}"
+    )
