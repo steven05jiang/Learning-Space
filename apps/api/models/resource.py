@@ -20,11 +20,12 @@ from models.database import Base
 
 class JSONBType(TypeDecorator):
     """A type that uses JSONB on PostgreSQL and JSON elsewhere."""
+
     impl = JSON
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(JSONB())
         else:
             return dialect.type_descriptor(JSON())
