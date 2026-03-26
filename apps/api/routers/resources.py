@@ -329,18 +329,23 @@ async def reprocess_resource(
     Resets the processing_status to PENDING and enqueues a new processing job.
     This is useful for retrying failed resources or forcing re-summarization.
     Returns 202 on successful enqueueing.
-    Returns 404 if the resource doesn't exist or is not owned by the user.
+    Returns 404 if the resource doesn't exist.
+    Returns 403 if the resource belongs to another user.
     """
-    # Query for the resource, ensuring ownership
-    query = select(Resource).where(
-        Resource.id == resource_id, Resource.owner_id == current_user.id
-    )
-    result = await db.execute(query)
+    # First check if resource exists
+    resource_exists_query = select(Resource).where(Resource.id == resource_id)
+    result = await db.execute(resource_exists_query)
     resource = result.scalar_one_or_none()
 
     if not resource:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found"
+        )
+
+    # Check ownership
+    if resource.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Reset processing status to pending

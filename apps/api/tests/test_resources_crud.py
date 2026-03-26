@@ -641,6 +641,9 @@ class TestReprocessResource:
             data = response.json()
             assert data["message"] == "Resource queued for reprocessing"
 
+            # Verify background task was enqueued
+            mock_enqueue.assert_called_once()
+
         # Verify processing status was reset to PENDING in database
         await db_session.refresh(resource)
         assert resource.processing_status == ProcessingStatus.PENDING
@@ -664,7 +667,7 @@ class TestReprocessResource:
         auth_headers: dict,
         test_user_2,
     ):
-        """Test reprocessing a resource owned by another user returns 404."""
+        """Test reprocessing a resource owned by another user returns 403."""
         # Create a resource owned by another user
         resource = Resource(
             owner_id=test_user_2.id,
@@ -683,8 +686,8 @@ class TestReprocessResource:
         response = await client.post(
             f"/resources/{resource.id}/reprocess", headers=auth_headers
         )
-        assert response.status_code == 404
-        assert response.json()["detail"] == "Resource not found"
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Access denied"
 
         # Verify resource processing status was not changed
         await db_session.refresh(resource)

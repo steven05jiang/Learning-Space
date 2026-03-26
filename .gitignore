@@ -11,6 +11,9 @@ dist/
 node_modules/
 .next/
 out/
+# TypeScript/Next.js build artifacts
+*.tsbuildinfo
+next-env.d.ts
 # Prevent accidental root-level npm installs in this monorepo
 /package.json
 /package-lock.json
