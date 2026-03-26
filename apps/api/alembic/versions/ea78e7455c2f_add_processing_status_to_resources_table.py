@@ -45,9 +45,9 @@ def upgrade() -> None:
     op.execute("""
         UPDATE resources
         SET processing_status = CASE
-            WHEN status = 'READY' THEN 'success'
-            WHEN status = 'FAILED' THEN 'failed'
-            ELSE 'pending'
+            WHEN status = 'READY' THEN 'success'::processingstatus
+            WHEN status = 'FAILED' THEN 'failed'::processingstatus
+            ELSE 'pending'::processingstatus
         END
     """)
 
