@@ -10,9 +10,9 @@ from sqlalchemy.pool import StaticPool
 
 from core.jwt import create_access_token
 from main import app
+from models.category import Category
 from models.database import Base, get_db
 from models.user import User
-from models.category import Category
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
