@@ -72,8 +72,7 @@ def upgrade() -> None:
                 INSERT INTO categories (name, is_system, owner_id, created_at)
                 VALUES (:name, true, NULL, NOW())
                 ON CONFLICT DO NOTHING
-            """),
-            {"name": category_name},
+            """).bindparams(name=category_name)
         )
     # ### end Alembic commands ###
 

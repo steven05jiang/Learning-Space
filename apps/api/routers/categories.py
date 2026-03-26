@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
-@router.get("/", response_model=list[CategoryResponse])
+@router.get("", response_model=list[CategoryResponse])
 async def list_categories(
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -60,7 +60,7 @@ async def list_categories(
     return response_categories
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=CategoryResponse)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=CategoryResponse)
 async def create_category(
     category_data: CategoryCreate,
     current_user: User = Depends(get_current_user),
