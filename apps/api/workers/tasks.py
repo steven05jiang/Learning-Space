@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.database import AsyncSessionLocal
-from models.resource import Resource, ResourceStatus
+from models.resource import ProcessingStatus, Resource, ResourceStatus
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
 from services.tiered_url_fetcher import tiered_url_fetcher_service
@@ -58,14 +58,31 @@ async def process_resource(
             if not resource:
                 raise ValueError(f"Resource with id {resource_id} not found")
 
+            # Check if resource is already in terminal processing state
+            terminal_states = [ProcessingStatus.SUCCESS, ProcessingStatus.FAILED]
+            if resource.processing_status in terminal_states:
+                status_value = resource.processing_status.value
+                logger.info(
+                    f"Skipping resource {resource_id}: already in terminal "
+                    f"processing state {status_value}"
+                )
+                return {
+                    "resource_id": resource_id,
+                    "status": "skipped",
+                    "reason": f"Already in terminal state: {status_value}",
+                    "processing_status": status_value,
+                }
+
             logger.info(
                 f"Processing resource {resource_id}: "
                 f"content_type={resource.content_type}, "
-                f"status={resource.status.value}"
+                f"status={resource.status.value}, "
+                f"processing_status={resource.processing_status.value}"
             )
 
-            # Set status to PROCESSING
+            # Set status to PROCESSING and processing_status to PROCESSING
             resource.status = ResourceStatus.PROCESSING
+            resource.processing_status = ProcessingStatus.PROCESSING
             resource.status_message = None
             resource.updated_at = datetime.utcnow()
             await session.commit()
@@ -144,6 +161,7 @@ async def process_resource(
             resource.summary = llm_result.summary
             resource.tags = llm_result.tags or []
             resource.status = ResourceStatus.READY
+            resource.processing_status = ProcessingStatus.SUCCESS
             resource.status_message = None
             resource.updated_at = datetime.utcnow()
             await session.commit()
@@ -252,6 +270,7 @@ async def _set_resource_failed(
 ) -> None:
     """Set resource status to FAILED with error message."""
     resource.status = ResourceStatus.FAILED
+    resource.processing_status = ProcessingStatus.FAILED
     resource.status_message = error_message
     resource.updated_at = datetime.utcnow()
     await session.commit()
