@@ -248,8 +248,6 @@ Before dispatching, create one file per task in `memory/active/TASK-XXX.md`:
 **Started:** YYYY-MM-DD HH:MM
 **Branch:** (pending)
 **PR:** (pending)
-**Implementer Agent:** (pending)
-**Reviewer Agent:** (pending)
 
 ## Requirements
 
@@ -302,8 +300,6 @@ TASK: TASK-001
 REASON: <specific reason>
 ```
 
-After spawning each implementer, record its agent ID in `memory/active/TASK-XXX.md` under `**Implementer Agent:**`. This ID is required to resume the same agent in Phase 6.
-
 When each implementer returns `PR_READY`, immediately update `memory/active/TASK-XXX.md`:
 
 - Set `**Branch:**` and `**PR:**` fields
@@ -317,16 +313,7 @@ For each task with a `PR_READY` result, run this loop until the PR is merged or 
 
 ### Step 6a — Dispatch pr-reviewer
 
-Check `memory/active/TASK-XXX.md` for the `**Reviewer Agent:**` field.
-
-**If a reviewer agent ID is recorded** (not `(pending)`):
-- Resume that agent via `SendMessage` with the task ID, context file path, and PR number.
-
-**If no reviewer agent ID exists** (first review round):
-- Spawn a new `pr-reviewer` subagent.
-- After spawning, record its agent ID in `memory/active/TASK-XXX.md` under `**Reviewer Agent:**`.
-
-Tell the reviewer (either resumed or new):
+Spawn the `pr-reviewer` subagent. Tell it:
 
 - The task ID and path to its context file: `memory/active/TASK-XXX.md`
 - The PR number
@@ -343,7 +330,7 @@ The reviewer will:
 
 **If the reviewer returns APPROVED:**
 
-- Resume the implementer via `SendMessage` (use the agent ID from `**Implementer Agent:**` in the context file):
+- Dispatch the `implementer` subagent with:
   - Task ID and context file path
   - Instruction: "Merge the PR" (implementer mode: merge)
 - If the implementer returns `MERGED` → go to Phase 7 (complete this task)
@@ -354,7 +341,7 @@ The reviewer will:
 - Track how many times this task has had CHANGES REQUESTED (internal counter)
 - If the same feedback has been raised 3+ times with no progress:
   - Mark task as STUCK (see Phase 7 — On STUCK) and stop the loop
-- Otherwise, resume the implementer via `SendMessage` (use the agent ID from `**Implementer Agent:**` in the context file):
+- Otherwise, dispatch the `implementer` subagent with:
   - Task ID and context file path (which now contains all review feedback)
   - Instruction: "Fix the review feedback in your context file's Progress Log" (implementer mode: fix)
 - When the implementer returns `PR_READY` → loop back to Step 6a
