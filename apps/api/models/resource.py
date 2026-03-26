@@ -29,6 +29,8 @@ class Resource(Base):
         Enum(ResourceStatus), default=ResourceStatus.PENDING, nullable=False
     )
     status_message = Column(String, nullable=True)
+    fetch_tier = Column(String(20), nullable=True)  # 'api', 'http', 'playwright'
+    fetch_error_type = Column(String(30), nullable=True)  # Error classification
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
         DateTime,

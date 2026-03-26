@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"
 
+    # Tiered fetcher: API-required domains (domain:provider pairs)
+    api_required_domains: str = "twitter.com:twitter,x.com:twitter"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("jwt_secret_key")
