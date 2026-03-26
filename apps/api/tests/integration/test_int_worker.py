@@ -329,7 +329,7 @@ async def test_worker_url_requires_login_no_linked_account_fails(db_session):
     # Verify resource in database
     await db_session.refresh(resource)
     assert resource.status == ResourceStatus.FAILED
-    assert "HTTP 401" in resource.status_message
+    assert "linked account" in resource.status_message
     assert resource.title is None
     assert resource.summary is None
     assert resource.tags is None or resource.tags == []
