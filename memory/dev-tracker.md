@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-26 (DEV-057 completed — PR #137)
+**Last Updated:** 2026-03-26 (DEV-058 PR #140, DEV-059 PR #141 completed; DEV-060 active)
 
 ---
 
 ## Progress Summary
 
 - Total: 127 tasks (65 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 84
-- 🔄 Active: 0
-- ⏳ Pending: 43
+- ✅ Completed: 86
+- 🔄 Active: 1
+- ⏳ Pending: 40
 - ⚠️ Stuck: 0
 
 ---
@@ -83,9 +83,9 @@ _Design specs: `docs/design-resource-fetching.md` (FB-001), `docs/design-categor
 
 - [x] DEV-056: Tiered URL fetch strategy (PR #135 ✅) — domain blocklist + HTTP + Playwright fallback + fetch_tier/fetch_error_type tracking (FB-001)
 - [x] DEV-057: Add processing_status field to resources + Alembic migration (pending/processing/success/failed) (FB-002) (PR #137 ✅)
-- [ ] DEV-058: Update worker pipeline to use processing_status state machine — skip success/failed, set state on start/complete (FB-002)
-- [ ] DEV-059: Add manual Re-process action to resource detail UI — POST /resources/{id}/reprocess endpoint + button (FB-002)
-- [ ] DEV-060: Implement categories table, seed 10 root categories, GET/POST/DELETE /categories endpoints (FB-003)
+- [x] DEV-058: Update worker pipeline to use processing_status state machine — skip success/failed, set state on start/complete (FB-002) (PR #140 ✅)
+- [x] DEV-059: Add manual Re-process action to resource detail UI — POST /resources/{id}/reprocess endpoint + button (FB-002) (PR #141 ✅)
+- [~] DEV-060: Implement categories table, seed 10 root categories, GET/POST/DELETE /categories endpoints (FB-003)
 - [ ] DEV-061: Update Neo4j schema to Root/Category/Tag three-level hierarchy + CHILD_OF/BELONGS_TO relationships + graph service update (FB-003)
 - [ ] DEV-062: Update LLM prompt to include existing tags + require top_level_categories in output; add CATEGORY_REQUIRED/INVALID_CATEGORY validation (FB-003)
 - [ ] DEV-063: Category management UI in Settings — list system + user categories, add/delete user categories (FB-003)
