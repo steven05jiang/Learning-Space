@@ -1,7 +1,8 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from models.database import Base
@@ -24,7 +25,7 @@ class Resource(Base):
     prefer_provider = Column(String, nullable=True)
     title = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
-    tags = Column(JSON, nullable=True, default=list)
+    tags = Column(JSONB, nullable=True, default=list)
     status = Column(
         Enum(ResourceStatus), default=ResourceStatus.PENDING, nullable=False
     )

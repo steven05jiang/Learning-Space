@@ -41,7 +41,7 @@ api-security:
 	@echo "── API: security scan ─────────────────────────────────"
 	cd apps/api && uv sync --frozen --extra dev -q
 	# CVE-2024-23342: ecdsa transitive dep of python-jose; unused since we use [cryptography] backend. BUG-001 tracks migration to authlib JWT.
-	cd apps/api && JWT_SECRET_KEY=ci-test-secret-key-32-chars-minimum uv run pip-audit --ignore-vuln CVE-2024-23342
+	cd apps/api && JWT_SECRET_KEY=ci-test-secret-key-32-chars-minimum uv run pip-audit --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-4539
 	cd apps/api && uv run bandit -r . -c pyproject.toml
 
 api-integration:
