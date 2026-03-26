@@ -14,6 +14,7 @@ from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
 from schemas.resource import (
     ContentType,
+    ProcessingStatus,
     ResourceCreate,
     ResourceListItem,
     ResourceListResponse,
@@ -103,6 +104,7 @@ async def create_resource(
         summary=resource.summary,
         tags=resource.tags or [],
         status=ResourceStatus(resource.status.value),
+        processing_status=ProcessingStatus(resource.processing_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
@@ -174,6 +176,7 @@ async def list_resources(
             summary=resource.summary,
             tags=resource.tags or [],
             status=ResourceStatus(resource.status.value),
+            processing_status=ProcessingStatus(resource.processing_status.value),
             created_at=resource.created_at,
         )
         items.append(item)
@@ -231,6 +234,7 @@ async def get_resource(
         summary=resource.summary,
         tags=resource.tags or [],
         status=ResourceStatus(resource.status.value),
+        processing_status=ProcessingStatus(resource.processing_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
@@ -303,6 +307,7 @@ async def update_resource(
         summary=resource.summary,
         tags=resource.tags or [],
         status=ResourceStatus(resource.status.value),
+        processing_status=ProcessingStatus(resource.processing_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
