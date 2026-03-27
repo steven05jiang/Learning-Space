@@ -208,8 +208,10 @@ class LLMProcessorService:
                     if isinstance(category, str) and category.strip():
                         clean_category = category.strip()
                         # For now, just validate against default categories
-                        if (clean_category in default_categories and
-                            clean_category not in clean_categories):
+                        if (
+                            clean_category in default_categories
+                            and clean_category not in clean_categories
+                        ):
                             clean_categories.append(clean_category)
 
                 # If no valid categories found, default to "Science & Technology"

@@ -515,9 +515,7 @@ class GraphService:
                         nodes_set.add(related_tag["id"])
 
                         # Add RELATED_TO edge
-                        edge_key = tuple(
-                            sorted([root_node["id"], related_tag["id"]])
-                        )
+                        edge_key = tuple(sorted([root_node["id"], related_tag["id"]]))
                         if edge_key not in edges_set:
                             edges.append(
                                 {

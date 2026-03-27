@@ -173,7 +173,7 @@ async def process_resource(
                     await graph_service.update_graph(
                         resource.owner_id,
                         llm_result.tags,
-                        llm_result.top_level_categories
+                        llm_result.top_level_categories,
                     )
                     logger.info(
                         f"Hierarchical graph updated for resource {resource_id} "
@@ -188,8 +188,11 @@ async def process_resource(
                         )
                 else:
                     tag_count = len(llm_result.tags) if llm_result.tags else 0
-                    cat_count = (len(llm_result.top_level_categories)
-                                if llm_result.top_level_categories else 0)
+                    cat_count = (
+                        len(llm_result.top_level_categories)
+                        if llm_result.top_level_categories
+                        else 0
+                    )
                     logger.info(
                         f"Skipping graph update for resource {resource_id}: "
                         f"insufficient tags ({tag_count}) or categories ({cat_count})"
