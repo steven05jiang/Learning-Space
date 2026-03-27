@@ -1,0 +1,18 @@
+app = "learning-space-worker"   # user will rename to their chosen app name
+primary_region = "iad"          # US East (closest to Supabase/Neo4j US East 1)
+
+[build]
+  dockerfile = "Dockerfile"
+  [build.args]
+    SERVICE_TYPE = "worker"
+
+[processes]
+  worker = "sh /entrypoint.sh"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
