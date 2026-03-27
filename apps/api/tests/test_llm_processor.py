@@ -96,6 +96,7 @@ class TestLLMProcessorService:
             "title": "Test Article Title",
             "summary": "This is a comprehensive summary of the test article content.",
             "tags": ["test", "article", "content", "sample"],
+            "top_level_categories": ["Science & Technology"],
         }
 
         mock_response = Mock()
@@ -152,7 +153,12 @@ class TestLLMProcessorService:
         """Test handling missing title in response."""
         mock_tool_use = Mock()
         mock_tool_use.type = "tool_use"
-        mock_tool_use.input = {"title": "", "summary": "Test summary", "tags": ["test"]}
+        mock_tool_use.input = {
+            "title": "",
+            "summary": "Test summary",
+            "tags": ["test"],
+            "top_level_categories": ["Science & Technology"],
+        }
 
         mock_response = Mock()
         mock_response.content = [mock_tool_use]
@@ -171,7 +177,12 @@ class TestLLMProcessorService:
         """Test handling missing summary in response."""
         mock_tool_use = Mock()
         mock_tool_use.type = "tool_use"
-        mock_tool_use.input = {"title": "Test Title", "summary": "", "tags": ["test"]}
+        mock_tool_use.input = {
+            "title": "Test Title",
+            "summary": "",
+            "tags": ["test"],
+            "top_level_categories": ["Science & Technology"],
+        }
 
         mock_response = Mock()
         mock_response.content = [mock_tool_use]
@@ -205,6 +216,7 @@ class TestLLMProcessorService:
                 "programming",
                 "extra-tag",  # This makes 9 tags, should be limited to 8
             ],
+            "top_level_categories": ["Science & Technology"],
         }
 
         mock_response = Mock()
@@ -233,6 +245,7 @@ class TestLLMProcessorService:
             "title": "Test Title",
             "summary": "Test summary",
             "tags": "not-a-list",  # Invalid format
+            "top_level_categories": ["Science & Technology"],
         }
 
         mock_response = Mock()
@@ -330,6 +343,7 @@ class TestLLMProcessorService:
             "title": "Test Title",
             "summary": "Test summary",
             "tags": ["test"],
+            "top_level_categories": ["Science & Technology"],
         }
 
         mock_response = Mock()
@@ -360,6 +374,7 @@ class TestLLMProcessorService:
             "title": "Long Content Title",
             "summary": "Summary of long content",
             "tags": ["long", "content"],
+            "top_level_categories": ["Science & Technology"],
         }
 
         mock_response = Mock()

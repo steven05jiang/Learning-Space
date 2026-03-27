@@ -113,9 +113,34 @@ class TestProcessResource:
         """Test successful end-to-end processing of a URL resource."""
         # Mock database session and query
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for sync method
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_category_row2 = Mock()
+        mock_category_row2.name = "Education & Knowledge"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [
+            mock_category_row,
+            mock_category_row2,
+        ]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         # Create a proper async context manager mock
@@ -144,6 +169,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["python", "ai"])
         mock_graph_service.update_from_resource = AsyncMock()
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
@@ -177,8 +203,12 @@ class TestProcessResource:
         mock_url_fetcher.fetch_url_content.assert_called_once_with(
             "https://example.com", 456
         )
+        mock_graph_service.get_user_tags.assert_called_once_with(456)
         mock_llm_processor.process_content.assert_called_once_with(
-            mock_fetch_success.content, "text/html"
+            mock_fetch_success.content,
+            "text/html",
+            ["python", "ai"],
+            ["Science & Technology", "Education & Knowledge"],
         )
         mock_graph_service.update_graph.assert_called_once_with(
             456, ["test", "article", "content"], ["Science & Technology"]
@@ -198,9 +228,34 @@ class TestProcessResource:
         """Test successful end-to-end processing of a text resource."""
         # Mock database session and query
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for sync method
-        mock_result.scalar_one_or_none.return_value = mock_text_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_text_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_category_row2 = Mock()
+        mock_category_row2.name = "Education & Knowledge"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [
+            mock_category_row,
+            mock_category_row2,
+        ]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         # Create a proper async context manager mock
@@ -228,6 +283,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["existing", "tags"])
         mock_graph_service.update_from_resource = AsyncMock()
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
@@ -244,8 +300,12 @@ class TestProcessResource:
         mock_url_fetcher.fetch_url_content.assert_not_called()
 
         # Verify LLM processor was called with original content
+        mock_graph_service.get_user_tags.assert_called_once_with(456)
         mock_llm_processor.process_content.assert_called_once_with(
-            "This is some test content to process.", "text"
+            "This is some test content to process.",
+            "text",
+            ["existing", "tags"],
+            ["Science & Technology", "Education & Knowledge"],
         )
 
     @pytest.mark.asyncio
@@ -329,9 +389,29 @@ class TestProcessResource:
         """Test that LLM failure sets resource to FAILED status."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for sync method
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         # Create a proper async context manager mock
@@ -359,6 +439,10 @@ class TestProcessResource:
         mock_llm_processor.process_content.return_value = mock_llm_failure
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
+        mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["python"])
+        monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
+
         # Execute the task
         result = await process_resource({}, "123")
 
@@ -379,9 +463,29 @@ class TestProcessResource:
         """Test that graph update failure doesn't fail the entire job."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for sync method
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         # Create a proper async context manager mock
@@ -411,6 +515,7 @@ class TestProcessResource:
 
         # Mock graph service to fail
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["existing", "tags"])
         mock_graph_service.update_from_resource.side_effect = Exception(
             "Graph connection failed"
         )
@@ -435,13 +540,34 @@ class TestProcessResource:
             title="Test Article",
             summary="A test summary",
             tags=["single-tag"],  # Only one tag
+            top_level_categories=["Science & Technology"],
         )
 
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for sync method
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         # Create a proper async context manager mock
@@ -470,6 +596,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["existing"])
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
@@ -489,9 +616,29 @@ class TestProcessResource:
         """Test that resource status transitions correctly through pipeline."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()  # Use regular Mock for sync method
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         # Create a proper async context manager mock
@@ -520,6 +667,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["test"])
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
@@ -545,9 +693,29 @@ class TestProcessResource:
 
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         class MockAsyncSessionContext:
@@ -575,6 +743,9 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(
+            return_value=["existing", "user", "tags"]
+        )
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
@@ -606,13 +777,34 @@ class TestProcessResource:
             title="Test Article",
             summary="A test summary",
             tags=[],  # No tags
+            top_level_categories=["Science & Technology"],
         )
 
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         class MockAsyncSessionContext:
@@ -640,6 +832,7 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=[])
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         # Execute the task
@@ -659,9 +852,29 @@ class TestProcessResource:
         """Test that graph update failure doesn't change resource status from READY."""
         # Mock database session
         mock_session = AsyncMock()
-        mock_result = Mock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock the resource query result
+        mock_resource_result = Mock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock the categories query result
+        mock_category_row = Mock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = Mock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session.execute = mock_execute
         mock_session.commit = AsyncMock()
 
         class MockAsyncSessionContext:
@@ -690,6 +903,7 @@ class TestProcessResource:
 
         # Mock graph service to fail on update_graph (first call in pipeline)
         mock_graph_service = AsyncMock()
+        mock_graph_service.get_user_tags = AsyncMock(return_value=["python", "ai"])
         mock_graph_service.update_graph.side_effect = Exception(
             "Neo4j connection error"
         )

@@ -97,12 +97,14 @@ async def test_worker_processes_url_resource_successfully(db_session, respx_mock
         "workers.tasks.llm_processor_service.process_content",
         return_value=mock_llm_result,
     ):
-        with patch("workers.tasks.graph_service.update_graph") as mock_graph:
-            with patch(
-                "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
-            ):
-                # Run the worker task
-                result = await process_resource({}, str(resource.id))
+        with patch("workers.tasks.graph_service.get_user_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["python", "ai"]
+            with patch("workers.tasks.graph_service.update_graph") as mock_graph:
+                with patch(
+                    "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
+                ):
+                    # Run the worker task
+                    result = await process_resource({}, str(resource.id))
 
     # Verify result
     assert result["status"] == "ready"
@@ -165,12 +167,14 @@ async def test_worker_processes_text_resource_successfully(db_session):
         "workers.tasks.llm_processor_service.process_content",
         return_value=mock_llm_result,
     ):
-        with patch("workers.tasks.graph_service.update_graph") as mock_graph:
-            with patch(
-                "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
-            ):
-                # Run the worker task
-                result = await process_resource({}, str(resource.id))
+        with patch("workers.tasks.graph_service.get_user_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["python", "ai"]
+            with patch("workers.tasks.graph_service.update_graph") as mock_graph:
+                with patch(
+                    "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
+                ):
+                    # Run the worker task
+                    result = await process_resource({}, str(resource.id))
 
     # Verify result
     assert result["status"] == "ready"
@@ -260,12 +264,14 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
             "workers.tasks.llm_processor_service.process_content",
             return_value=mock_llm_result,
         ):
-            with patch("workers.tasks.graph_service.update_graph") as mock_graph:
-                with patch(
-                    "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
-                ):
-                    # Run the worker task
-                    result = await process_resource({}, str(resource.id))
+            with patch("workers.tasks.graph_service.get_user_tags") as mock_get_tags:
+                mock_get_tags.return_value = ["python", "ai"]
+                with patch("workers.tasks.graph_service.update_graph") as mock_graph:
+                    with patch(
+                        "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
+                    ):
+                        # Run the worker task
+                        result = await process_resource({}, str(resource.id))
 
     # Verify result - should succeed with provider fetch
     assert result["status"] == "ready"
@@ -322,9 +328,13 @@ async def test_worker_url_requires_login_no_linked_account_fails(db_session):
         "workers.tasks._fetcher.fetch_url_content",
         return_value=mock_fetch_result,
     ):
-        with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
-            # Run the worker task
-            result = await process_resource({}, str(resource.id))
+        with patch("workers.tasks.graph_service.get_user_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["python", "ai"]
+            with patch(
+                "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
+            ):
+                # Run the worker task
+                result = await process_resource({}, str(resource.id))
 
     # Verify result - should fail due to authentication required
     assert result["status"] == "failed"
@@ -376,9 +386,13 @@ async def test_worker_llm_processing_fails(db_session):
         "workers.tasks.llm_processor_service.process_content",
         return_value=mock_llm_result,
     ):
-        with patch("workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx):
-            # Run the worker task
-            result = await process_resource({}, str(resource.id))
+        with patch("workers.tasks.graph_service.get_user_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["python", "ai"]
+            with patch(
+                "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
+            ):
+                # Run the worker task
+                result = await process_resource({}, str(resource.id))
 
     # Verify result - should fail at LLM processing stage
     assert result["status"] == "failed"
@@ -438,15 +452,17 @@ async def test_worker_graph_update_fails_resource_still_ready(db_session):
         "workers.tasks.llm_processor_service.process_content",
         return_value=mock_llm_result,
     ):
-        with patch(
-            "workers.tasks.graph_service.update_graph",
-            side_effect=Exception("Graph service unavailable"),
-        ) as mock_graph:
+        with patch("workers.tasks.graph_service.get_user_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["python", "ai"]
             with patch(
-                "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
-            ):
-                # Run the worker task
-                result = await process_resource({}, str(resource.id))
+                "workers.tasks.graph_service.update_graph",
+                side_effect=Exception("Graph service unavailable"),
+            ) as mock_graph:
+                with patch(
+                    "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
+                ):
+                    # Run the worker task
+                    result = await process_resource({}, str(resource.id))
 
     # Verify result - should still be ready despite graph failure
     assert result["status"] == "ready"

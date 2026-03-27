@@ -7,6 +7,7 @@ from typing import Any, Dict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.category import Category
 from models.database import AsyncSessionLocal
 from models.resource import ProcessingStatus, Resource, ResourceStatus
 from services.graph_service import graph_service
@@ -134,19 +135,45 @@ async def process_resource(
                     f"{len(content_to_process)} chars"
                 )
 
-            # Step 3: LLM processing
+            # Step 3a: Fetch existing user tags and valid categories
+            existing_user_tags = await graph_service.get_user_tags(resource.owner_id)
+
+            # Get valid categories (system + user-created)
+            categories_result = await session.execute(
+                select(Category.name)
+                .where(
+                    (Category.owner_id == resource.owner_id)
+                    | (Category.owner_id.is_(None))
+                )
+                .order_by(Category.name)
+            )
+            valid_categories = [row.name for row in categories_result.fetchall()]
+
+            # Step 3b: LLM processing with context
             llm_result = await llm_processor_service.process_content(
-                content_to_process, final_content_type
+                content_to_process,
+                final_content_type,
+                existing_user_tags,
+                valid_categories,
             )
 
             if not llm_result.success:
-                error_msg = f"LLM processing failed: {llm_result.error_message}"
+                # Handle specific validation errors with appropriate error types
+                if llm_result.error_type in ["CATEGORY_REQUIRED", "INVALID_CATEGORY"]:
+                    error_msg = (
+                        f"Category validation failed: {llm_result.error_message}"
+                    )
+                    resource.fetch_error_type = llm_result.error_type
+                else:
+                    error_msg = f"LLM processing failed: {llm_result.error_message}"
+
                 await _set_resource_failed(session, resource, error_msg)
                 return {
                     "resource_id": resource_id,
                     "status": "failed",
                     "error": error_msg,
                     "stage": "llm_processing",
+                    "error_type": llm_result.error_type,
                 }
 
             logger.info(
