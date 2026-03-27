@@ -395,8 +395,10 @@ async def sync_graph(
                 # Purge orphan categories: categories no longer in any resource
                 valid_cats_result = await session.execute(
                     text(
-                        "SELECT DISTINCT jsonb_array_elements_text(top_level_categories) AS cat "
-                        "FROM resources WHERE owner_id = :uid AND top_level_categories IS NOT NULL"
+                        "SELECT DISTINCT jsonb_array_elements_text("
+                        "top_level_categories) AS cat "
+                        "FROM resources WHERE owner_id = :uid "
+                        "AND top_level_categories IS NOT NULL"
                     ),
                     {"uid": owner_id},
                 )
@@ -404,12 +406,15 @@ async def sync_graph(
                 valid_tags_result = await session.execute(
                     text(
                         "SELECT DISTINCT jsonb_array_elements_text(tags) AS tag "
-                        "FROM resources WHERE owner_id = :uid AND tags IS NOT NULL"
+                        "FROM resources WHERE owner_id = :uid "
+                        "AND tags IS NOT NULL"
                     ),
                     {"uid": owner_id},
                 )
                 valid_tags_all = [row.tag for row in valid_tags_result.fetchall()]
-                await graph_service.purge_orphan_nodes(owner_id, valid_tags_all, valid_categories)
+                await graph_service.purge_orphan_nodes(
+                    owner_id, valid_tags_all, valid_categories
+                )
 
                 logger.info(
                     f"Graph synced for resource {entity_id}: "
