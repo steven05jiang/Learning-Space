@@ -17,6 +17,7 @@ def graph_service():
 def mock_neo4j_driver():
     """Mock Neo4j driver for unit testing."""
     import contextlib
+    from unittest.mock import MagicMock
 
     mock_driver = AsyncMock()
     mock_session = AsyncMock()
@@ -26,7 +27,8 @@ def mock_neo4j_driver():
     async def mock_session_context():
         yield mock_session
 
-    mock_driver.get_session = lambda: mock_session_context()
+    # Use MagicMock so assert_called_once() / assert_not_called() work
+    mock_driver.get_session = MagicMock(side_effect=lambda: mock_session_context())
     return mock_driver, mock_session
 
 
@@ -169,7 +171,7 @@ async def test_get_graph_returns_hierarchical_structure(
         },
     ]
 
-    async def mock_async_iter():
+    async def mock_async_iter(self):
         for record in mock_records:
             yield record
 
@@ -241,7 +243,7 @@ async def test_get_neighbors_returns_hierarchical_neighbors(
         },
     ]
 
-    async def mock_async_iter():
+    async def mock_async_iter(self):
         for record in mock_records:
             yield record
 
