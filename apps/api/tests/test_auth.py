@@ -236,7 +236,7 @@ async def test_oauth_callback_blocked_non_allowlisted_email(
     mock_get_user_info: AsyncMock,
     mock_exchange_code: AsyncMock,
 ):
-    """Test OAuth callback blocks non-allowlisted email with redirect to /coming-soon."""
+    """Test OAuth callback blocks non-allowlisted email with redirect."""
     with patch.object(settings, "allowed_emails", "test@allowed.com,user@example.com"):
         # Mock OAuth provider responses for non-allowlisted email
         mock_exchange_code.return_value = "test_access_token"
@@ -253,7 +253,10 @@ async def test_oauth_callback_blocked_non_allowlisted_email(
         oauth_service.store_state("test_state", "github")
 
         # Test callback with non-allowlisted email
-        response = client.get("/auth/callback/github?code=test_code&state=test_state", follow_redirects=False)
+        response = client.get(
+            "/auth/callback/github?code=test_code&state=test_state",
+            follow_redirects=False,
+        )
 
         # Should redirect to coming-soon page
         assert response.status_code == 302

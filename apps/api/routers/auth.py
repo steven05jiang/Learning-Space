@@ -146,7 +146,9 @@ async def oauth_callback(
             if oauth_base:
                 frontend_base_url = oauth_base.rstrip("/")
             else:
-                frontend_base_url = _get_frontend_base_url(request) or str(request.base_url).rstrip("/")
+                frontend_base_url = _get_frontend_base_url(request) or str(
+                    request.base_url
+                ).rstrip("/")
 
             redirect_url = f"{frontend_base_url}/coming-soon"
             return RedirectResponse(url=redirect_url, status_code=302)
