@@ -5,13 +5,39 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
-## Sprint 2026-03-27-A — Deploy Hardening + Cloud Provisioning
+## Sprint 2026-03-27-B — Cloud Deployment to Production
 
 **Status:** 🔄 Active
+**Sprint Goal:** Ship the app to cloud so it's accessible via internet with Google login working for allowlisted users
+**Exit Gate:** OPS-006 — Production Google OAuth + allowlist smoke test passes (user can login at custom domain, non-allowlisted users see /coming-soon)
+**Started:** 2026-03-27
+**Completed:** (pending)
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- All OPS tasks are strictly sequential; each dispatches after the previous completes
+- OPS-004 and OPS-005 may require manual user actions (Namecheap domain purchase, Cloudflare DNS propagation, Railway/Vercel dashboard config)
+- OPS-006 requires Google Cloud Console OAuth credential updates for production domain
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| OPS-003 | Backend Railway deployment (API + worker, Alembic migrations, auto-deploy) | ✅ Completed (PR #168) |
+| OPS-004 | Frontend Vercel deployment (connect GitHub, env vars, confirm build) | ⏳ Pending (needs OPS-003) |
+| OPS-005 | Domain + DNS (Namecheap + Cloudflare + custom domains on Vercel/Railway) | ⏳ Pending (needs OPS-003, OPS-004) |
+| OPS-006 | Production Google OAuth + allowlist smoke test | ⏳ Pending (needs OPS-004, OPS-005) |
+
+---
+
+## Sprint 2026-03-27-A — Deploy Hardening + Cloud Provisioning
+
+**Status:** ✅ Complete
 **Sprint Goal:** Complete deploy-hardening dev tasks and provision cloud infrastructure so the app can be shipped to production on Vercel + Railway
 **Exit Gate:** All DEV-066–071 + DEV-047 merged, OPS-002 provisioned → OPS-003 (Railway deployment) fully unblocked
 **Started:** 2026-03-27
-**Completed:** (pending)
+**Completed:** 2026-03-27
 
 ### Notes
 
@@ -31,7 +57,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-071 | Multi-LLM provider abstraction (LLM_PROVIDER env var) | ✅ Completed (PR #164) |
 | DEV-047 | Backend Dockerfile (API + worker services) | ✅ Completed (PR #165) |
 | DEV-070 | Coming-soon page at /coming-soon — needs DEV-069 | ✅ Completed (PR #163) |
-| OPS-002 | Provision cloud services (Supabase + Neo4j AuraDB + Upstash) | ⏳ Pending (manual) |
+| OPS-002 | Provision cloud services (Supabase + Neo4j AuraDB + Upstash) | ✅ Completed (manual, 2026-03-27) |
 
 ---
 
