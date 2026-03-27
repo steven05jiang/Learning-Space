@@ -4,15 +4,15 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-27 (DEV-066–069 complete; DEV-070+071 dispatched)
+**Last Updated:** 2026-03-27 (sprint 2026-03-27-A — DEV-066–071 + DEV-047 all complete)
 
 ---
 
 ## Progress Summary
 
 - Total: 138 tasks (71 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 96
-- 🔄 Active: 2
+- ✅ Completed: 98
+- 🔄 Active: 0
 - ⏳ Pending: 40
 - ⚠️ Stuck: 0
 
@@ -94,7 +94,7 @@ _Design specs: `docs/design-resource-fetching.md` (FB-001), `docs/design-categor
 
 ## 🟢 Tier 4 — Hardening
 
-- [ ] DEV-047: Create backend Dockerfile — Required for Railway deployment (scope narrowed: frontend uses Vercel native build, no Dockerfile needed)
+- [x] DEV-047: Create backend Dockerfile — Required for Railway deployment (PR #165 ✅)
 - [ ] ~~DEV-048~~: ~~Create Helm chart~~ — DEFERRED: k8s deployment replaced by Vercel+Railway cheap cloud stack (v2.2)
 - [ ] ~~DEV-049~~: ~~Configure ArgoCD application~~ — DEFERRED: k8s deployment replaced by Vercel+Railway cheap cloud stack (v2.2)
 - [ ] DEV-050: Integration test — Auth end-to-end — Full auth flow with real DB
@@ -195,8 +195,8 @@ _Goal: ship to production for feedback. Auth hardening + feature gates + multi-L
 - [x] DEV-067: Disable search button — add disabled state + "Search coming soon" tooltip (PR #160 ✅)
 - [x] DEV-068: Chat panel "coming soon" mode — disable input/send, inject initial bot message (PR #161 ✅)
 - [x] DEV-069: User allowlisting backend — ALLOWED_EMAILS env var gate on OAuth callback → redirect /coming-soon (PR #162 ✅)
-- [~] DEV-070: Coming-soon page — static /coming-soon page for non-allowlisted users
-- [~] DEV-071: Multi-LLM provider abstraction — LLM_PROVIDER env var; support Groq/SiliconFlow/Fireworks + Anthropic
+- [x] DEV-070: Coming-soon page — static /coming-soon page for non-allowlisted users (PR #163 ✅)
+- [x] DEV-071: Multi-LLM provider abstraction — LLM_PROVIDER env var; support Groq/SiliconFlow/Fireworks + Anthropic (PR #164 ✅)
 
 ## 🎬 Demos
 
