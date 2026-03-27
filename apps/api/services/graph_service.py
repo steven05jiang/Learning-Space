@@ -294,6 +294,34 @@ class GraphService:
                 else:
                     logger.debug(f"No orphan tags found for owner_id={owner_id}")
 
+    async def get_user_tags(self, owner_id: int) -> List[str]:
+        """
+        Get all existing tag names for a user.
+
+        Args:
+            owner_id: User ID to get tags for
+
+        Returns:
+            List of tag names
+        """
+        neo4j_driver = await get_neo4j_driver()
+
+        async with neo4j_driver.get_session() as session:
+            result = await session.run(
+                """
+                MATCH (t:Tag {owner_id: $owner_id})
+                RETURN t.name AS tag_name
+                ORDER BY t.name
+                """,
+                owner_id=str(owner_id),
+            )
+
+            tags = []
+            async for record in result:
+                tags.append(record["tag_name"])
+
+            return tags
+
     async def get_tag_relationships(self, owner_id: int) -> List[dict]:
         """
         Get all tag relationships for debugging/testing purposes.

@@ -8,6 +8,7 @@ import anthropic
 from anthropic import Anthropic
 
 from core.config import settings
+from core.errors import ErrorCode, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +50,20 @@ class LLMProcessorService:
             except Exception as e:
                 logger.warning(f"Failed to initialize Anthropic client: {e}")
 
-    async def process_content(self, content: str, content_type: str) -> LLMResult:
-        """Process content to extract title, summary, and tags.
+    async def process_content(
+        self,
+        content: str,
+        content_type: str,
+        existing_user_tags: Optional[List[str]] = None,
+        valid_categories: Optional[List[str]] = None,
+    ) -> LLMResult:
+        """Process content to extract title, summary, tags, and categories.
 
         Args:
             content: The content to process (text or HTML)
             content_type: Type of content (e.g., 'text/plain', 'text/html', 'url')
+            existing_user_tags: List of existing tags for the user (for reuse)
+            valid_categories: List of valid category names (for validation)
 
         Returns:
             LLMResult containing extracted data or error information
@@ -79,7 +88,7 @@ class LLMProcessorService:
 
         try:
             # Prepare the content processing prompt
-            system_prompt = self._build_system_prompt()
+            system_prompt = self._build_system_prompt(existing_user_tags, valid_categories)
             user_message = self._build_user_message(content, content_type)
 
             # Define the tool for structured output
@@ -190,37 +199,57 @@ class LLMProcessorService:
             # Clean and validate top_level_categories
             if isinstance(top_level_categories, list):
                 clean_categories = []
-                # For now, use placeholder categories until DEV-062
-                default_categories = [
-                    "Science & Technology",
-                    "Business & Economics",
-                    "Politics & Government",
-                    "Society & Culture",
-                    "Education & Knowledge",
-                    "Health & Medicine",
-                    "Environment & Sustainability",
-                    "Arts & Entertainment",
-                    "Sports & Recreation",
-                    "Lifestyle & Personal Life",
-                ]
+
+                # Use provided valid_categories or default system categories
+                if valid_categories:
+                    allowed_categories = valid_categories
+                else:
+                    allowed_categories = [
+                        "Science & Technology",
+                        "Business & Economics",
+                        "Politics & Government",
+                        "Society & Culture",
+                        "Education & Knowledge",
+                        "Health & Medicine",
+                        "Environment & Sustainability",
+                        "Arts & Entertainment",
+                        "Sports & Recreation",
+                        "Lifestyle & Personal Life",
+                    ]
 
                 for category in top_level_categories:
                     if isinstance(category, str) and category.strip():
                         clean_category = category.strip()
-                        # For now, just validate against default categories
                         if (
-                            clean_category in default_categories
+                            clean_category in allowed_categories
                             and clean_category not in clean_categories
                         ):
                             clean_categories.append(clean_category)
+                        elif clean_category not in allowed_categories:
+                            # Invalid category detected - raise validation error
+                            return LLMResult(
+                                success=False,
+                                error_type="INVALID_CATEGORY",
+                                error_message=f"Category '{clean_category}' is not a valid category. "
+                                f"Valid categories: {allowed_categories}",
+                            )
 
-                # If no valid categories found, default to "Science & Technology"
+                # Check if categories are required and empty
                 if not clean_categories:
-                    clean_categories = ["Science & Technology"]
+                    return LLMResult(
+                        success=False,
+                        error_type="CATEGORY_REQUIRED",
+                        error_message="At least one top-level category is required.",
+                    )
 
                 top_level_categories = clean_categories[:3]  # Limit to 3 categories
             else:
-                top_level_categories = ["Science & Technology"]  # Default fallback
+                # Non-list categories - validation error
+                return LLMResult(
+                    success=False,
+                    error_type="CATEGORY_REQUIRED",
+                    error_message="At least one top-level category is required.",
+                )
 
             logger.info(
                 f"Successfully processed content: title='{title[:50]}...', "
@@ -283,9 +312,11 @@ class LLMProcessorService:
                 error_message=error_message,
             )
 
-    def _build_system_prompt(self) -> str:
+    def _build_system_prompt(
+        self, existing_user_tags: Optional[List[str]] = None, valid_categories: Optional[List[str]] = None
+    ) -> str:
         """Build the system prompt for content processing."""
-        return (
+        prompt = (
             "You are a content analysis assistant that extracts structured "
             "information from various types of content.\n\n"
             "Your task is to analyze the provided content and extract:\n"
@@ -297,16 +328,31 @@ class LLMProcessorService:
             "- Title should be descriptive but concise (max 200 characters)\n"
             "- Summary should be comprehensive but readable (100-500 words)\n"
             "- Tags should be lowercase, hyphenated if multi-word\n"
-            "- Categories from: Science & Technology, Business & Economics, "
-            "Politics & Government, Society & Culture, Education & Knowledge, "
-            "Health & Medicine, "
-            "Environment & Sustainability, Arts & Entertainment, Sports & Recreation, "
-            "Lifestyle & Personal Life\n"
-            "- Select 1-3 most relevant categories\n"
+        )
+
+        # Add existing user tags context
+        if existing_user_tags:
+            prompt += f"- Existing user tags (reuse when applicable): {existing_user_tags}\n"
+
+        # Add valid categories
+        if valid_categories:
+            prompt += f"- Available categories: {valid_categories}\n"
+        else:
+            prompt += (
+                "- Categories from: Science & Technology, Business & Economics, "
+                "Politics & Government, Society & Culture, Education & Knowledge, "
+                "Health & Medicine, Environment & Sustainability, Arts & Entertainment, "
+                "Sports & Recreation, Lifestyle & Personal Life\n"
+            )
+
+        prompt += (
+            "- Select 1-3 most relevant categories (REQUIRED)\n"
             "- Focus on the main content, ignore navigation, ads, or boilerplate text\n"
             "- For HTML content, extract the meaningful text content\n"
             "- Be objective and factual in your analysis"
         )
+
+        return prompt
 
     def _build_user_message(self, content: str, content_type: str) -> str:
         """Build the user message with content to process."""
