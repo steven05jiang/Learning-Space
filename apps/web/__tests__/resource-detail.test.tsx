@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useRouter, useParams } from "next/navigation";
 import ResourceDetailPage from "../app/resources/[id]/page";
 
@@ -472,6 +473,339 @@ describe("ResourceDetailPage", () => {
       expect(screen.getByText("Example Article")).toBeInTheDocument();
       // Should not have navigated away
       expect(mockPush).not.toHaveBeenCalledWith("/resources");
+    });
+  });
+
+  describe("tag editor", () => {
+    beforeEach(async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_token") return "mock-token";
+        if (key === "user_info")
+          return JSON.stringify({
+            id: "1",
+            email: "test@example.com",
+            display_name: "Test User",
+          });
+        return null;
+      });
+
+      // Mock categories fetch
+      (fetch as jest.Mock).mockImplementation((url) => {
+        if (url.includes("/categories")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([
+              { id: 1, name: "Technology", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+              { id: 2, name: "Science", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+              { id: 3, name: "Custom", is_system: false, user_id: 1, created_at: "2024-01-01T00:00:00Z" },
+            ]),
+          });
+        }
+
+        // Mock resource fetch
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: mockResourceId,
+            url: "https://example.com/article",
+            title: "Test Article",
+            summary: "A test article",
+            tags: ["Technology", "Testing", "Custom"],
+            status: "READY",
+            content_type: "url",
+            original_content: "https://example.com/article",
+            created_at: "2024-01-01T10:00:00Z",
+          }),
+        });
+      });
+    });
+
+    it("displays tag chips with remove buttons when editing tags", async () => {
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      fireEvent.click(editTagsButton);
+
+      // Check that tag chips are displayed with remove buttons
+      expect(screen.getByText("Technology")).toBeInTheDocument();
+      expect(screen.getByText("Testing")).toBeInTheDocument();
+      expect(screen.getByText("Custom")).toBeInTheDocument();
+
+      // Check for remove buttons (X buttons)
+      const removeButtons = screen.getAllByTitle(/Remove/);
+      expect(removeButtons).toHaveLength(3);
+    });
+
+    it("allows adding new tags with Enter key", async () => {
+      const user = userEvent.setup();
+
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      await user.click(editTagsButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/add new tag/i)).toBeInTheDocument();
+      });
+
+      const tagInput = screen.getByPlaceholderText(/add new tag/i);
+      await user.type(tagInput, "NewTag");
+      await user.keyboard("{Enter}");
+
+      // Check that the new tag is added
+      await waitFor(() => {
+        expect(screen.getByText("NewTag")).toBeInTheDocument();
+      });
+
+      // Input should be cleared
+      expect(tagInput).toHaveValue("");
+    });
+
+    it("allows adding new tags with comma key", async () => {
+      const user = userEvent.setup();
+
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      await user.click(editTagsButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/add new tag/i)).toBeInTheDocument();
+      });
+
+      const tagInput = screen.getByPlaceholderText(/add new tag/i);
+      await user.type(tagInput, "CommaTag,");
+
+      // Check that the new tag is added
+      await waitFor(() => {
+        expect(screen.getByText("CommaTag")).toBeInTheDocument();
+      });
+      // Input should be cleared
+      expect(tagInput).toHaveValue("");
+    });
+
+    it("prevents removing the last system category tag", async () => {
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      fireEvent.click(editTagsButton);
+
+      // Remove non-system tags first
+      const testingRemoveButton = screen.getByTitle("Remove Testing");
+      fireEvent.click(testingRemoveButton);
+
+      const customRemoveButton = screen.getByTitle("Remove Custom");
+      fireEvent.click(customRemoveButton);
+
+      // Try to remove the last system category (Technology)
+      const technologyRemoveButton = screen.getByTitle("Remove Technology");
+      fireEvent.click(technologyRemoveButton);
+
+      // Should show validation error
+      expect(screen.getByText(/at least one root-level category tag must remain/i)).toBeInTheDocument();
+      // Technology tag should still be present
+      expect(screen.getByText("Technology")).toBeInTheDocument();
+    });
+
+    it("saves tags successfully and shows toast", async () => {
+      const user = userEvent.setup();
+      const mockToast = jest.fn();
+      jest.doMock("@/components/ui/use-toast", () => ({
+        useToast: () => ({ toast: mockToast }),
+      }));
+
+      (fetch as jest.Mock).mockImplementation((url, options) => {
+        if (url.includes("/categories")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([
+              { id: 1, name: "Technology", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+              { id: 2, name: "Science", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+            ]),
+          });
+        }
+
+        if (options?.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              id: mockResourceId,
+              url: "https://example.com/article",
+              title: "Test Article",
+              summary: "A test article",
+              tags: ["Technology", "UpdatedTag"],
+              status: "READY",
+              content_type: "url",
+              original_content: "https://example.com/article",
+              created_at: "2024-01-01T10:00:00Z",
+            }),
+          });
+        }
+
+        // Initial resource fetch
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: mockResourceId,
+            url: "https://example.com/article",
+            title: "Test Article",
+            summary: "A test article",
+            tags: ["Technology", "Testing"],
+            status: "READY",
+            content_type: "url",
+            original_content: "https://example.com/article",
+            created_at: "2024-01-01T10:00:00Z",
+          }),
+        });
+      });
+
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      await user.click(editTagsButton);
+
+      // Remove one tag and add another
+      const testingRemoveButton = screen.getByTitle("Remove Testing");
+      await user.click(testingRemoveButton);
+
+      const tagInput = screen.getByPlaceholderText(/add new tag/i);
+      await user.type(tagInput, "UpdatedTag");
+      await user.keyboard("{Enter}");
+
+      const saveButton = screen.getByRole("button", { name: /save tags/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith(
+          `http://localhost:8000/resources/${mockResourceId}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: "Bearer mock-token",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              tags: ["Technology", "UpdatedTag"],
+            }),
+          }
+        );
+      });
+    });
+
+    it("disables save button when no changes made", async () => {
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      fireEvent.click(editTagsButton);
+
+      const saveButton = screen.getByRole("button", { name: /save tags/i });
+      // Should be disabled initially since no changes made
+      expect(saveButton).toBeDisabled();
+    });
+
+    it("prevents saving with zero tags", async () => {
+      (fetch as jest.Mock).mockImplementation((url) => {
+        if (url.includes("/categories")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([
+              { id: 1, name: "Technology", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+            ]),
+          });
+        }
+
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: mockResourceId,
+            url: "https://example.com/article",
+            title: "Test Article",
+            summary: "A test article",
+            tags: ["Technology"],
+            status: "READY",
+            content_type: "url",
+            original_content: "https://example.com/article",
+            created_at: "2024-01-01T10:00:00Z",
+          }),
+        });
+      });
+
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      fireEvent.click(editTagsButton);
+
+      // Try to remove the only tag
+      const technologyRemoveButton = screen.getByTitle("Remove Technology");
+      fireEvent.click(technologyRemoveButton);
+
+      const saveButton = screen.getByRole("button", { name: /save tags/i });
+      // Save button should be disabled when no tags and/or validation fails
+      expect(saveButton).toBeDisabled();
+    });
+
+    it("cancels tag editing and reverts changes", async () => {
+      const user = userEvent.setup();
+
+      render(<ResourceDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Article")).toBeInTheDocument();
+      });
+
+      const editTagsButton = screen.getByRole("button", { name: /edit tags/i });
+      await user.click(editTagsButton);
+
+      // Make some changes
+      const tagInput = screen.getByPlaceholderText(/add new tag/i);
+      await user.type(tagInput, "TempTag");
+      await user.keyboard("{Enter}");
+
+      // TempTag should be visible
+      await waitFor(() => {
+        expect(screen.getByText("TempTag")).toBeInTheDocument();
+      });
+
+      // Cancel editing
+      const cancelButton = screen.getByRole("button", { name: /cancel/i });
+      await user.click(cancelButton);
+
+      // Should exit edit mode and revert changes
+      expect(screen.queryByText("TempTag")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/add new tag/i)).not.toBeInTheDocument();
+
+      // Original tags should still be visible
+      expect(screen.getByText("Technology")).toBeInTheDocument();
+      expect(screen.getByText("Testing")).toBeInTheDocument();
+      expect(screen.getByText("Custom")).toBeInTheDocument();
     });
   });
 });

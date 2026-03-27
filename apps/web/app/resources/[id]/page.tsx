@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
   CardContent,
@@ -34,6 +35,14 @@ interface User {
   email: string;
   display_name: string;
   avatar_url?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  is_system: boolean;
+  user_id?: number;
+  created_at: string;
 }
 
 interface Resource {
@@ -112,12 +121,14 @@ export default function ResourceDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const isMock = useMock();
+  const { toast } = useToast();
 
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [resource, setResource] = useState<Resource | null>(null);
   const [isLoadingResource, setIsLoadingResource] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Reprocess state
   const [isReprocessing, setIsReprocessing] = useState(false);
@@ -127,6 +138,12 @@ export default function ResourceDetailPage() {
   const [editTitle, setEditTitle] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Tag editing state
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [isEditingTags, setIsEditingTags] = useState(false);
+  const [isUpdatingTags, setIsUpdatingTags] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -164,6 +181,58 @@ export default function ResourceDetailPage() {
     setIsLoading(false);
   }, [router, isMock]);
 
+  // Fetch categories
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchCategories = async () => {
+      if (isMock) {
+        // Mock system categories for testing
+        setCategories([
+          { id: 1, name: "Technology", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 2, name: "Science", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 3, name: "Business", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 4, name: "Arts", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 5, name: "Health", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 6, name: "Education", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 7, name: "Politics", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 8, name: "Entertainment", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 9, name: "Sports", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 10, name: "Philosophy", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+        ]);
+        return;
+      }
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      try {
+        const response = await fetch(`${apiBase}/categories`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const data: Category[] = await response.json();
+          setCategories(data);
+        }
+        // If categories fetch fails, continue without setting error
+        // The validation will just check against an empty array
+      } catch (err) {
+        // Silent fail - categories are not critical for viewing
+        console.warn("Failed to fetch categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, [user, isMock]);
+
   // Fetch resource
   useEffect(() => {
     if (!user || !id) return;
@@ -178,6 +247,7 @@ export default function ResourceDetailPage() {
           const apiResource = toApiResource(mockResource);
           setResource(apiResource);
           setEditTitle(apiResource.title || "");
+          setEditTags([...apiResource.tags]);
         } else {
           setError("Resource not found");
         }
@@ -222,6 +292,7 @@ export default function ResourceDetailPage() {
         const data: Resource = await response.json();
         setResource(data);
         setEditTitle(data.title || "");
+        setEditTags([...data.tags]);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load resource"
@@ -243,6 +314,133 @@ export default function ResourceDetailPage() {
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditTitle(resource?.title || "");
+  };
+
+  // Check if at least one system category tag remains
+  const hasSystemCategoryTag = (tags: string[]): boolean => {
+    const systemCategoryNames = categories
+      .filter(cat => cat.is_system)
+      .map(cat => cat.name);
+    return tags.some(tag => systemCategoryNames.includes(tag));
+  };
+
+  const handleEditTags = () => {
+    setError(null);
+    setIsEditingTags(true);
+    setEditTags([...resource?.tags || []]);
+    setNewTag("");
+  };
+
+  const handleCancelEditTags = () => {
+    setIsEditingTags(false);
+    setEditTags([...resource?.tags || []]);
+    setNewTag("");
+  };
+
+  const handleAddTag = () => {
+    const tag = newTag.trim();
+    if (tag && !editTags.includes(tag)) {
+      setEditTags([...editTags, tag]);
+      setNewTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const newTags = editTags.filter(tag => tag !== tagToRemove);
+    // Validate that at least one system category remains
+    if (!hasSystemCategoryTag(newTags)) {
+      const systemCategories = categories
+        .filter(cat => cat.is_system)
+        .map(cat => cat.name)
+        .join(", ");
+      setError(`At least one root-level category tag must remain${systemCategories ? ` (${systemCategories})` : ""}`);
+      return;
+    }
+    setEditTags(newTags);
+    setError(null);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const isTagsChanged = () => {
+    const currentTags = [...(resource?.tags || [])].sort();
+    const newTags = [...editTags].sort();
+    return JSON.stringify(currentTags) !== JSON.stringify(newTags);
+  };
+
+  const handleSaveTags = async () => {
+    if (!resource) return;
+
+    // Final validation before save
+    if (!hasSystemCategoryTag(editTags)) {
+      const systemCategories = categories
+        .filter(cat => cat.is_system)
+        .map(cat => cat.name)
+        .join(", ");
+      setError(`At least one root-level category tag must remain${systemCategories ? ` (${systemCategories})` : ""}`);
+      return;
+    }
+
+    setIsUpdatingTags(true);
+    setError(null);
+
+    try {
+      if (isMock) {
+        await new Promise((r) => setTimeout(r, 500));
+        setResource({ ...resource, tags: [...editTags] });
+        setIsEditingTags(false);
+        toast({ title: "Tags updated successfully!" });
+        setIsUpdatingTags(false);
+        return;
+      }
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      const response = await fetch(`${apiBase}/resources/${resource.id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tags: editTags,
+        }),
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to update tags: ${response.statusText}`);
+      }
+
+      const updatedResource: Resource = await response.json();
+      setResource(updatedResource);
+      setIsEditingTags(false);
+      toast({ title: "Tags updated successfully!" });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update tags"
+      );
+    } finally {
+      setIsUpdatingTags(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -500,7 +698,7 @@ export default function ResourceDetailPage() {
         </Button>
 
         <div className="flex items-center gap-2">
-          {!isEditing && (
+          {!isEditing && !isEditingTags && (
             <>
               <Button
                 variant="outline"
@@ -528,7 +726,16 @@ export default function ResourceDetailPage() {
                 className="gap-2"
               >
                 <Edit2 className="h-4 w-4" />
-                Edit
+                Edit Title
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEditTags}
+                className="gap-2"
+              >
+                <Edit2 className="h-4 w-4" />
+                Edit Tags
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -695,20 +902,96 @@ export default function ResourceDetailPage() {
           )}
 
           {/* Tags */}
-          {resource.tags.length > 0 && (
+          {(resource.tags.length > 0 || isEditingTags) && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {resource.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="text-xs"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              {isEditingTags ? (
+                <div className="space-y-4">
+                  {/* Current tags with remove buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {editTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs flex items-center gap-1"
+                      >
+                        {tag}
+                        <button
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                          title={`Remove ${tag}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {/* Add new tag input */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Add new tag (press Enter or comma to add)"
+                      className="flex-1"
+                      disabled={isUpdatingTags}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleAddTag}
+                      disabled={!newTag.trim() || isUpdatingTags}
+                      className="gap-2"
+                    >
+                      Add
+                    </Button>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveTags}
+                      disabled={isUpdatingTags || !isTagsChanged() || editTags.length === 0}
+                      className="gap-2"
+                    >
+                      {isUpdatingTags ? (
+                        <>
+                          <Spinner className="h-4 w-4" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save Tags
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEditTags}
+                      disabled={isUpdatingTags}
+                      className="gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {resource.tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
