@@ -334,10 +334,21 @@ export default function SettingsPage() {
     setCategoryError(null);
 
     if (isMock) {
-      // Mock add category
+      // Mock add category - check for duplicate names (case-insensitive)
+      const trimmedName = newCategoryName.trim();
+      const isDuplicate = categories.some(c =>
+        c.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        setCategoryError("Category name already exists");
+        setIsAddingCategory(false);
+        return;
+      }
+
       const newCategory: Category = {
         id: Math.max(...categories.map(c => c.id)) + 1,
-        name: newCategoryName.trim(),
+        name: trimmedName,
         is_system: false,
         user_id: 1,
         created_at: new Date().toISOString(),
@@ -390,7 +401,7 @@ export default function SettingsPage() {
     }
   }, [user, newCategoryName, categories, isMock, router]);
 
-  const handleDeleteCategory = useCallback(async (categoryId: number, categoryName: string) => {
+  const handleDeleteCategory = useCallback(async (categoryId: number) => {
     if (!user || isMock) {
       if (isMock) {
         // Mock delete
@@ -629,10 +640,11 @@ export default function SettingsPage() {
                       <div
                         key={category.id}
                         className="flex items-center justify-between p-3 border border-border rounded-lg"
+                        data-testid="category-row"
                       >
                         <div className="flex items-center gap-3">
                           {category.is_system ? (
-                            <Lock className="h-4 w-4 text-muted-foreground" />
+                            <Lock className="h-4 w-4 text-muted-foreground" data-testid="lock-icon" />
                           ) : (
                             <div className="h-4 w-4" />
                           )}
@@ -673,7 +685,7 @@ export default function SettingsPage() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => handleDeleteCategory(category.id, category.name)}
+                                  onClick={() => handleDeleteCategory(category.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Delete
