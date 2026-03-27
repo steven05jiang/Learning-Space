@@ -38,20 +38,17 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Set environment for Playwright if it's worker service
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# Create non-root user for worker (security best practice)
-RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
-        useradd --create-home --shell /bin/bash app \
-        && chown -R app:app /app \
-        && chown -R app:app /ms-playwright 2>/dev/null || true; \
-    fi
+# Create non-root user (security best practice for both services)
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app \
+    && chown -R app:app /ms-playwright 2>/dev/null || true
+
+# Copy and set up entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose port 8000 for API service
 EXPOSE 8000
 
-# Use conditional CMD based on service type
-CMD if [ "$SERVICE_TYPE" = "worker" ]; then \
-        if [ "$(id -u)" = "0" ]; then exec su app -c "python -m workers.run_worker"; \
-        else python -m workers.run_worker; fi; \
-    else \
-        alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000; \
-    fi
+# Use entrypoint script to handle service type logic
+ENTRYPOINT ["/entrypoint.sh"]

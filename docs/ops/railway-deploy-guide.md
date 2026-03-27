@@ -42,6 +42,7 @@ JWT_SECRET_KEY=<generate-random-32-char-string>
 GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
 OAUTH_REDIRECT_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+# Note: RAILWAY_PUBLIC_DOMAIN is a Railway template variable automatically replaced with your service's public domain
 
 # Authorization
 ALLOWED_EMAILS=<comma-separated-list-of-allowed-emails>
@@ -55,8 +56,8 @@ ANTHROPIC_API_KEY=<your-anthropic-api-key>
 SERVICE_TYPE=api
 ```
 
-6. Go to "Settings" → "Deploy" tab
-7. Set "Build Command" to: `docker build --build-arg SERVICE_TYPE=api -f apps/api/Dockerfile apps/api`
+6. Railway will automatically detect the build configuration from `railway.toml` in the repository root
+7. No manual build commands are needed - Railway will use the Dockerfile specified in the configuration
 8. Ensure "Root Directory" is set to `/` (repository root)
 
 ## Step 3: Configure Worker Service
@@ -70,8 +71,8 @@ SERVICE_TYPE=api
 SERVICE_TYPE=worker
 ```
 
-5. Go to "Settings" → "Deploy" tab
-6. Set "Build Command" to: `docker build --build-arg SERVICE_TYPE=worker -f apps/api/Dockerfile apps/api`
+5. Railway will automatically detect the build configuration from `railway.toml` in the repository root
+6. No manual build commands are needed - Railway will use the Dockerfile specified in the configuration
 7. Ensure "Root Directory" is set to `/` (repository root)
 
 ## Step 4: Configure Auto-Deploy
