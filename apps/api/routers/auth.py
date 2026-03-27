@@ -137,7 +137,6 @@ async def oauth_callback(
         raise ValidationError("Failed to retrieve user information from OAuth provider")
 
     # Check if user email is allowed (only for regular login flow, not link flow)
-    is_link_flow = oauth_service.is_link_state(state)
     if not is_link_flow and settings.allowed_emails_set:
         user_email = user_info.get("email", "").lower()
         if user_email and user_email not in settings.allowed_emails_set:
