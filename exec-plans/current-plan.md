@@ -135,6 +135,64 @@ _Last updated: 2026-03-17_
 
 ---
 
+### v2.2 — Deploy Prioritization: Auth Hardening + Multi-LLM + Cheap Cloud Stack (2026-03-27)
+
+**Status:** Active
+**Summary:** Adds 11 new tasks (DEV-066–DEV-071, OPS-002–OPS-006) to support an immediate production deployment focused on gathering user feedback. Changes cover: Google-only login (UI restriction + allowlisting security gate), coming-soon UX for disabled features (search button, chat), a multi-LLM provider abstraction supporting Groq/SiliconFlow/Fireworks AI, and a full cheap-cloud deployment stack (Vercel + Railway + Supabase + Neo4j AuraDB Free + Upstash + Namecheap/Cloudflare). DEV-048 and DEV-049 (Helm/ArgoCD) are deprioritized — the k8s deployment strategy is replaced by the low-cost managed cloud approach.
+
+#### Changes from v2.1
+
+**Dev Tasks:**
+
+- Added: DEV-066 — Restrict login UI to Google-only (remove X button + credential form)
+- Added: DEV-067 — Disable search button with "coming soon" tooltip
+- Added: DEV-068 — Chat panel "coming soon" mode (disable input, inject bot welcome message)
+- Added: DEV-069 — User allowlisting backend (ALLOWED_EMAILS env var gate on OAuth callback)
+- Added: DEV-070 — Coming-soon page at /coming-soon (redirect target for non-allowlisted users)
+- Added: DEV-071 — Multi-LLM provider abstraction (Anthropic/Groq/SiliconFlow/Fireworks via LLM_PROVIDER env var)
+- Deprioritized: DEV-048 (Helm chart) — not needed for Vercel+Railway stack
+- Deprioritized: DEV-049 (ArgoCD) — not needed for Vercel+Railway stack
+- Total DEV tasks: 65 → 71
+
+**Ops Tasks:**
+
+- Added: OPS-002 — Provision Supabase (PostgreSQL) + Neo4j AuraDB Free + Upstash Redis
+- Added: OPS-003 — Backend Dockerfile + Railway deployment (API + worker)
+- Added: OPS-004 — Frontend Vercel deployment
+- Added: OPS-005 — Domain + DNS (Namecheap + Cloudflare)
+- Added: OPS-006 — Production Google OAuth + allowlist smoke test
+- Total OPS tasks: 1 → 6
+
+**Total tasks: 127 → 138**
+
+**Dependencies:**
+
+- New: DEV-066 depends on DEV-039 ✅
+- New: DEV-067 depends on DEV-044 ✅
+- New: DEV-068 depends on DEV-046 ✅
+- New: DEV-069 depends on DEV-005 ✅
+- New: DEV-070 depends on DEV-039 ✅, DEV-069
+- New: DEV-071 depends on DEV-022 ✅, DEV-032 ✅
+- New: OPS-002 (no dependencies)
+- New: OPS-003 depends on DEV-047, OPS-002
+- New: OPS-004 depends on OPS-003
+- New: OPS-005 depends on OPS-003, OPS-004
+- New: OPS-006 depends on DEV-069, OPS-004, OPS-005
+
+**Deployment strategy change:**
+
+- New target: Vercel (frontend) + Railway (API + worker) + Supabase (Postgres) + Neo4j AuraDB Free + Upstash (Redis)
+- Replaces: Kubernetes / Helm / ArgoCD (DEV-047 scope narrowed to backend-only Dockerfile)
+- Services NOT adopted (from user's candidate list): Clerk (custom OAuth kept), Pinecone (Neo4j used instead), Stripe/Resend (no payment/email features), PostHog/Sentry (deferred to post-MVP)
+
+**Priority / Tier Changes:**
+
+- DEV-066–DEV-071 added to Tier 3 (feature complete), all HIGH priority
+- OPS-002–OPS-006 added as new deployment sequence, all HIGH priority
+- DEV-048, DEV-049 marked DEFERRED (deprioritized, not blocked)
+
+---
+
 ### v1 — Initial Plan (2026-03-14)
 
 **Status:** Superseded by v2
