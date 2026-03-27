@@ -30,7 +30,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-065 | Fix graph node popup overflow (FB-005) | ✅ Completed (PR #145) |
 | DEV-058 | Worker pipeline state machine (FB-002) — needs DEV-057 | ✅ Completed (PR #140) |
 | DEV-059 | Re-process action in resource detail UI (FB-002) — needs DEV-057 | ✅ Completed (PR #141) |
-| DEV-061 | Neo4j Root/Category/Tag three-level hierarchy (FB-003) — needs DEV-060 | 🔄 Active |
+| DEV-061 | Neo4j Root/Category/Tag three-level hierarchy (FB-003) — needs DEV-060 | ✅ Completed (PR #147) |
 | DEV-062 | LLM prompt: tag reuse + top_level_categories (FB-003) — needs DEV-060 | ⏳ Pending |
 | DEV-063 | Category management UI in Settings (FB-003) — needs DEV-060 | ⏳ Pending |
 | DEV-064 | Tag editor in resource detail UI (FB-004) — needs DEV-061 | ⏳ Pending |
