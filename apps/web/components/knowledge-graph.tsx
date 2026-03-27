@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import ForceGraph2D, {
   type ForceGraphMethods,
   type NodeObject,
@@ -26,6 +27,7 @@ interface ApiGraphNode {
   id: string;
   label: string;
   level: string; // "root", "current", "child", "parent"
+  node_type?: string; // "root", "category", "topic"
 }
 interface ApiGraphEdge {
   source: string;
@@ -55,6 +57,7 @@ interface KnowledgeNode extends NodeObject {
   category: string;
   color: string;
   val?: number;
+  node_type?: string;
 }
 
 interface KnowledgeLink extends LinkObject {
@@ -71,12 +74,18 @@ function mapApiToGraphData(data: ApiGraphResponse): { nodes: KnowledgeNode[]; li
     child: '#34d399',
     parent: '#a78bfa',
   };
+  const valByType: Record<string, number> = {
+    root: 30,
+    category: 20,
+    topic: 8,
+  };
   const nodes: KnowledgeNode[] = data.nodes.map((n) => ({
     id: n.id,
     name: n.label,
     category: n.level,
-    color: colorByLevel[n.level] ?? '#818cf8',
-    val: 15,
+    node_type: n.node_type,
+    color: n.node_type === 'root' ? '#f59e0b' : (colorByLevel[n.level] ?? '#818cf8'),
+    val: valByType[n.node_type ?? ''] ?? 10,
   }));
   const links: KnowledgeLink[] = data.edges.map((e) => ({
     source: e.source,
@@ -92,14 +101,16 @@ function mergeGraphData(
 ): { nodes: KnowledgeNode[]; links: KnowledgeLink[] } {
   const existingIds = new Set(existing.nodes.map((n) => n.id));
   const colorByLevel: Record<string, string> = { root: '#60a5fa', current: '#60a5fa', child: '#34d399', parent: '#a78bfa' };
+  const valByType: Record<string, number> = { root: 30, category: 20, topic: 8 };
   const newNodes = newData.nodes
     .filter((n) => !existingIds.has(n.id))
     .map((n) => ({
       id: n.id,
       name: n.label,
       category: n.level,
-      color: colorByLevel[n.level] ?? '#818cf8',
-      val: 15
+      node_type: n.node_type,
+      color: n.node_type === 'root' ? '#f59e0b' : (colorByLevel[n.level] ?? '#818cf8'),
+      val: valByType[n.node_type ?? ''] ?? 10,
     }));
   const existingEdgeKeys = new Set(existing.links.map((l) => `${l.source}-${l.target}`));
   const newLinks = newData.edges
@@ -123,6 +134,36 @@ export function KnowledgeGraph() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [nodeResources, setNodeResources] = useState<ApiResource[]>([]);
   const [resourcesLoading, setResourcesLoading] = useState(false);
+  const [isReindexing, setIsReindexing] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+
+  // Derive category nodes from graph data
+  const categoryNodes = useMemo(
+    () => graphData.nodes.filter((n) => n.node_type === 'category'),
+    [graphData.nodes],
+  );
+
+  const CATEGORY_PALETTE = ['#60a5fa', '#fbbf24', '#818cf8', '#f87171', '#34d399', '#fb923c', '#a78bfa', '#4ade80'];
+
+  // Compute filtered node IDs when categories are selected
+  const filteredNodeIds = useMemo(() => {
+    if (selectedCategories.size === 0) return null;
+    const visible = new Set<string>(selectedCategories);
+    graphData.links.forEach((link) => {
+      const srcId = typeof link.source === 'object' ? (link.source as KnowledgeNode).id : link.source as string;
+      const tgtId = typeof link.target === 'object' ? (link.target as KnowledgeNode).id : link.target as string;
+      if (selectedCategories.has(srcId)) visible.add(tgtId);
+      if (selectedCategories.has(tgtId)) visible.add(srcId);
+    });
+    return visible;
+  }, [selectedCategories, graphData]);
+
+  // Configure d3 forces for better node spacing
+  useEffect(() => {
+    if (!graphRef.current) return;
+    graphRef.current.d3Force('charge')?.strength(-250);
+    graphRef.current.d3Force('link')?.distance(80);
+  }, [graphData]);
 
   // Handle container resize (including when chat panel opens/closes)
   useEffect(() => {
@@ -163,6 +204,31 @@ export function KnowledgeGraph() {
       }
     }
     loadGraph();
+  }, []);
+
+  const handleReindex = useCallback(async () => {
+    setIsReindexing(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`${apiBase}/graph/reindex`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Reindex failed");
+      // Reload the graph after cleanup
+      const graphRes = await fetch(`${apiBase}/graph`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (graphRes.ok) {
+        const data: ApiGraphResponse = await graphRes.json();
+        setGraphData(mapApiToGraphData(data));
+      }
+    } catch {
+      // non-blocking — graph stays as-is if reindex fails
+    } finally {
+      setIsReindexing(false);
+    }
   }, []);
 
   const handleNodeClick = useCallback(async (node: NodeObject) => {
@@ -262,8 +328,10 @@ export function KnowledgeGraph() {
 
       // Determine if this node is highlighted
       const isHighlighted = highlightNodes.has(knowledgeNode.id);
-      const baseOpacity =
-        highlightNodes.size === 0 || isHighlighted ? 0.45 : 0.08;
+      const isFiltered = filteredNodeIds !== null && !filteredNodeIds.has(knowledgeNode.id);
+      const baseOpacity = isFiltered
+        ? 0.04
+        : highlightNodes.size === 0 || isHighlighted ? 0.45 : 0.08;
 
       // Draw outer glow effect for highlighted nodes
       if (isHighlighted && highlightNodes.size > 0) {
@@ -298,13 +366,13 @@ export function KnowledgeGraph() {
       ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.globalAlpha = isHighlighted || highlightNodes.size === 0 ? 1 : 0.3;
+      ctx.globalAlpha = isFiltered ? 0.05 : (isHighlighted || highlightNodes.size === 0 ? 1 : 0.3);
       ctx.fillStyle = "#f0f0f0";
       ctx.fillText(label, node.x!, node.y! + nodeRadius + fontSize + 2);
 
       ctx.globalAlpha = 1;
     },
-    [highlightNodes],
+    [highlightNodes, filteredNodeIds],
   );
 
   const linkCanvasObject = useCallback(
@@ -365,35 +433,70 @@ export function KnowledgeGraph() {
       style={{ backgroundColor: "#0a0a12" }}
     >
       {/* Graph Legend */}
-      <div
-        className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg border border-white/10 p-3 backdrop-blur-sm"
-        style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
-      >
-        <p className="text-xs font-medium text-gray-200">Categories</p>
-        <div className="flex flex-wrap gap-2">
-          {["AI", "Analytics", "Programming", "Foundations"].map((cat, i) => (
-            <Badge
-              key={cat}
-              variant="outline"
-              className="text-xs border-opacity-60"
-              style={{
-                borderColor: ["#60a5fa", "#fbbf24", "#818cf8", "#f87171"][i],
-                color: ["#60a5fa", "#fbbf24", "#818cf8", "#f87171"][i],
-                backgroundColor: "transparent",
-              }}
-            >
-              {cat}
-            </Badge>
-          ))}
+      {categoryNodes.length > 0 && (
+        <div
+          className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg border border-white/10 p-3 backdrop-blur-sm"
+          style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
+        >
+          <p className="text-xs font-medium text-gray-200">
+            Categories
+            {selectedCategories.size > 0 && (
+              <button
+                onClick={() => setSelectedCategories(new Set())}
+                className="ml-2 text-gray-400 hover:text-gray-200 text-xs underline"
+              >
+                Clear
+              </button>
+            )}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {categoryNodes.map((cat, i) => {
+              const color = CATEGORY_PALETTE[i % CATEGORY_PALETTE.length];
+              const isActive = selectedCategories.has(cat.id);
+              return (
+                <Badge
+                  key={cat.id}
+                  variant="outline"
+                  className="text-xs cursor-pointer transition-all"
+                  style={{
+                    borderColor: color,
+                    color: color,
+                    backgroundColor: isActive ? `${color}22` : "transparent",
+                    opacity: selectedCategories.size > 0 && !isActive ? 0.45 : 1,
+                  }}
+                  onClick={() =>
+                    setSelectedCategories((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(cat.id)) next.delete(cat.id);
+                      else next.add(cat.id);
+                      return next;
+                    })
+                  }
+                >
+                  {cat.name}
+                </Badge>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Instructions */}
-      <div
-        className="absolute right-4 top-4 z-10 rounded-lg border border-white/10 px-3 py-2 backdrop-blur-sm"
-        style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
-      >
-        <p className="text-xs text-gray-400">Click on a node to explore</p>
+      {/* Top-right controls */}
+      <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
+        <div
+          className="rounded-lg border border-white/10 px-3 py-2 backdrop-blur-sm"
+          style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
+        >
+          <p className="text-xs text-gray-400">Click on a node to explore</p>
+        </div>
+        <button
+          onClick={handleReindex}
+          disabled={isReindexing}
+          className="rounded-lg border border-white/10 px-3 py-2 backdrop-blur-sm text-xs text-gray-400 hover:text-gray-200 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
+        >
+          {isReindexing ? "Reindexing…" : "Reindex Graph"}
+        </button>
       </div>
 
       {/* Force Graph */}
@@ -420,14 +523,14 @@ export function KnowledgeGraph() {
           return highlightLinks.has(linkKey) ? 3 : 0;
         }}
         backgroundColor="transparent"
-        cooldownTicks={100}
+        cooldownTicks={150}
         d3AlphaDecay={0.02}
-        d3VelocityDecay={0.3}
+        d3VelocityDecay={0.4}
       />
 
       {/* Node Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="overflow-hidden" style={{ maxWidth: "320px", maxHeight: "240px" }}>
+        <DialogContent className="flex flex-col overflow-hidden" style={{ maxWidth: "640px", width: "90vw", maxHeight: "80vh" }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span
@@ -441,9 +544,9 @@ export function KnowledgeGraph() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4 overflow-hidden flex-1 min-h-0">
             {/* Connected Nodes */}
-            <div>
+            <div className="shrink-0">
               <h4 className="mb-2 text-sm font-medium text-foreground">
                 Connected Topics
               </h4>
@@ -480,11 +583,11 @@ export function KnowledgeGraph() {
             </div>
 
             {/* Resources */}
-            <div>
-              <h4 className="mb-2 text-sm font-medium text-foreground">
+            <div className="flex flex-col flex-1 min-h-0">
+              <h4 className="mb-2 text-sm font-medium text-foreground shrink-0">
                 Related Resources
               </h4>
-              <ScrollArea className="h-[200px]">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="space-y-2 pr-4">
                   {resourcesLoading ? (
                     <div className="flex items-center justify-center py-4">
@@ -499,10 +602,13 @@ export function KnowledgeGraph() {
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/resources/${resource.id}`}
+                            className="text-sm font-medium text-foreground hover:underline overflow-hidden text-ellipsis whitespace-nowrap block"
+                          >
                             {resource.title}
-                          </p>
+                          </Link>
                           {resource.url && (
                             <a
                               href={resource.url}

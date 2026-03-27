@@ -294,6 +294,91 @@ class GraphService:
                 else:
                     logger.debug(f"No orphan tags found for owner_id={owner_id}")
 
+    async def purge_orphan_nodes(
+        self, owner_id: int, valid_tags: list, valid_categories: list
+    ) -> dict:
+        """
+        Remove Tag and Category nodes that no longer exist in Postgres.
+
+        Called with the full set of tags/categories currently in use by
+        the user's resources, so anything not in those lists is orphaned.
+
+        Args:
+            owner_id: User ID to scope the cleanup
+            valid_tags: All tag strings still used by at least one resource
+            valid_categories: All category strings still used by at least one resource
+
+        Returns:
+            dict with deleted_tags and deleted_categories counts
+        """
+        neo4j_driver = await get_neo4j_driver()
+
+        async with neo4j_driver.get_session() as session:
+            # Delete Tag nodes whose id is not in the valid set
+            tag_result = await session.run(
+                """
+                MATCH (t:Tag {owner_id: $owner_id})
+                WHERE NOT t.id IN $valid_tags
+                WITH t, t.id AS tag_id
+                DETACH DELETE t
+                RETURN COUNT(*) AS deleted, COLLECT(tag_id) AS deleted_ids
+                """,
+                owner_id=str(owner_id),
+                valid_tags=valid_tags,
+            )
+            tag_record = await tag_result.single()
+            deleted_tags = tag_record["deleted"] if tag_record else 0
+
+            # Delete Category nodes whose id is not in the valid set
+            cat_result = await session.run(
+                """
+                MATCH (c:Category {owner_id: $owner_id})
+                WHERE NOT c.id IN $valid_categories
+                WITH c, c.id AS cat_id
+                DETACH DELETE c
+                RETURN COUNT(*) AS deleted, COLLECT(cat_id) AS deleted_ids
+                """,
+                owner_id=str(owner_id),
+                valid_categories=valid_categories,
+            )
+            cat_record = await cat_result.single()
+            deleted_categories = cat_record["deleted"] if cat_record else 0
+
+        logger.info(
+            f"Purged orphan graph nodes for owner_id={owner_id}: "
+            f"{deleted_tags} tags, {deleted_categories} categories"
+        )
+        return {
+            "deleted_tags": deleted_tags,
+            "deleted_categories": deleted_categories,
+        }
+
+    async def delete_tag_node(self, owner_id: int, tag: str) -> None:
+        """
+        Delete a Tag node and all its relationships from the graph.
+
+        Used when a tag is no longer associated with any resource.
+
+        Args:
+            owner_id: User ID that owns the tag
+            tag: Tag name to delete
+        """
+        neo4j_driver = await get_neo4j_driver()
+
+        async with neo4j_driver.get_session() as session:
+            result = await session.run(
+                """
+                MATCH (t:Tag {id: $tag, owner_id: $owner_id})
+                DETACH DELETE t
+                RETURN COUNT(t) AS deleted
+                """,
+                tag=tag,
+                owner_id=str(owner_id),
+            )
+            record = await result.single()
+            if record and record["deleted"] > 0:
+                logger.info(f"Deleted orphan tag '{tag}' for owner_id={owner_id}")
+
     async def get_user_tags(self, owner_id: int) -> List[str]:
         """
         Get all existing tag names for a user.
@@ -377,12 +462,13 @@ class GraphService:
 
         async with neo4j_driver.get_session() as session:
             if root is None:
-                # Get default view: Root node + all categories
+                # Get default view: Root node + all categories + all tags
                 result = await session.run(
                     """
                     MATCH (r:Root {owner_id: $owner_id})
                     OPTIONAL MATCH (c:Category {owner_id: $owner_id})-[:CHILD_OF]->(r)
-                    RETURN r, c
+                    OPTIONAL MATCH (t:Tag {owner_id: $owner_id})-[:BELONGS_TO]->(c)
+                    RETURN r, c, t
                     """,
                     owner_id=str(owner_id),
                 )
@@ -421,9 +507,10 @@ class GraphService:
 
             async for record in result:
                 if root is None:
-                    # Default view: Root + Categories
+                    # Default view: Root + Categories + Tags
                     root_node = record.get("r")
                     category = record.get("c")
+                    tag = record.get("t")
 
                     # Add Root node
                     if root_node and root_node.get("owner_id") not in nodes_set:
@@ -432,7 +519,7 @@ class GraphService:
                                 "id": "My Learning Space",
                                 "label": "My Learning Space",
                                 "node_type": "root",
-                                "level": "current",
+                                "level": "root",
                                 "resource_count": 0,
                             }
                         )
@@ -446,7 +533,7 @@ class GraphService:
                                 "label": category["name"],
                                 "node_type": "category",
                                 "level": "current",
-                                "resource_count": 0,  # Categories are always shown
+                                "resource_count": 0,
                             }
                         )
                         nodes_set.add(category["id"])
@@ -459,6 +546,34 @@ class GraphService:
                                 "weight": 1,
                             }
                         )
+
+                    # Add Tag nodes
+                    if tag:
+                        if tag.get("id") not in nodes_set:
+                            nodes.append(
+                                {
+                                    "id": tag["id"],
+                                    "label": tag["name"],
+                                    "node_type": "topic",
+                                    "level": "child",
+                                    "resource_count": 1,
+                                }
+                            )
+                            nodes_set.add(tag["id"])
+
+                        # Add BELONGS_TO edge (tag -> category) — outside
+                        # the nodes_set guard so multi-category tags get all edges
+                        if category:
+                            edge_key = (tag["id"], category["id"])
+                            if edge_key not in edges_set:
+                                edges.append(
+                                    {
+                                        "source": tag["id"],
+                                        "target": category["id"],
+                                        "weight": 1,
+                                    }
+                                )
+                                edges_set.add(edge_key)
                 else:
                     # Expanded view
                     root_node = record["root_node"]

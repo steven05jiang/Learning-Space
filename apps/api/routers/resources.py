@@ -104,6 +104,7 @@ async def create_resource(
         title=resource.title,
         summary=resource.summary,
         tags=resource.tags or [],
+        top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
         created_at=resource.created_at,
@@ -234,6 +235,7 @@ async def get_resource(
         title=resource.title,
         summary=resource.summary,
         tags=resource.tags or [],
+        top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
         created_at=resource.created_at,
@@ -278,8 +280,8 @@ async def update_resource(
 
     # Check if original_content is being updated
     original_content_changed = "original_content" in update_data
-    # Check if tags are being updated
-    tags_changed = "tags" in update_data
+    # Check if tags or categories are being updated
+    tags_changed = "tags" in update_data or "top_level_categories" in update_data
     old_tags = resource.tags or []
 
     # Apply updates
@@ -306,8 +308,8 @@ async def update_resource(
                 str(resource_id),
                 operation="update",
                 owner_id=current_user.id,
-                old_tags=old_tags,
                 tags=new_tags,
+                old_tags=old_tags,
             )
             logger.info(
                 f"Graph sync job enqueued for resource {resource_id} "
@@ -331,6 +333,7 @@ async def update_resource(
         title=resource.title,
         summary=resource.summary,
         tags=resource.tags or [],
+        top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
         created_at=resource.created_at,

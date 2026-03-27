@@ -154,13 +154,15 @@ dev-stack-up:
 	@echo "── Starting full development stack ───────────────────"
 	@echo "   1. Starting infrastructure (Docker)..."
 	$(MAKE) infra-up
-	@echo "   2. Starting API (uvicorn)..."
+	@echo "   2. Running database migrations..."
+	cd apps/api && uv run alembic upgrade head
+	@echo "   3. Starting API (uvicorn)..."
 	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
-	@echo "   3. Starting worker (arq)..."
+	@echo "   4. Starting worker (arq)..."
 	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
-	@echo "   4. Starting web (Next.js)..."
+	@echo "   5. Starting web (Next.js)..."
 	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
-	@echo "   5. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
+	@echo "   6. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
 	@ok=0; \
 	for attempt in 1 2 3 4 5; do \
 	  for s in $$(seq 1 30); do \

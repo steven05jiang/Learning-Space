@@ -54,6 +54,7 @@ class ResourceUpdate(BaseModel):
     title: Optional[str] = None
     summary: Optional[str] = None
     tags: Optional[list[str]] = None
+    top_level_categories: Optional[list[str]] = None
     original_content: Optional[str] = None
 
     @field_validator("original_content")
@@ -76,6 +77,7 @@ class ResourceResponse(BaseModel):
     title: Optional[str] = None
     summary: Optional[str] = None
     tags: list[str] = []
+    top_level_categories: list[str] = []
     status: ResourceStatus
     processing_status: ProcessingStatus
     created_at: datetime
