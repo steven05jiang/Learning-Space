@@ -36,7 +36,16 @@ class Settings(BaseSettings):
     # Tiered fetcher: API-required domains (domain:provider pairs)
     api_required_domains: str = "twitter.com:twitter,x.com:twitter"
 
+    # Comma-separated list of allowed emails. Empty = allow all (open access).
+    allowed_emails: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @property
+    def allowed_emails_set(self) -> set[str]:
+        if not self.allowed_emails:
+            return set()
+        return {e.strip().lower() for e in self.allowed_emails.split(",") if e.strip()}
 
     @field_validator("jwt_secret_key")
     @classmethod

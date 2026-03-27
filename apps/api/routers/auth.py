@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -134,6 +135,23 @@ async def oauth_callback(
     user_info = await oauth_provider.get_user_info(access_token)
     if not user_info:
         raise ValidationError("Failed to retrieve user information from OAuth provider")
+
+    # Check if user email is allowed (only for regular login flow, not link flow)
+    if not is_link_flow and settings.allowed_emails_set:
+        user_email = user_info.get("email", "").lower()
+        if user_email and user_email not in settings.allowed_emails_set:
+            logger.warning("Blocked non-allowlisted login attempt: %s", user_email)
+            # Get frontend base URL for redirect
+            oauth_base = getattr(settings, "oauth_redirect_base_url", None)
+            if oauth_base:
+                frontend_base_url = oauth_base.rstrip("/")
+            else:
+                frontend_base_url = _get_frontend_base_url(request) or str(
+                    request.base_url
+                ).rstrip("/")
+
+            redirect_url = f"{frontend_base_url}/coming-soon"
+            return RedirectResponse(url=redirect_url, status_code=302)
 
     # Handle link flow vs regular login flow
     try:

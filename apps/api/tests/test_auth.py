@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from core.config import settings
 from core.jwt import create_access_token, verify_token
 from main import app
 from models.user import User
@@ -226,6 +227,40 @@ def test_oauth_callback_invalid_provider():
     data = response.json()
     assert "detail" in data
     assert "Unsupported OAuth provider" in data["detail"]
+
+
+@patch("services.oauth.GitHubOAuthProvider.exchange_code")
+@patch("services.oauth.GitHubOAuthProvider.get_user_info")
+@pytest.mark.asyncio
+async def test_oauth_callback_blocked_non_allowlisted_email(
+    mock_get_user_info: AsyncMock,
+    mock_exchange_code: AsyncMock,
+):
+    """Test OAuth callback blocks non-allowlisted email with redirect."""
+    with patch.object(settings, "allowed_emails", "test@allowed.com,user@example.com"):
+        # Mock OAuth provider responses for non-allowlisted email
+        mock_exchange_code.return_value = "test_access_token"
+        mock_get_user_info.return_value = {
+            "id": "123456",
+            "email": "blocked@example.com",  # Not in allowlist
+            "display_name": "Blocked User",
+            "avatar_url": "https://example.com/avatar.jpg",
+        }
+
+        # Set up state in OAuth service for validation
+        from services.oauth import oauth_service
+
+        oauth_service.store_state("test_state", "github")
+
+        # Test callback with non-allowlisted email
+        response = client.get(
+            "/auth/callback/github?code=test_code&state=test_state",
+            follow_redirects=False,
+        )
+
+        # Should redirect to coming-soon page
+        assert response.status_code == 302
+        assert "/coming-soon" in response.headers["location"]
 
 
 def test_get_current_user_info_authenticated():
