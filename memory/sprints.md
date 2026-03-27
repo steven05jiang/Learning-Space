@@ -33,7 +33,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-061 | Neo4j Root/Category/Tag three-level hierarchy (FB-003) — needs DEV-060 | ✅ Completed (PR #147) |
 | DEV-062 | LLM prompt: tag reuse + top_level_categories (FB-003) — needs DEV-060 | ✅ Completed (PR #149) |
 | DEV-063 | Category management UI in Settings (FB-003) — needs DEV-060 | ✅ Completed (PR #152) |
-| DEV-064 | Tag editor in resource detail UI (FB-004) — needs DEV-061 | ⏳ Pending |
+| DEV-064 | Tag editor in resource detail UI (FB-004) — needs DEV-061 | ✅ Completed (PR #154) |
 | DEMO-006 | Feedback Verification Demo — needs DEV-056–DEV-065 | ⏳ Pending |
 
 ---
