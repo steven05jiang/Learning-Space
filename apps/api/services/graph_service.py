@@ -279,7 +279,7 @@ class GraphService:
                 DELETE t
                 RETURN COUNT(*) AS deleted_count, COLLECT(tag_name) AS deleted_tags
                 """,
-                owner_id=owner_id,
+                owner_id=str(owner_id),
             )
 
             record = await result.single()
@@ -316,7 +316,7 @@ class GraphService:
                 RETURN t1.name AS tag1, t2.name AS tag2, r.weight AS weight
                 ORDER BY r.weight DESC, t1.name, t2.name
                 """,
-                owner_id=owner_id,
+                owner_id=str(owner_id),
             )
 
             relationships = []
