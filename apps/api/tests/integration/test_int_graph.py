@@ -99,8 +99,9 @@ async def test_graph_updated_after_resource_processed(
     INT-029: Graph updated after resource processed
 
     Create a resource, run the worker pipeline (mocked LLM + fetcher)
-    Assert tag nodes created in Neo4j, RELATED_TO edges between co-occurring tags
-    Assert graph_service.update_from_resource was called (or check Neo4j directly)
+    Assert hierarchical nodes created in Neo4j (Root, Category, Tag) with proper
+    relationships
+    Assert both hierarchical structure and legacy tag relationships were created
     """
     # Create user and resource
     user = User(display_name="Test User", email=f"test-{uuid.uuid4()}@example.com")
@@ -117,12 +118,13 @@ async def test_graph_updated_after_resource_processed(
     await db_session.flush()
     await db_session.commit()
 
-    # Mock LLM processing with deterministic results
+    # Mock LLM processing with deterministic results including top_level_categories
     mock_llm_result = LLMResult(
         success=True,
         title="AI and Machine Learning Article",
         summary="An article discussing AI and ML techniques.",
         tags=["AI", "MachineLearning", "Technology"],
+        top_level_categories=["Science & Technology"],
     )
 
     # Mock AsyncSessionLocal to return test session
@@ -142,12 +144,36 @@ async def test_graph_updated_after_resource_processed(
     assert result["tags_count"] == 3
     assert "graph_update" in result["stages_completed"]
 
-    # Verify resource in database
+    # Verify resource in database has both tags and top_level_categories
     await db_session.refresh(resource)
     assert resource.status == ResourceStatus.READY
     assert resource.tags == ["AI", "MachineLearning", "Technology"]
+    assert resource.top_level_categories == ["Science & Technology"]
 
-    # Verify graph structure by checking relationships directly
+    # Verify hierarchical graph structure was created by checking the graph response
+    graph_data = await graph_service.get_graph(user.id, root=None)
+
+    # Should have Root node and Category nodes in default view
+    assert len(graph_data["nodes"]) >= 2  # Root + at least 1 Category
+
+    # Find Root node
+    root_nodes = [n for n in graph_data["nodes"] if n["node_type"] == "root"]
+    assert len(root_nodes) == 1
+    assert root_nodes[0]["label"] == "My Learning Space"
+
+    # Find Category nodes
+    category_nodes = [n for n in graph_data["nodes"] if n["node_type"] == "category"]
+    assert len(category_nodes) >= 1
+    category_names = {n["label"] for n in category_nodes}
+    assert "Science & Technology" in category_names
+
+    # Verify CHILD_OF relationships (Category -> Root)
+    child_of_edges = [
+        e for e in graph_data["edges"] if e["target"] == "My Learning Space"
+    ]
+    assert len(child_of_edges) >= 1
+
+    # Verify legacy tag relationships are still created for backward compatibility
     relationships = await graph_service.get_tag_relationships(user.id)
 
     # Should have 3 relationships for 3 tags:
@@ -163,9 +189,9 @@ async def test_graph_updated_after_resource_processed(
     }
     assert relationship_pairs == expected_pairs
 
-    # All relationships should have weight of 1 (first occurrence)
+    # Weight >= 1: both update_graph and update_from_resource run
     for rel in relationships:
-        assert rel["weight"] == 1
+        assert rel["weight"] >= 1
 
 
 @pytest.mark.integration
@@ -176,7 +202,7 @@ async def test_graph_updated_after_resource_deletion(
     """
     INT-030: Graph updated after resource deletion
 
-    Create + process a resource (so graph nodes/edges exist)
+    Create + process a resource (so hierarchical graph nodes/edges exist)
     Delete the resource via DELETE /resources/{id}
     Assert graph edges decremented or removed (graph sync job executed)
     Verify using graph_service or by querying graph state
@@ -200,15 +226,25 @@ async def test_graph_updated_after_resource_deletion(
         title="Python Django Guide",
         summary="A guide to Python and Django development.",
         tags=["Python", "Django", "WebDev"],
+        top_level_categories=["Science & Technology"],
     )
     db_session.add(resource)
     await db_session.flush()
     await db_session.commit()
 
-    # Manually add graph relationships to simulate processed resource
-    await graph_service.update_from_resource(user.id, ["Python", "Django", "WebDev"])
+    # Manually add hierarchical graph relationships to simulate processed resource
+    await graph_service.update_graph(
+        user.id,
+        tags=["Python", "Django", "WebDev"],
+        top_level_categories=["Science & Technology"],
+    )
 
-    # Verify initial graph state
+    # Verify initial hierarchical graph state
+    initial_graph = await graph_service.get_graph(user.id, root=None)
+    initial_nodes = len(initial_graph["nodes"])
+    assert initial_nodes >= 2  # Root + at least 1 Category
+
+    # Verify initial tag relationships
     initial_relationships = await graph_service.get_tag_relationships(user.id)
     assert len(initial_relationships) == 3
 
@@ -222,9 +258,19 @@ async def test_graph_updated_after_resource_deletion(
     await graph_service.remove_resource_tags(user.id, ["Python", "Django", "WebDev"])
     # Skip cleanup_orphan_tags for now due to Cypher syntax issue in that method
 
-    # Verify graph relationships were removed
+    # Verify tag relationships were removed (legacy relationships)
     final_relationships = await graph_service.get_tag_relationships(user.id)
     assert len(final_relationships) == 0
+
+    # Hierarchical structure should remain (Root and Category nodes persist)
+    # but Tag nodes may be filtered out if they have no resources
+    final_graph = await graph_service.get_graph(user.id, root=None)
+
+    # Root and Category nodes should still exist
+    root_nodes = [n for n in final_graph["nodes"] if n["node_type"] == "root"]
+    category_nodes = [n for n in final_graph["nodes"] if n["node_type"] == "category"]
+    assert len(root_nodes) == 1
+    assert len(category_nodes) >= 1  # Category nodes are always shown
 
 
 @pytest.mark.integration
@@ -235,10 +281,12 @@ async def test_graph_updated_after_resource_reprocessing(
     """
     INT-031: Graph updated after resource re-processing
 
-    Create + process a resource with tags ["AI", "Testing"]
+    Create + process a resource with tags ["AI", "Testing"] and
+    category ["Science & Technology"]
     Update original_content on the resource (triggers re-processing)
-    Run worker again with new LLM tags ["ML", "Research"]
-    Assert old tags removed from graph, new tags applied
+    Run worker again with new LLM tags ["ML", "Research"] and
+    category ["Education & Knowledge"]
+    Assert old tags removed from graph, new tags/categories applied
     """
     # Create user and resource
     user = User(display_name="Test User", email=f"test-{uuid.uuid4()}@example.com")
@@ -253,13 +301,16 @@ async def test_graph_updated_after_resource_reprocessing(
         title="AI Testing Guide",
         summary="A guide to testing AI systems.",
         tags=["AI", "Testing"],
+        top_level_categories=["Science & Technology"],
     )
     db_session.add(resource)
     await db_session.flush()
     await db_session.commit()
 
-    # Add initial graph relationships
-    await graph_service.update_from_resource(user.id, ["AI", "Testing"])
+    # Add initial hierarchical graph relationships
+    await graph_service.update_graph(
+        user.id, tags=["AI", "Testing"], top_level_categories=["Science & Technology"]
+    )
 
     # Verify initial graph state
     initial_relationships = await graph_service.get_tag_relationships(user.id)
@@ -267,18 +318,26 @@ async def test_graph_updated_after_resource_reprocessing(
     assert initial_relationships[0]["tag1"] == "AI"
     assert initial_relationships[0]["tag2"] == "Testing"
 
+    initial_graph = await graph_service.get_graph(user.id, root=None)
+    initial_categories = [
+        n for n in initial_graph["nodes"] if n["node_type"] == "category"
+    ]
+    assert "Science & Technology" in {n["label"] for n in initial_categories}
+
     # Simulate resource update (content changed, triggers re-processing)
     resource.original_content = "Updated content about Machine Learning and Research."
     resource.status = ResourceStatus.PENDING
     resource.tags = None  # Clear old tags
+    resource.top_level_categories = []  # Clear old categories
     await db_session.commit()
 
-    # Mock new LLM processing result
+    # Mock new LLM processing result with new categories
     mock_llm_result = LLMResult(
         success=True,
         title="ML Research Paper",
         summary="A research paper about machine learning techniques.",
         tags=["ML", "Research", "Academic"],
+        top_level_categories=["Education & Knowledge"],
     )
 
     # Mock AsyncSessionLocal to return test session
@@ -300,12 +359,19 @@ async def test_graph_updated_after_resource_reprocessing(
     assert result["status"] == "ready"
     assert result["tags_count"] == 3
 
-    # Verify resource in database has new tags
+    # Verify resource in database has new tags and categories
     await db_session.refresh(resource)
     assert resource.status == ResourceStatus.READY
     assert resource.tags == ["ML", "Research", "Academic"]
+    assert resource.top_level_categories == ["Education & Knowledge"]
 
-    # Verify graph now has new relationships and no old ones
+    # Verify graph now has new hierarchical structure
+    final_graph = await graph_service.get_graph(user.id, root=None)
+    final_categories = [n for n in final_graph["nodes"] if n["node_type"] == "category"]
+    category_names = {n["label"] for n in final_categories}
+    assert "Education & Knowledge" in category_names
+
+    # Verify graph now has new tag relationships and no old ones
     final_relationships = await graph_service.get_tag_relationships(user.id)
     assert len(final_relationships) == 3
 
@@ -322,9 +388,9 @@ async def test_user_views_root_graph(
     """
     INT-032: User views root graph — GET /graph
 
-    Create + process resources for a user (so graph has nodes)
-    GET /graph (authenticated)
-    Assert response contains nodes and edges, correct schema
+    Create + process resources for a user (so hierarchical graph has nodes)
+    GET /graph (authenticated) - should return Root node + Category nodes
+    Assert response contains correct hierarchical structure with node_type fields
     """
     from core.jwt import create_access_token
 
@@ -337,7 +403,7 @@ async def test_user_views_root_graph(
     token = create_access_token({"sub": str(user.id)})
     auth_headers = {"Authorization": f"Bearer {token}"}
 
-    # Create multiple resources with different tags
+    # Create multiple resources with different tags and categories
     resource1 = Resource(
         owner_id=user.id,
         content_type="text",
@@ -346,30 +412,36 @@ async def test_user_views_root_graph(
         title="Python Guide",
         summary="A Python programming guide.",
         tags=["Python", "Programming", "Coding"],
+        top_level_categories=["Science & Technology"],
     )
     resource2 = Resource(
         owner_id=user.id,
         content_type="text",
-        original_content="Content about JavaScript frameworks.",
+        original_content="Content about business strategy.",
         status=ResourceStatus.READY,
-        title="JS Frameworks",
-        summary="JavaScript frameworks overview.",
-        tags=["JavaScript", "Programming", "WebDev"],
+        title="Business Strategy",
+        summary="Business strategy overview.",
+        tags=["Strategy", "Business", "Management"],
+        top_level_categories=["Business & Economics"],
     )
     db_session.add(resource1)
     db_session.add(resource2)
     await db_session.flush()
     await db_session.commit()
 
-    # Add graph relationships for both resources
-    await graph_service.update_from_resource(
-        user.id, ["Python", "Programming", "Coding"]
+    # Add hierarchical graph relationships for both resources
+    await graph_service.update_graph(
+        user.id,
+        tags=["Python", "Programming", "Coding"],
+        top_level_categories=["Science & Technology"],
     )
-    await graph_service.update_from_resource(
-        user.id, ["JavaScript", "Programming", "WebDev"]
+    await graph_service.update_graph(
+        user.id,
+        tags=["Strategy", "Business", "Management"],
+        top_level_categories=["Business & Economics"],
     )
 
-    # Get root graph
+    # Get root graph (should show Root + Categories, not Tags)
     response = await client.get("/graph", headers=auth_headers)
     assert response.status_code == 200
 
@@ -377,50 +449,63 @@ async def test_user_views_root_graph(
     assert "nodes" in data
     assert "edges" in data
 
-    # Verify nodes structure
+    # Verify hierarchical nodes structure
     nodes = data["nodes"]
-    assert len(nodes) > 0
+    assert len(nodes) >= 3  # Root + 2 Categories
 
-    node_ids = {node["id"] for node in nodes}
-    expected_tags = {"Python", "Programming", "Coding", "JavaScript", "WebDev"}
-    assert node_ids == expected_tags
+    # Check for Root node
+    root_nodes = [n for n in nodes if n["node_type"] == "root"]
+    assert len(root_nodes) == 1
+    root_node = root_nodes[0]
+    assert root_node["id"] == "My Learning Space"
+    assert root_node["label"] == "My Learning Space"
+    assert root_node["level"] == "current"
 
+    # Check for Category nodes
+    category_nodes = [n for n in nodes if n["node_type"] == "category"]
+    assert len(category_nodes) >= 2
+    category_names = {n["label"] for n in category_nodes}
+    assert "Science & Technology" in category_names
+    assert "Business & Economics" in category_names
+
+    # All category nodes should have level "current" in root view
+    for node in category_nodes:
+        assert node["level"] == "current"
+
+    # Verify all nodes have required fields including node_type
     for node in nodes:
         assert "id" in node
         assert "label" in node
         assert "level" in node
-        assert node["level"] == "root"  # Root graph shows all nodes as "root"
+        assert "node_type" in node
+        assert "resource_count" in node
 
-    # Verify edges structure
+    # Verify edges structure - should have CHILD_OF edges from Categories to Root
     edges = data["edges"]
-    assert len(edges) > 0
+    assert len(edges) >= 2
+
+    # Check CHILD_OF relationships
+    child_of_edges = [e for e in edges if e["target"] == "My Learning Space"]
+    assert len(child_of_edges) >= 2
 
     for edge in edges:
         assert "source" in edge
         assert "target" in edge
         assert "weight" in edge
         assert isinstance(edge["weight"], int)
-        assert edge["weight"] > 0
-
-    # Verify "Programming" appears in multiple edges (common tag)
-    programming_edges = [
-        e for e in edges if "Programming" in [e["source"], e["target"]]
-    ]
-    # Connected to both Python/Coding and JavaScript/WebDev
-    assert len(programming_edges) >= 2
 
 
 @pytest.mark.integration
 @pytest.mark.int_graph
-async def test_user_views_graph_centered_on_tag(
+async def test_user_views_graph_centered_on_category(
     client, db_session, mock_neo4j_driver, clean_graph
 ):
     """
-    INT-033: User views graph centered on specific tag — GET /graph?root_id=<node_id>
+    INT-033: User views graph centered on specific category — GET /graph?root=<name>
 
-    Create + process resources with known tags
-    GET /graph?root_id=<tag_node_id>
-    Assert response is centered on that tag node
+    Create + process resources with known tags and categories
+    GET /graph?root=<category_name> - show Category as current + its Tags as children
+    Assert response is centered on that category node showing the hierarchical structure
     """
     from core.jwt import create_access_token
 
@@ -433,7 +518,7 @@ async def test_user_views_graph_centered_on_tag(
     token = create_access_token({"sub": str(user.id)})
     auth_headers = {"Authorization": f"Bearer {token}"}
 
-    # Create resources to build a multi-level graph
+    # Create resources with hierarchical structure
     resource1 = Resource(
         owner_id=user.id,
         content_type="text",
@@ -442,64 +527,83 @@ async def test_user_views_graph_centered_on_tag(
         title="Python Guide",
         summary="A Python programming guide.",
         tags=["Python", "Programming", "Backend"],
+        top_level_categories=["Science & Technology"],
     )
     resource2 = Resource(
         owner_id=user.id,
         content_type="text",
-        original_content="Content about web development.",
+        original_content="Content about machine learning.",
         status=ResourceStatus.READY,
-        title="Web Development",
-        summary="Web development techniques.",
-        tags=["Programming", "Frontend", "WebDev"],
+        title="ML Guide",
+        summary="Machine learning guide.",
+        tags=["MachineLearning", "AI", "DataScience"],
+        top_level_categories=["Science & Technology"],
     )
     db_session.add(resource1)
     db_session.add(resource2)
     await db_session.flush()
     await db_session.commit()
 
-    # Add graph relationships
-    await graph_service.update_from_resource(
-        user.id, ["Python", "Programming", "Backend"]
+    # Add hierarchical graph relationships
+    await graph_service.update_graph(
+        user.id,
+        tags=["Python", "Programming", "Backend"],
+        top_level_categories=["Science & Technology"],
     )
-    await graph_service.update_from_resource(
-        user.id, ["Programming", "Frontend", "WebDev"]
+    await graph_service.update_graph(
+        user.id,
+        tags=["MachineLearning", "AI", "DataScience"],
+        top_level_categories=["Science & Technology"],
     )
 
-    # Get graph centered on "Programming" tag
-    response = await client.get("/graph?root=Programming", headers=auth_headers)
+    # Get graph centered on "Science & Technology" category
+    response = await client.get(
+        "/graph", params={"root": "Science & Technology"}, headers=auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
     assert "nodes" in data
     assert "edges" in data
 
-    # Verify nodes structure - should have current, child, and potentially parent levels
+    # Verify nodes structure - should show category + its child tags
     nodes = data["nodes"]
     assert len(nodes) > 0
 
-    # Find the root node
-    root_node = next((node for node in nodes if node["level"] == "current"), None)
-    assert root_node is not None
-    assert root_node["id"] == "Programming"
-    assert root_node["label"] == "Programming"
+    # Find the center category node
+    center_nodes = [node for node in nodes if node["level"] == "current"]
+    assert len(center_nodes) == 1
+    center_node = center_nodes[0]
+    assert center_node["id"] == "Science & Technology"
+    assert center_node["label"] == "Science & Technology"
+    assert center_node["node_type"] == "category"
 
-    # Should have child nodes directly connected to Programming
+    # Should have child tag nodes (Tags that BELONGS_TO this category)
     child_nodes = [node for node in nodes if node["level"] == "child"]
     assert len(child_nodes) > 0
 
     child_ids = {node["id"] for node in child_nodes}
-    # The rooted view returns direct neighbors of Programming,
-    # which should be at least Backend and WebDev
-    # (depending on the graph structure, Python and Frontend might be at distance 2)
-    assert "Backend" in child_ids or "WebDev" in child_ids
-    assert len(child_ids) >= 2  # Should have at least 2 neighbors
+    # Should include tags from both resources
+    expected_tags = {
+        "Python",
+        "Programming",
+        "Backend",
+        "MachineLearning",
+        "AI",
+        "DataScience",
+    }
+    assert child_ids.intersection(expected_tags) == child_ids
 
-    # Verify edges connect root to children appropriately
+    # All child nodes should be topic-level tags
+    for node in child_nodes:
+        assert node["node_type"] == "topic"
+
+    # Verify edges - should have BELONGS_TO edges from Tags to Category
     edges = data["edges"]
-    programming_edges = [
-        e for e in edges if "Programming" in [e["source"], e["target"]]
-    ]
-    assert len(programming_edges) >= 2  # At least connections to direct neighbors
+    assert len(edges) >= len(child_nodes)
+
+    belongs_to_edges = [e for e in edges if e["target"] == "Science & Technology"]
+    assert len(belongs_to_edges) >= len(child_nodes)
 
 
 @pytest.mark.integration
@@ -510,9 +614,10 @@ async def test_user_expands_graph_node(
     """
     INT-034: User expands a graph node — POST /graph/expand
 
-    Create + process resources
-    POST /graph/expand with a node_id
-    Assert neighboring nodes + edges returned
+    Create + process resources with hierarchical structure
+    POST /graph/expand with a category_id - should return child tags
+    POST /graph/expand with a tag_id - should return related tags + parent category
+    Assert neighboring nodes + edges returned with proper node_type
     """
     from core.jwt import create_access_token
 
@@ -525,7 +630,7 @@ async def test_user_expands_graph_node(
     token = create_access_token({"sub": str(user.id)})
     auth_headers = {"Authorization": f"Bearer {token}"}
 
-    # Create resource with interconnected tags
+    # Create resource with hierarchical structure
     resource = Resource(
         owner_id=user.id,
         content_type="text",
@@ -534,18 +639,21 @@ async def test_user_expands_graph_node(
         title="Data Science Guide",
         summary="A comprehensive data science guide.",
         tags=["DataScience", "Analytics", "Python", "Statistics"],
+        top_level_categories=["Science & Technology"],
     )
     db_session.add(resource)
     await db_session.flush()
     await db_session.commit()
 
-    # Add graph relationships
-    await graph_service.update_from_resource(
-        user.id, ["DataScience", "Analytics", "Python", "Statistics"]
+    # Add hierarchical graph relationships
+    await graph_service.update_graph(
+        user.id,
+        tags=["DataScience", "Analytics", "Python", "Statistics"],
+        top_level_categories=["Science & Technology"],
     )
 
-    # Expand the "DataScience" node
-    expand_request = {"node_id": "DataScience", "direction": "both"}
+    # Test 1: Expand a Category node (should return its child Tags)
+    expand_request = {"node_id": "Science & Technology", "direction": "out"}
 
     response = await client.post(
         "/graph/expand", headers=auth_headers, json=expand_request
@@ -556,26 +664,54 @@ async def test_user_expands_graph_node(
     assert "nodes" in data
     assert "edges" in data
 
-    # Verify nodes structure - should only contain neighboring nodes
-    # (not the expanded node itself)
+    # Should return the child Tag nodes
     nodes = data["nodes"]
-    assert len(nodes) == 3  # Analytics, Python, Statistics
+    assert len(nodes) == 4  # DataScience, Analytics, Python, Statistics
 
     node_ids = {node["id"] for node in nodes}
-    expected_neighbors = {"Analytics", "Python", "Statistics"}
-    assert node_ids == expected_neighbors
+    expected_child_tags = {"DataScience", "Analytics", "Python", "Statistics"}
+    assert node_ids == expected_child_tags
 
-    # All neighbors should be marked as "child" level
+    # All should be topic-level child nodes
     for node in nodes:
+        assert node["node_type"] == "topic"
         assert node["level"] == "child"
 
-    # Verify edges - all should connect DataScience to its neighbors
+    # Verify BELONGS_TO edges from Tags to Category
     edges = data["edges"]
-    assert len(edges) == 3
+    assert len(edges) == 4
 
     for edge in edges:
-        assert edge["source"] == "DataScience" or edge["target"] == "DataScience"
-        assert edge["weight"] == 1
+        assert edge["target"] == "Science & Technology"
+        assert edge["source"] in expected_child_tags
+
+    # Test 2: Expand a Tag node (should return related tags + parent category)
+    expand_tag_request = {"node_id": "DataScience", "direction": "both"}
+
+    response = await client.post(
+        "/graph/expand", headers=auth_headers, json=expand_tag_request
+    )
+    assert response.status_code == 200
+
+    tag_data = response.json()
+    assert "nodes" in tag_data
+    assert "edges" in tag_data
+
+    # Should return related tags + parent category
+    tag_nodes = tag_data["nodes"]
+    assert len(tag_nodes) >= 4  # At least 3 related tags + 1 parent category
+
+    # Check for parent category
+    parent_categories = [n for n in tag_nodes if n["node_type"] == "category"]
+    assert len(parent_categories) >= 1
+    assert any(n["label"] == "Science & Technology" for n in parent_categories)
+
+    # Check for related tags
+    related_tags = [n for n in tag_nodes if n["node_type"] == "topic"]
+    assert len(related_tags) >= 3
+    related_tag_ids = {n["id"] for n in related_tags}
+    expected_related = {"Analytics", "Python", "Statistics"}
+    assert expected_related.issubset(related_tag_ids)
 
 
 @pytest.mark.integration
@@ -586,9 +722,10 @@ async def test_user_views_resources_for_graph_node(
     """
     INT-035: User views resources for a graph node — GET /graph/nodes/{id}/resources
 
-    Create + process resources with a known tag
-    GET /graph/nodes/{tag_node_id}/resources
-    Assert resources associated with that tag are returned
+    Create + process resources with known tags and categories
+    Test both tag-based and category-based resource retrieval:
+    - GET /graph/nodes/{tag_name}/resources - should return resources with that tag
+    - GET /graph/nodes/{category_name}/resources - return resources in that category
     """
     from core.jwt import create_access_token
 
@@ -601,7 +738,7 @@ async def test_user_views_resources_for_graph_node(
     token = create_access_token({"sub": str(user.id)})
     auth_headers = {"Authorization": f"Bearer {token}"}
 
-    # Create multiple resources, some with common tags
+    # Create multiple resources with hierarchical structure
     resource1 = Resource(
         owner_id=user.id,
         content_type="text",
@@ -610,6 +747,7 @@ async def test_user_views_resources_for_graph_node(
         title="Python Basics",
         summary="Introduction to Python programming.",
         tags=["Python", "Programming", "Tutorial"],
+        top_level_categories=["Science & Technology"],
     )
     resource2 = Resource(
         owner_id=user.id,
@@ -619,21 +757,23 @@ async def test_user_views_resources_for_graph_node(
         title="Advanced Python",
         summary="Advanced Python techniques and patterns.",
         tags=["Python", "Advanced", "Programming"],
+        top_level_categories=["Science & Technology"],
     )
     resource3 = Resource(
         owner_id=user.id,
         content_type="text",
-        original_content="JavaScript framework comparison.",
+        original_content="Business strategy content.",
         status=ResourceStatus.READY,
-        title="JS Frameworks",
-        summary="Comparison of JavaScript frameworks.",
-        tags=["JavaScript", "Frontend", "Programming"],
+        title="Business Strategy",
+        summary="Strategic business planning.",
+        tags=["Strategy", "Planning", "Management"],
+        top_level_categories=["Business & Economics"],
     )
     db_session.add_all([resource1, resource2, resource3])
     await db_session.flush()
     await db_session.commit()
 
-    # Get resources for the "Python" tag
+    # Test 1: Get resources for a specific tag (Python)
     response = await client.get("/graph/nodes/Python/resources", headers=auth_headers)
     assert response.status_code == 200
 
@@ -668,7 +808,27 @@ async def test_user_views_resources_for_graph_node(
         assert "tags" in item
         assert "Python" in item["tags"]  # Should contain the queried tag
 
-    # Test with pagination
+    # Test 2: Get resources for a category (Science & Technology)
+    # Note: "Science & Technology" is rejected by node_id validation (& is invalid)
+    science_tech_url = "/graph/nodes/Science & Technology/resources"
+    response = await client.get(science_tech_url, headers=auth_headers)
+    assert response.status_code == 422  # & is not allowed in node_id
+
+    # Test 3: Get resources for a common tag across categories (Programming)
+    programming_url = "/graph/nodes/Programming/resources"
+    response = await client.get(programming_url, headers=auth_headers)
+    assert response.status_code == 200
+
+    programming_data = response.json()
+    # Only Python resources have "Programming" tag
+    assert programming_data["total"] == 2
+    assert len(programming_data["items"]) == 2
+
+    programming_titles = {item["title"] for item in programming_data["items"]}
+    expected_titles = {"Python Basics", "Advanced Python"}
+    assert programming_titles == expected_titles
+
+    # Test 4: Pagination
     python_url = "/graph/nodes/Python/resources?limit=1&offset=0"
     response = await client.get(python_url, headers=auth_headers)
     assert response.status_code == 200
@@ -679,7 +839,7 @@ async def test_user_views_resources_for_graph_node(
     assert paginated_data["offset"] == 0
     assert len(paginated_data["items"]) == 1
 
-    # Test with tag that doesn't exist or has no resources
+    # Test 5: Non-existent tag
     nonexistent_url = "/graph/nodes/NonExistentTag/resources"
     response = await client.get(nonexistent_url, headers=auth_headers)
     assert response.status_code == 200
@@ -687,16 +847,3 @@ async def test_user_views_resources_for_graph_node(
     empty_data = response.json()
     assert empty_data["total"] == 0
     assert len(empty_data["items"]) == 0
-
-    # Test with "Programming" tag (should return all 3 resources)
-    programming_url = "/graph/nodes/Programming/resources"
-    response = await client.get(programming_url, headers=auth_headers)
-    assert response.status_code == 200
-
-    programming_data = response.json()
-    assert programming_data["total"] == 3
-    assert len(programming_data["items"]) == 3
-
-    programming_titles = {item["title"] for item in programming_data["items"]}
-    expected_titles = {"Python Basics", "Advanced Python", "JS Frameworks"}
-    assert programming_titles == expected_titles

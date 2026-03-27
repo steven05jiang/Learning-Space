@@ -20,6 +20,7 @@ class LLMResult:
     title: Optional[str] = None
     summary: Optional[str] = None
     tags: Optional[List[str]] = None
+    top_level_categories: Optional[List[str]] = None
     error_message: Optional[str] = None
     error_type: Optional[str] = None
 
@@ -84,7 +85,7 @@ class LLMProcessorService:
             # Define the tool for structured output
             process_content_tool = {
                 "name": "extract_content_data",
-                "description": "Extract title, summary, and tags from content",
+                "description": "Extract title, summary, tags, and top-level categories",
                 "input_schema": {
                     "type": "object",
                     "properties": {
@@ -107,8 +108,15 @@ class LLMProcessorService:
                                 "Relevant tags/keywords (3-8 tags, lowercase)"
                             ),
                         },
+                        "top_level_categories": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "Top-level categories (1-3 from available list)"
+                            ),
+                        },
                     },
-                    "required": ["title", "summary", "tags"],
+                    "required": ["title", "summary", "tags", "top_level_categories"],
                 },
             }
 
@@ -150,6 +158,7 @@ class LLMProcessorService:
             title = extracted_data.get("title", "").strip()
             summary = extracted_data.get("summary", "").strip()
             tags = extracted_data.get("tags", [])
+            top_level_categories = extracted_data.get("top_level_categories", [])
 
             # Validate extracted data
             if not title:
@@ -178,9 +187,45 @@ class LLMProcessorService:
             else:
                 tags = []
 
+            # Clean and validate top_level_categories
+            if isinstance(top_level_categories, list):
+                clean_categories = []
+                # For now, use placeholder categories until DEV-062
+                default_categories = [
+                    "Science & Technology",
+                    "Business & Economics",
+                    "Politics & Government",
+                    "Society & Culture",
+                    "Education & Knowledge",
+                    "Health & Medicine",
+                    "Environment & Sustainability",
+                    "Arts & Entertainment",
+                    "Sports & Recreation",
+                    "Lifestyle & Personal Life",
+                ]
+
+                for category in top_level_categories:
+                    if isinstance(category, str) and category.strip():
+                        clean_category = category.strip()
+                        # For now, just validate against default categories
+                        if (
+                            clean_category in default_categories
+                            and clean_category not in clean_categories
+                        ):
+                            clean_categories.append(clean_category)
+
+                # If no valid categories found, default to "Science & Technology"
+                if not clean_categories:
+                    clean_categories = ["Science & Technology"]
+
+                top_level_categories = clean_categories[:3]  # Limit to 3 categories
+            else:
+                top_level_categories = ["Science & Technology"]  # Default fallback
+
             logger.info(
                 f"Successfully processed content: title='{title[:50]}...', "
-                f"summary_len={len(summary)}, tags_count={len(tags)}"
+                f"summary_len={len(summary)}, tags_count={len(tags)}, "
+                f"categories_count={len(top_level_categories)}"
             )
 
             return LLMResult(
@@ -188,6 +233,7 @@ class LLMProcessorService:
                 title=title,
                 summary=summary,
                 tags=tags,
+                top_level_categories=top_level_categories,
             )
 
         except anthropic.RateLimitError:
@@ -245,11 +291,18 @@ class LLMProcessorService:
             "Your task is to analyze the provided content and extract:\n"
             "1. A clear, concise title that captures the main topic\n"
             "2. A comprehensive summary of the key points and information\n"
-            "3. Relevant tags/keywords for categorization\n\n"
+            "3. Relevant tags/keywords for categorization\n"
+            "4. Top-level categories that best classify the content\n\n"
             "Guidelines:\n"
             "- Title should be descriptive but concise (max 200 characters)\n"
             "- Summary should be comprehensive but readable (100-500 words)\n"
             "- Tags should be lowercase, hyphenated if multi-word\n"
+            "- Categories from: Science & Technology, Business & Economics, "
+            "Politics & Government, Society & Culture, Education & Knowledge, "
+            "Health & Medicine, "
+            "Environment & Sustainability, Arts & Entertainment, Sports & Recreation, "
+            "Lifestyle & Personal Life\n"
+            "- Select 1-3 most relevant categories\n"
             "- Focus on the main content, ignore navigation, ads, or boilerplate text\n"
             "- For HTML content, extract the meaningful text content\n"
             "- Be objective and factual in your analysis"

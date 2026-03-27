@@ -160,27 +160,42 @@ async def process_resource(
             resource.title = llm_result.title
             resource.summary = llm_result.summary
             resource.tags = llm_result.tags or []
+            resource.top_level_categories = llm_result.top_level_categories or []
             resource.status = ResourceStatus.READY
             resource.processing_status = ProcessingStatus.SUCCESS
             resource.status_message = None
             resource.updated_at = datetime.utcnow()
             await session.commit()
 
-            # Step 5: Graph update hook (placeholder for DEV-026)
+            # Step 5: Hierarchical graph update
             try:
-                if llm_result.tags and len(llm_result.tags) >= 2:
-                    await graph_service.update_from_resource(
-                        resource.owner_id, llm_result.tags
+                if llm_result.tags and llm_result.top_level_categories:
+                    await graph_service.update_graph(
+                        resource.owner_id,
+                        llm_result.tags,
+                        llm_result.top_level_categories,
                     )
                     logger.info(
-                        f"Graph updated for resource {resource_id} "
-                        f"with {len(llm_result.tags)} tags"
+                        f"Hierarchical graph updated for resource {resource_id} "
+                        f"with {len(llm_result.tags)} tags and "
+                        f"{len(llm_result.top_level_categories)} categories"
                     )
+
+                    # Also update old-style tag relationships for backward compatibility
+                    if len(llm_result.tags) >= 2:
+                        await graph_service.update_from_resource(
+                            resource.owner_id, llm_result.tags
+                        )
                 else:
                     tag_count = len(llm_result.tags) if llm_result.tags else 0
+                    cat_count = (
+                        len(llm_result.top_level_categories)
+                        if llm_result.top_level_categories
+                        else 0
+                    )
                     logger.info(
                         f"Skipping graph update for resource {resource_id}: "
-                        f"insufficient tags ({tag_count})"
+                        f"insufficient tags ({tag_count}) or categories ({cat_count})"
                     )
             except Exception as e:
                 # Don't fail the entire job for graph update errors

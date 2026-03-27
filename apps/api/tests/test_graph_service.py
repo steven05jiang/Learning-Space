@@ -271,10 +271,10 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
             owner_id=owner_id, tags=["tag1", "tag2"]
         )
 
-        # Verify all calls include the correct owner_id
+        # Verify all calls include the correct owner_id (converted to string)
         for call in mock_session.run.call_args_list:
             kwargs = call[1]
-            assert kwargs["owner_id"] == owner_id
+            assert kwargs["owner_id"] == str(owner_id)
 
         # Reset mock for next test
         mock_session.reset_mock()
@@ -286,4 +286,160 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
 
         for call in mock_session.run.call_args_list:
             kwargs = call[1]
-            assert kwargs["owner_id"] == owner_id
+            assert kwargs["owner_id"] == str(owner_id)
+
+
+@pytest.mark.asyncio
+async def test_update_graph_creates_hierarchical_structure(
+    graph_service, mock_neo4j_driver
+):
+    """Test that update_graph creates Root, Category, and Tag nodes."""
+    mock_driver, mock_session = mock_neo4j_driver
+
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+        await graph_service.update_graph(
+            owner_id=1,
+            tags=["machine-learning", "ai", "python"],
+            top_level_categories=["Science & Technology", "Education & Knowledge"],
+        )
+
+        # Expected calls:
+        # 1. Create Root node
+        # 2-3. Create Category nodes (2 categories)
+        # 4-6. Create Tag nodes (3 tags)
+        # 7-12. Create BELONGS_TO relationships (3 tags × 2 categories = 6)
+        # 13-15. Create RELATED_TO relationships (3 tags, 3 pairs)
+        # Total: 15 calls
+        assert mock_session.run.call_count == 15
+
+        # Verify Root node creation
+        root_call = mock_session.run.call_args_list[0]
+        query = root_call[0][0]
+        assert "MERGE (r:Root {owner_id: $owner_id})" in query
+        assert "r.name = 'My Learning Space'" in query
+        assert "r.node_type = 'root'" in query
+
+        # Verify Category node creation
+        category_calls = mock_session.run.call_args_list[1:3]
+        for call in category_calls:
+            query = call[0][0]
+            assert "MERGE (c:Category {id: $category, owner_id: $owner_id})" in query
+            assert "c.node_type = 'category'" in query
+            assert "MERGE (c)-[:CHILD_OF]->(r)" in query
+
+        # Verify Tag node creation
+        tag_calls = mock_session.run.call_args_list[3:6]
+        for call in tag_calls:
+            query = call[0][0]
+            assert "MERGE (t:Tag {id: $tag, owner_id: $owner_id})" in query
+            assert "t.node_type = 'topic'" in query
+
+        # Verify BELONGS_TO relationships
+        belongs_to_calls = mock_session.run.call_args_list[6:12]
+        for call in belongs_to_calls:
+            query = call[0][0]
+            assert "MATCH (t:Tag {id: $tag, owner_id: $owner_id})" in query
+            assert "MATCH (c:Category {id: $category, owner_id: $owner_id})" in query
+            assert "MERGE (t)-[b:BELONGS_TO]->(c)" in query
+            assert "ON CREATE SET b.weight = 1" in query
+            assert "ON MATCH SET b.weight = b.weight + 1" in query
+
+        # Verify RELATED_TO relationships
+        related_to_calls = mock_session.run.call_args_list[12:15]
+        for call in related_to_calls:
+            query = call[0][0]
+            assert "MATCH (t1:Tag {id: $tag1, owner_id: $owner_id})" in query
+            assert "MATCH (t2:Tag {id: $tag2, owner_id: $owner_id})" in query
+            assert "MERGE (t1)-[r:RELATED_TO]-(t2)" in query
+
+
+@pytest.mark.asyncio
+async def test_update_graph_skips_empty_inputs(graph_service, mock_neo4j_driver):
+    """Test that update_graph skips processing when inputs are empty or invalid."""
+    mock_driver, mock_session = mock_neo4j_driver
+
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+        # Test with empty tags
+        await graph_service.update_graph(
+            owner_id=1, tags=[], top_level_categories=["Science & Technology"]
+        )
+        assert mock_session.run.call_count == 0
+
+        # Test with empty categories
+        await graph_service.update_graph(
+            owner_id=1, tags=["python"], top_level_categories=[]
+        )
+        assert mock_session.run.call_count == 0
+
+        # Test with None inputs
+        await graph_service.update_graph(
+            owner_id=1, tags=None, top_level_categories=None
+        )
+        assert mock_session.run.call_count == 0
+
+        # Test with whitespace-only inputs
+        await graph_service.update_graph(
+            owner_id=1, tags=["", "  "], top_level_categories=["", "  "]
+        )
+        assert mock_session.run.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_update_graph_normalizes_inputs(graph_service, mock_neo4j_driver):
+    """Test that update_graph normalizes tags and categories by stripping whitespace."""
+    mock_driver, mock_session = mock_neo4j_driver
+
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+        await graph_service.update_graph(
+            owner_id=1,
+            tags=["  python  ", "machine-learning", "  ai  "],
+            top_level_categories=["  Science & Technology  "],
+        )
+
+        # Verify normalized values were used in calls
+        calls = mock_session.run.call_args_list
+
+        # Check Category creation call
+        category_call = calls[1]  # Second call after Root creation
+        kwargs = category_call[1]
+        assert kwargs["category"] == "Science & Technology"  # Stripped
+
+        # Check Tag creation calls
+        tag_creation_calls = calls[2:5]  # Next 3 calls
+        tag_names = []
+        for call in tag_creation_calls:
+            kwargs = call[1]
+            tag_names.append(kwargs["tag"])
+
+        assert "python" in tag_names  # Stripped
+        assert "machine-learning" in tag_names
+        assert "ai" in tag_names  # Stripped
+        assert "  python  " not in tag_names
+        assert "  ai  " not in tag_names
+
+
+@pytest.mark.asyncio
+async def test_update_graph_with_single_tag_and_category(
+    graph_service, mock_neo4j_driver
+):
+    """Test that update_graph works with minimum viable inputs."""
+    mock_driver, mock_session = mock_neo4j_driver
+
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
+        await graph_service.update_graph(
+            owner_id=1, tags=["python"], top_level_categories=["Science & Technology"]
+        )
+
+        # Expected calls:
+        # 1. Create Root node
+        # 2. Create Category node
+        # 3. Create Tag node
+        # 4. Create BELONGS_TO relationship
+        # No RELATED_TO relationships (only 1 tag)
+        # Total: 4 calls
+        assert mock_session.run.call_count == 4
+
+        # Verify the BELONGS_TO relationship was created
+        belongs_to_call = mock_session.run.call_args_list[3]
+        query = belongs_to_call[0][0]
+        assert "MERGE (t)-[b:BELONGS_TO]->(c)" in query

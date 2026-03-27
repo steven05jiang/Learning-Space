@@ -87,6 +87,7 @@ async def test_worker_processes_url_resource_successfully(db_session, respx_mock
         title="Processed Article Title",
         summary="This is a processed summary of the article.",
         tags=["Technology", "Testing"],
+        top_level_categories=["Science & Technology"],
     )
 
     # Mock AsyncSessionLocal to return test session
@@ -96,7 +97,7 @@ async def test_worker_processes_url_resource_successfully(db_session, respx_mock
         "workers.tasks.llm_processor_service.process_content",
         return_value=mock_llm_result,
     ):
-        with patch("workers.tasks.graph_service.update_from_resource") as mock_graph:
+        with patch("workers.tasks.graph_service.update_graph") as mock_graph:
             with patch(
                 "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
             ):
@@ -122,7 +123,9 @@ async def test_worker_processes_url_resource_successfully(db_session, respx_mock
     assert resource.status_message is None
 
     # Verify graph update was called
-    mock_graph.assert_called_once_with(user.id, ["Technology", "Testing"])
+    mock_graph.assert_called_once_with(
+        user.id, ["Technology", "Testing"], ["Science & Technology"]
+    )
 
 
 @pytest.mark.integration
@@ -152,6 +155,7 @@ async def test_worker_processes_text_resource_successfully(db_session):
         title="Processed Text Title",
         summary="This is a processed summary of the text content.",
         tags=["Content", "Analysis"],
+        top_level_categories=["Science & Technology"],
     )
 
     # Mock AsyncSessionLocal to return test session
@@ -161,7 +165,7 @@ async def test_worker_processes_text_resource_successfully(db_session):
         "workers.tasks.llm_processor_service.process_content",
         return_value=mock_llm_result,
     ):
-        with patch("workers.tasks.graph_service.update_from_resource") as mock_graph:
+        with patch("workers.tasks.graph_service.update_graph") as mock_graph:
             with patch(
                 "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
             ):
@@ -187,7 +191,9 @@ async def test_worker_processes_text_resource_successfully(db_session):
     assert resource.status_message is None
 
     # Verify graph update was called
-    mock_graph.assert_called_once_with(user.id, ["Content", "Analysis"])
+    mock_graph.assert_called_once_with(
+        user.id, ["Content", "Analysis"], ["Science & Technology"]
+    )
 
 
 @pytest.mark.integration
@@ -240,6 +246,7 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
         title="Twitter Post Analysis",
         summary="Analysis of the Twitter post content.",
         tags=["Social", "Twitter"],
+        top_level_categories=["Science & Technology"],
     )
 
     # Mock AsyncSessionLocal to return test session
@@ -253,9 +260,7 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
             "workers.tasks.llm_processor_service.process_content",
             return_value=mock_llm_result,
         ):
-            with patch(
-                "workers.tasks.graph_service.update_from_resource"
-            ) as mock_graph:
+            with patch("workers.tasks.graph_service.update_graph") as mock_graph:
                 with patch(
                     "workers.tasks.AsyncSessionLocal", return_value=mock_session_ctx
                 ):
@@ -277,7 +282,9 @@ async def test_worker_url_requires_login_with_linked_account_succeeds(db_session
     assert resource.status_message is None
 
     # Verify graph update was called
-    mock_graph.assert_called_once_with(user.id, ["Social", "Twitter"])
+    mock_graph.assert_called_once_with(
+        user.id, ["Social", "Twitter"], ["Science & Technology"]
+    )
 
 
 @pytest.mark.integration
@@ -421,6 +428,7 @@ async def test_worker_graph_update_fails_resource_still_ready(db_session):
         title="Graph Test Article",
         summary="This is a test article for graph failure handling.",
         tags=["Test", "Graph"],  # Ensure enough tags to trigger graph update
+        top_level_categories=["Science & Technology"],
     )
 
     # Mock AsyncSessionLocal to return test session
@@ -431,7 +439,7 @@ async def test_worker_graph_update_fails_resource_still_ready(db_session):
         return_value=mock_llm_result,
     ):
         with patch(
-            "workers.tasks.graph_service.update_from_resource",
+            "workers.tasks.graph_service.update_graph",
             side_effect=Exception("Graph service unavailable"),
         ) as mock_graph:
             with patch(
@@ -456,4 +464,6 @@ async def test_worker_graph_update_fails_resource_still_ready(db_session):
     assert resource.status_message is None
 
     # Verify graph update was attempted
-    mock_graph.assert_called_once_with(user.id, ["Test", "Graph"])
+    mock_graph.assert_called_once_with(
+        user.id, ["Test", "Graph"], ["Science & Technology"]
+    )

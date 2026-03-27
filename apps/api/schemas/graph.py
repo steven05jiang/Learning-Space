@@ -9,6 +9,8 @@ class GraphNode(BaseModel):
     id: str
     label: str
     level: str  # "root", "current", "child", "parent"
+    node_type: str  # "root", "category", "topic"
+    resource_count: int = 0  # Number of resources associated with this node
 
 
 class GraphEdge(BaseModel):

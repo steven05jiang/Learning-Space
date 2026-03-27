@@ -85,6 +85,7 @@ class TestProcessResource:
             title="Test Article Title",
             summary="This is a comprehensive summary of the test article content.",
             tags=["test", "article", "content"],
+            top_level_categories=["Science & Technology"],
         )
 
     @pytest.fixture
@@ -178,6 +179,9 @@ class TestProcessResource:
         )
         mock_llm_processor.process_content.assert_called_once_with(
             mock_fetch_success.content, "text/html"
+        )
+        mock_graph_service.update_graph.assert_called_once_with(
+            456, ["test", "article", "content"], ["Science & Technology"]
         )
         mock_graph_service.update_from_resource.assert_called_once_with(
             456, ["test", "article", "content"]
@@ -529,13 +533,14 @@ class TestProcessResource:
     async def test_process_resource_graph_update_called_with_correct_args(
         self, mock_resource, mock_fetch_success, monkeypatch
     ):
-        """Test graph_service.update_from_resource called with correct arguments."""
+        """Test graph_service.update_graph and update_from_resource called correctly."""
         # Mock LLM result with multiple tags
         mock_llm_multiple_tags = LLMResult(
             success=True,
             title="Test Article",
             summary="A test summary",
             tags=["python", "testing", "api"],
+            top_level_categories=["Science & Technology"],
         )
 
         # Mock database session
@@ -579,7 +584,12 @@ class TestProcessResource:
         assert result["status"] == "ready"
         assert result["tags_count"] == 3
 
-        # Verify graph service was called with exact owner_id and tags
+        # Verify graph service was called with exact owner_id, tags, and categories
+        mock_graph_service.update_graph.assert_called_once_with(
+            456,  # owner_id from mock_resource
+            ["python", "testing", "api"],
+            ["Science & Technology"],
+        )
         mock_graph_service.update_from_resource.assert_called_once_with(
             456,  # owner_id from mock_resource
             ["python", "testing", "api"],  # tags from mock_llm_multiple_tags
@@ -678,9 +688,9 @@ class TestProcessResource:
         mock_llm_processor.process_content.return_value = mock_llm_success
         monkeypatch.setattr("workers.tasks.llm_processor_service", mock_llm_processor)
 
-        # Mock graph service to fail
+        # Mock graph service to fail on update_graph (first call in pipeline)
         mock_graph_service = AsyncMock()
-        mock_graph_service.update_from_resource.side_effect = Exception(
+        mock_graph_service.update_graph.side_effect = Exception(
             "Neo4j connection error"
         )
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
@@ -697,6 +707,6 @@ class TestProcessResource:
         assert mock_resource.status_message is None  # No error message set on resource
 
         # Verify graph service was called (but failed)
-        mock_graph_service.update_from_resource.assert_called_once_with(
-            456, ["test", "article", "content"]
+        mock_graph_service.update_graph.assert_called_once_with(
+            456, ["test", "article", "content"], ["Science & Technology"]
         )
