@@ -558,7 +558,7 @@ async def test_user_views_graph_centered_on_category(
 
     # Get graph centered on "Science & Technology" category
     response = await client.get(
-        "/graph?root=Science & Technology", headers=auth_headers
+        "/graph", params={"root": "Science & Technology"}, headers=auth_headers
     )
     assert response.status_code == 200
 
@@ -809,17 +809,10 @@ async def test_user_views_resources_for_graph_node(
         assert "Python" in item["tags"]  # Should contain the queried tag
 
     # Test 2: Get resources for a category (Science & Technology)
-    # Note: The endpoint currently filters by tags, not category names
-    # Since the router currently only looks at tags JSONB, this will return 0 results
-    # But this shows the test structure for when category-based filtering is implemented
+    # Note: "Science & Technology" is rejected by node_id validation (& is invalid)
     science_tech_url = "/graph/nodes/Science & Technology/resources"
     response = await client.get(science_tech_url, headers=auth_headers)
-    assert response.status_code == 200
-
-    # Currently returns 0 because the endpoint only searches tags
-    # This is expected behavior with the current implementation
-    category_data = response.json()
-    assert category_data["total"] == 0
+    assert response.status_code == 422  # & is not allowed in node_id
 
     # Test 3: Get resources for a common tag across categories (Programming)
     programming_url = "/graph/nodes/Programming/resources"

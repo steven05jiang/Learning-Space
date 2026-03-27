@@ -181,7 +181,7 @@ class GraphService:
                     ON CREATE SET t.created_at = datetime()
                     """,
                     tag=tag,
-                    owner_id=owner_id,
+                    owner_id=str(owner_id),
                 )
 
             # Create or update RELATED_TO relationships for all tag pairs
@@ -199,7 +199,7 @@ class GraphService:
                     """,
                     tag1=tag1,
                     tag2=tag2,
-                    owner_id=owner_id,
+                    owner_id=str(owner_id),
                 )
 
         logger.info(
@@ -252,7 +252,7 @@ class GraphService:
                     """,
                     tag1=tag1,
                     tag2=tag2,
-                    owner_id=owner_id,
+                    owner_id=str(owner_id),
                 )
 
         logger.info(

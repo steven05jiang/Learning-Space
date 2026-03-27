@@ -271,10 +271,10 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
             owner_id=owner_id, tags=["tag1", "tag2"]
         )
 
-        # Verify all calls include the correct owner_id
+        # Verify all calls include the correct owner_id (converted to string)
         for call in mock_session.run.call_args_list:
             kwargs = call[1]
-            assert kwargs["owner_id"] == owner_id
+            assert kwargs["owner_id"] == str(owner_id)
 
         # Reset mock for next test
         mock_session.reset_mock()
@@ -286,7 +286,7 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
 
         for call in mock_session.run.call_args_list:
             kwargs = call[1]
-            assert kwargs["owner_id"] == owner_id
+            assert kwargs["owner_id"] == str(owner_id)
 
 
 @pytest.mark.asyncio
