@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-27 (DEV-063 PR #152 merged)
+**Last Updated:** 2026-03-27 (DEV-064 PR #154 merged)
 
 ---
 
 ## Progress Summary
 
 - Total: 127 tasks (65 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD)
-- ✅ Completed: 91
+- ✅ Completed: 92
 - 🔄 Active: 0
-- ⏳ Pending: 36
+- ⏳ Pending: 35
 - ⚠️ Stuck: 0
 
 ---
@@ -89,7 +89,7 @@ _Design specs: `docs/design-resource-fetching.md` (FB-001), `docs/design-categor
 - [x] DEV-061: Update Neo4j schema to Root/Category/Tag three-level hierarchy + CHILD_OF/BELONGS_TO relationships + graph service update (FB-003) (PR #147 ✅)
 - [x] DEV-062: Update LLM prompt to include existing tags + require top_level_categories in output; add CATEGORY_REQUIRED/INVALID_CATEGORY validation (FB-003) (PR #149 ✅)
 - [x] DEV-063: Category management UI in Settings — list system + user categories, add/delete user categories (FB-003) (PR #152 ✅)
-- [ ] DEV-064: Tag editor component in resource detail UI — add/remove tag chips, save triggers graph resync (FB-004)
+- [x] DEV-064: Tag editor component in resource detail UI — add/remove tag chips, save triggers graph resync (FB-004) (PR #154 ✅)
 - [x] DEV-065: Fix graph node popup overflow — max-width/height, remove summary, truncate title, URL link + tag chips only (FB-005) (PR #145 ✅)
 
 ## 🟢 Tier 4 — Hardening
