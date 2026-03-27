@@ -42,7 +42,7 @@ def get_llm_client():
         return ChatOpenAI(
             model=settings.siliconflow_model,
             api_key=settings.siliconflow_api_key,
-            base_url="https://api.siliconflow.cn/v1",
+            base_url=settings.siliconflow_base_url,
             temperature=0,
         )
     elif provider == "fireworks":
@@ -53,7 +53,7 @@ def get_llm_client():
         return ChatOpenAI(
             model=settings.fireworks_model,
             api_key=settings.fireworks_api_key,
-            base_url="https://api.fireworks.ai/inference/v1",
+            base_url=settings.fireworks_base_url,
             temperature=0,
         )
     else:
@@ -90,7 +90,7 @@ def get_direct_client():
             raise ValueError("SiliconFlow API key not configured")
         return OpenAI(
             api_key=settings.siliconflow_api_key,
-            base_url="https://api.siliconflow.cn/v1",
+            base_url=settings.siliconflow_base_url,
         )
     elif provider == "fireworks":
         from openai import OpenAI
@@ -99,7 +99,7 @@ def get_direct_client():
             raise ValueError("Fireworks API key not configured")
         return OpenAI(
             api_key=settings.fireworks_api_key,
-            base_url="https://api.fireworks.ai/inference/v1",
+            base_url=settings.fireworks_base_url,
         )
     else:
         raise ValueError(f"Unknown LLM_PROVIDER: {provider}")

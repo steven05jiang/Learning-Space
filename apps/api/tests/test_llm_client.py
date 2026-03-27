@@ -56,6 +56,7 @@ class TestLLMClientFactory:
             mock_settings.llm_provider = "siliconflow"
             mock_settings.siliconflow_api_key = "test-sf-key"
             mock_settings.siliconflow_model = "Qwen/Qwen2.5-7B-Instruct"
+            mock_settings.siliconflow_base_url = "https://api.siliconflow.com/v1"
 
             with patch("langchain_openai.ChatOpenAI") as mock_chat:
                 mock_client = Mock()
@@ -67,7 +68,7 @@ class TestLLMClientFactory:
                 mock_chat.assert_called_once_with(
                     model="Qwen/Qwen2.5-7B-Instruct",
                     api_key="test-sf-key",
-                    base_url="https://api.siliconflow.cn/v1",
+                    base_url="https://api.siliconflow.com/v1",
                     temperature=0,
                 )
 
@@ -79,6 +80,7 @@ class TestLLMClientFactory:
             mock_settings.fireworks_model = (
                 "accounts/fireworks/models/llama-v3p1-8b-instruct"
             )
+            mock_settings.fireworks_base_url = "https://api.fireworks.ai/inference/v1"
 
             with patch("langchain_openai.ChatOpenAI") as mock_chat:
                 mock_client = Mock()

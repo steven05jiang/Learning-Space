@@ -34,7 +34,7 @@ async def test_neo4j_driver():
     driver = AsyncGraphDatabase.driver(
         os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
         auth=(
-            os.environ.get("NEO4J_USER", "neo4j"),
+            os.environ.get("NEO4J_USERNAME", "neo4j"),
             os.environ.get("NEO4J_PASSWORD", "changeme"),
         ),
     )

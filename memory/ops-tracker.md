@@ -10,9 +10,9 @@
 ## Progress Summary
 
 - Total: 6 tasks
-- ✅ Completed: 0
+- ✅ Completed: 1
 - 🔄 Active: 0
-- ⏳ Pending: 6
+- ⏳ Pending: 5
 - ⚠️ Stuck: 0
 
 ---
@@ -25,7 +25,7 @@
 
 _Target stack: Vercel (frontend) + Railway (API + worker) + Supabase (Postgres) + Neo4j AuraDB Free + Upstash (Redis) + Namecheap/Cloudflare (domain/DNS)_
 
-- [ ] OPS-002: Provision cloud data services — Supabase PostgreSQL + Neo4j AuraDB Free + Upstash Redis; document in memory/infra.md
+- [x] OPS-002: Provision cloud data services — Supabase PostgreSQL + Neo4j AuraDB Free + Upstash Redis; document in memory/infra.md
 - [ ] OPS-003: Backend Dockerfile + Railway deployment — API + worker services, Alembic migrations, auto-deploy from main (depends on: DEV-047, OPS-002)
 - [ ] OPS-004: Frontend Vercel deployment — connect GitHub, configure env vars, confirm build (depends on: OPS-003)
 - [ ] OPS-005: Domain + DNS — Namecheap domain + Cloudflare DNS + custom domains on Vercel/Railway (depends on: OPS-003, OPS-004)

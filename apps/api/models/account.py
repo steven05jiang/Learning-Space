@@ -13,6 +13,8 @@ class Account(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     provider = Column(String, nullable=False)  # e.g., "google", "github"
     provider_account_id = Column(String, nullable=False)  # Provider's user ID
+    # Provider-specific display name (email, login, handle)
+    username = Column(String, nullable=True)
     access_token = Column(String, nullable=True)
     refresh_token = Column(String, nullable=True)
     last_login_at = Column(DateTime, nullable=True)

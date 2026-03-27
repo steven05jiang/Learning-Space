@@ -62,6 +62,7 @@ class AuthService:
             user_id=user.id,
             provider=provider,
             provider_account_id=provider_account_id,
+            username=user_info.get("username"),
             access_token=access_token,
             refresh_token=refresh_token,
             last_login_at=datetime.utcnow(),
@@ -80,6 +81,7 @@ class AuthService:
         provider: str,
         access_token: str,
         refresh_token: Optional[str] = None,
+        username: Optional[str] = None,
     ) -> None:
         """Update account tokens and last login time."""
         for account in user.accounts:
@@ -87,6 +89,8 @@ class AuthService:
                 account.access_token = access_token
                 if refresh_token:
                     account.refresh_token = refresh_token
+                if username:
+                    account.username = username
                 account.last_login_at = datetime.utcnow()
                 break
         await db.commit()
@@ -127,7 +131,12 @@ class AuthService:
         if user:
             # Scenario 1: Provider account already linked, update tokens
             await self.update_account_tokens(
-                db, user, provider, access_token, refresh_token
+                db,
+                user,
+                provider,
+                access_token,
+                refresh_token,
+                username=user_info.get("username"),
             )
         else:
             # Check if a user exists with this email from any provider
@@ -141,6 +150,7 @@ class AuthService:
                         user_id=user_by_email.id,
                         provider=provider,
                         provider_account_id=provider_account_id,
+                        username=user_info.get("username"),
                         access_token=access_token,
                         refresh_token=refresh_token,
                         last_login_at=datetime.utcnow(),
@@ -217,7 +227,12 @@ class AuthService:
         if existing_user and existing_user.id == current_user.id:
             # Account already linked to this user, just update tokens
             await self.update_account_tokens(
-                db, current_user, provider, access_token, refresh_token
+                db,
+                current_user,
+                provider,
+                access_token,
+                refresh_token,
+                username=user_info.get("username"),
             )
         else:
             # Create new account link for current user
@@ -225,6 +240,7 @@ class AuthService:
                 user_id=current_user.id,
                 provider=provider,
                 provider_account_id=provider_account_id,
+                username=user_info.get("username"),
                 access_token=access_token,
                 refresh_token=refresh_token,
                 last_login_at=datetime.utcnow(),

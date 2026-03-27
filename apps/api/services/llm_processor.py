@@ -1,5 +1,6 @@
 """LLM content processing service for extracting title, summary, and tags."""
 
+import json
 import logging
 from dataclasses import dataclass
 from typing import List, Optional
@@ -8,8 +9,36 @@ import anthropic
 from anthropic import Anthropic
 
 from core.config import settings
+from services.llm_client import get_direct_client
 
 logger = logging.getLogger(__name__)
+
+_OPENAI_COMPAT_PROVIDERS = {"siliconflow", "fireworks", "groq"}
+
+_TOOL_NAME = "extract_content_data"
+_TOOL_PROPERTIES = {
+    "title": {
+        "type": "string",
+        "description": "A clear, concise title for the content (max 200 chars)",
+    },
+    "summary": {
+        "type": "string",
+        "description": "A comprehensive summary of main points (100-500 words)",
+    },
+    "tags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": (
+            "Exactly 3 specific tags/keywords (lowercase, hyphenated if multi-word)"
+        ),
+    },
+    "top_level_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Top-level categories (1-3 from available list)",
+    },
+}
+_TOOL_REQUIRED = ["title", "summary", "tags", "top_level_categories"]
 
 
 @dataclass
@@ -26,7 +55,7 @@ class LLMResult:
 
 
 class LLMProcessorService:
-    """Service for processing content using Anthropic Claude to extract data."""
+    """Service for processing content using LLM to extract data."""
 
     def __init__(
         self,
@@ -36,18 +65,114 @@ class LLMProcessorService:
         """Initialize the LLM processor service.
 
         Args:
-            api_key: Anthropic API key (defaults to settings value)
-            model: Claude model to use for processing
+            api_key: Optional Anthropic API key for legacy/test use. When omitted,
+                     the active LLM provider from settings is used instead.
+            model: Model override (only applies when api_key is provided).
         """
-        self.api_key = api_key or settings.anthropic_api_key
-        self.model = model
+        self.provider = settings.llm_provider.lower()
         self.client = None
 
-        if self.api_key and self.api_key != "test-anthropic-key-for-development":
+        if api_key is not None:
+            # Legacy / test path: explicit key always initialises an Anthropic client.
+            self.api_key = api_key
+            self.model = model
+            self._use_openai_compat = False
+            if api_key and api_key != "test-anthropic-key-for-development":
+                try:
+                    self.client = Anthropic(api_key=api_key)
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Anthropic client: {e}")
+        else:
+            # Production path: delegate to the configured provider
+            # via get_direct_client().
+            self.api_key = None
+            model_map = {
+                "anthropic": settings.anthropic_model,
+                "groq": settings.groq_model,
+                "siliconflow": settings.siliconflow_model,
+                "fireworks": settings.fireworks_model,
+            }
+            self.model = model_map.get(self.provider, settings.anthropic_model)
+            self._use_openai_compat = self.provider in _OPENAI_COMPAT_PROVIDERS
             try:
-                self.client = Anthropic(api_key=self.api_key)
+                self.client = get_direct_client()
             except Exception as e:
-                logger.warning(f"Failed to initialize Anthropic client: {e}")
+                logger.warning(f"Failed to initialize LLM client: {e}")
+
+    # ------------------------------------------------------------------
+    # Internal API call helpers
+    # ------------------------------------------------------------------
+
+    def _invoke_anthropic(self, system_prompt: str, user_message: str) -> dict:
+        """Call the Anthropic messages API and return extracted_data dict."""
+        tool_def = {
+            "name": _TOOL_NAME,
+            "description": "Extract title, summary, tags, and top-level categories",
+            "input_schema": {
+                "type": "object",
+                "properties": _TOOL_PROPERTIES,
+                "required": _TOOL_REQUIRED,
+            },
+        }
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=1500,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}],
+            tools=[tool_def],
+            tool_choice={"type": "tool", "name": _TOOL_NAME},
+        )
+
+        if not response.content:
+            raise ValueError("empty_response")
+
+        tool_use = next(
+            (b for b in response.content if getattr(b, "type", None) == "tool_use"),
+            None,
+        )
+        if not tool_use:
+            raise ValueError("no_tool_use")
+
+        return tool_use.input
+
+    def _invoke_openai_compat(self, system_prompt: str, user_message: str) -> dict:
+        """Call an OpenAI-compatible chat completions API and return extracted_data."""
+        tool_def = {
+            "type": "function",
+            "function": {
+                "name": _TOOL_NAME,
+                "description": "Extract title, summary, tags, and top-level categories",
+                "parameters": {
+                    "type": "object",
+                    "properties": _TOOL_PROPERTIES,
+                    "required": _TOOL_REQUIRED,
+                },
+            },
+        }
+        response = self.client.chat.completions.create(
+            model=self.model,
+            max_tokens=1500,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            tools=[tool_def],
+            tool_choice={"type": "function", "function": {"name": _TOOL_NAME}},
+        )
+
+        choices = getattr(response, "choices", None)
+        if not choices:
+            raise ValueError("empty_response")
+
+        tool_calls = getattr(choices[0].message, "tool_calls", None)
+        if not tool_calls:
+            raise ValueError("no_tool_use")
+
+        return json.loads(tool_calls[0].function.arguments)
+
+    # ------------------------------------------------------------------
+    # Public interface
+    # ------------------------------------------------------------------
 
     async def process_content(
         self,
@@ -56,17 +181,7 @@ class LLMProcessorService:
         existing_user_tags: Optional[List[str]] = None,
         valid_categories: Optional[List[str]] = None,
     ) -> LLMResult:
-        """Process content to extract title, summary, tags, and categories.
-
-        Args:
-            content: The content to process (text or HTML)
-            content_type: Type of content (e.g., 'text/plain', 'text/html', 'url')
-            existing_user_tags: List of existing tags for the user (for reuse)
-            valid_categories: List of valid category names (for validation)
-
-        Returns:
-            LLMResult containing extracted data or error information
-        """
+        """Process content to extract title, summary, tags, and categories."""
         if not content or not content.strip():
             return LLMResult(
                 success=False,
@@ -78,213 +193,56 @@ class LLMProcessorService:
             return LLMResult(
                 success=False,
                 error_type="configuration_error",
-                error_message="Anthropic API key not configured or invalid",
+                error_message="LLM client not configured or invalid",
             )
 
         logger.info(
             f"Processing content of type {content_type} ({len(content)} characters)"
         )
 
+        system_prompt = self._build_system_prompt(existing_user_tags, valid_categories)
+        user_message = self._build_user_message(content, content_type)
+
         try:
-            # Prepare the content processing prompt
-            system_prompt = self._build_system_prompt(
-                existing_user_tags, valid_categories
-            )
-            user_message = self._build_user_message(content, content_type)
+            if self._use_openai_compat:
+                extracted_data = self._invoke_openai_compat(system_prompt, user_message)
+            else:
+                extracted_data = self._invoke_anthropic(system_prompt, user_message)
 
-            # Define the tool for structured output
-            process_content_tool = {
-                "name": "extract_content_data",
-                "description": "Extract title, summary, tags, and top-level categories",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "title": {
-                            "type": "string",
-                            "description": (
-                                "A clear, concise title for the content (max 200 chars)"
-                            ),
-                        },
-                        "summary": {
-                            "type": "string",
-                            "description": (
-                                "A comprehensive summary of main points (100-500 words)"
-                            ),
-                        },
-                        "tags": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": (
-                                "Exactly 3 specific tags/keywords "
-                                "(lowercase, hyphenated if multi-word)"
-                            ),
-                        },
-                        "top_level_categories": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": (
-                                "Top-level categories (1-3 from available list)"
-                            ),
-                        },
-                    },
-                    "required": ["title", "summary", "tags", "top_level_categories"],
-                },
-            }
-
-            # Make the API call
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=1500,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_message}],
-                tools=[process_content_tool],
-                tool_choice={"type": "tool", "name": "extract_content_data"},
-            )
-
-            # Extract the tool use result
-            if not response.content or len(response.content) == 0:
+        except ValueError as e:
+            msg = str(e)
+            if msg == "empty_response":
                 return LLMResult(
                     success=False,
                     error_type="api_error",
                     error_message="Empty response from LLM",
                 )
-
-            # Find tool use in response
-            tool_use = None
-            for content_block in response.content:
-                if hasattr(content_block, "type") and content_block.type == "tool_use":
-                    tool_use = content_block
-                    break
-
-            if not tool_use:
+            if msg == "no_tool_use":
                 return LLMResult(
                     success=False,
                     error_type="api_error",
                     error_message="No tool use found in LLM response",
                 )
-
-            # Extract structured data
-            extracted_data = tool_use.input
-
-            title = extracted_data.get("title", "").strip()
-            summary = extracted_data.get("summary", "").strip()
-            tags = extracted_data.get("tags", [])
-            top_level_categories = extracted_data.get("top_level_categories", [])
-
-            # Validate extracted data
-            if not title:
-                return LLMResult(
-                    success=False,
-                    error_type="extraction_error",
-                    error_message="LLM failed to extract a valid title",
-                )
-
-            if not summary:
-                return LLMResult(
-                    success=False,
-                    error_type="extraction_error",
-                    error_message="LLM failed to extract a valid summary",
-                )
-
-            # Clean and validate tags
-            if isinstance(tags, list):
-                clean_tags = []
-                for tag in tags:
-                    if isinstance(tag, str) and tag.strip():
-                        clean_tag = tag.strip().lower().replace(" ", "-")
-                        if clean_tag and clean_tag not in clean_tags:
-                            clean_tags.append(clean_tag)
-                tags = clean_tags[:8]
-            else:
-                tags = []
-
-            # Clean and validate top_level_categories
-            if isinstance(top_level_categories, list):
-                clean_categories = []
-
-                # Use provided valid_categories or default system categories
-                if valid_categories:
-                    allowed_categories = valid_categories
-                else:
-                    allowed_categories = [
-                        "Science & Technology",
-                        "Business & Economics",
-                        "Politics & Government",
-                        "Society & Culture",
-                        "Education & Knowledge",
-                        "Health & Medicine",
-                        "Environment & Sustainability",
-                        "Arts & Entertainment",
-                        "Sports & Recreation",
-                        "Lifestyle & Personal Life",
-                    ]
-
-                for category in top_level_categories:
-                    if isinstance(category, str) and category.strip():
-                        clean_category = category.strip()
-                        if (
-                            clean_category in allowed_categories
-                            and clean_category not in clean_categories
-                        ):
-                            clean_categories.append(clean_category)
-                        elif clean_category not in allowed_categories:
-                            # Invalid category detected - raise validation error
-                            return LLMResult(
-                                success=False,
-                                error_type="INVALID_CATEGORY",
-                                error_message=(
-                                    f"Category '{clean_category}' is not a valid "
-                                    f"category. Valid categories: {allowed_categories}"
-                                ),
-                            )
-
-                # Check if categories are required and empty
-                if not clean_categories:
-                    return LLMResult(
-                        success=False,
-                        error_type="CATEGORY_REQUIRED",
-                        error_message="At least one top-level category is required.",
-                    )
-
-                top_level_categories = clean_categories[:3]  # Limit to 3 categories
-            else:
-                # Non-list categories - validation error
-                return LLMResult(
-                    success=False,
-                    error_type="CATEGORY_REQUIRED",
-                    error_message="At least one top-level category is required.",
-                )
-
-            logger.info(
-                f"Successfully processed content: title='{title[:50]}...', "
-                f"summary_len={len(summary)}, tags_count={len(tags)}, "
-                f"categories_count={len(top_level_categories)}"
-            )
-
             return LLMResult(
-                success=True,
-                title=title,
-                summary=summary,
-                tags=tags,
-                top_level_categories=top_level_categories,
+                success=False,
+                error_type="api_error",
+                error_message=f"API error: {msg}",
             )
 
         except anthropic.RateLimitError:
-            error_message = "API rate limit exceeded"
-            logger.warning(f"Rate limit error: {error_message}")
+            logger.warning("Rate limit error")
             return LLMResult(
                 success=False,
                 error_type="rate_limit",
-                error_message=error_message,
+                error_message="API rate limit exceeded",
             )
 
         except anthropic.APITimeoutError:
-            error_message = "API request timed out"
-            logger.warning(f"Timeout error: {error_message}")
+            logger.warning("Timeout error")
             return LLMResult(
                 success=False,
                 error_type="timeout",
-                error_message=error_message,
+                error_message="API request timed out",
             )
 
         except anthropic.APIStatusError as e:
@@ -297,24 +255,124 @@ class LLMProcessorService:
             )
 
         except anthropic.APIConnectionError:
-            error_message = "Failed to connect to Anthropic API"
-            logger.warning(f"Connection error: {error_message}")
+            logger.warning("Connection error")
             return LLMResult(
                 success=False,
                 error_type="connection_error",
-                error_message=error_message,
+                error_message="Failed to connect to Anthropic API",
             )
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
             logger.error(
-                f"Unexpected error processing content: {error_message}", exc_info=True
+                f"Unexpected error processing content: {error_message}",
+                exc_info=True,
             )
             return LLMResult(
                 success=False,
                 error_type="unknown_error",
                 error_message=error_message,
             )
+
+        # --- Validate and clean extracted_data ---
+
+        title = extracted_data.get("title", "").strip()
+        summary = extracted_data.get("summary", "").strip()
+        tags = extracted_data.get("tags", [])
+        top_level_categories = extracted_data.get("top_level_categories", [])
+
+        if not title:
+            return LLMResult(
+                success=False,
+                error_type="extraction_error",
+                error_message="LLM failed to extract a valid title",
+            )
+
+        if not summary:
+            return LLMResult(
+                success=False,
+                error_type="extraction_error",
+                error_message="LLM failed to extract a valid summary",
+            )
+
+        # Clean and validate tags
+        if isinstance(tags, list):
+            clean_tags = []
+            for tag in tags:
+                if isinstance(tag, str) and tag.strip():
+                    clean_tag = tag.strip().lower().replace(" ", "-")
+                    if clean_tag and clean_tag not in clean_tags:
+                        clean_tags.append(clean_tag)
+            tags = clean_tags[:8]
+        else:
+            tags = []
+
+        # Clean and validate top_level_categories
+        if isinstance(top_level_categories, list):
+            clean_categories = []
+
+            if valid_categories:
+                allowed_categories = valid_categories
+            else:
+                allowed_categories = [
+                    "Science & Technology",
+                    "Business & Economics",
+                    "Politics & Government",
+                    "Society & Culture",
+                    "Education & Knowledge",
+                    "Health & Medicine",
+                    "Environment & Sustainability",
+                    "Arts & Entertainment",
+                    "Sports & Recreation",
+                    "Lifestyle & Personal Life",
+                ]
+
+            for category in top_level_categories:
+                if isinstance(category, str) and category.strip():
+                    clean_category = category.strip()
+                    if (
+                        clean_category in allowed_categories
+                        and clean_category not in clean_categories
+                    ):
+                        clean_categories.append(clean_category)
+                    elif clean_category not in allowed_categories:
+                        return LLMResult(
+                            success=False,
+                            error_type="INVALID_CATEGORY",
+                            error_message=(
+                                f"Category '{clean_category}' is not a valid "
+                                f"category. Valid categories: {allowed_categories}"
+                            ),
+                        )
+
+            if not clean_categories:
+                return LLMResult(
+                    success=False,
+                    error_type="CATEGORY_REQUIRED",
+                    error_message="At least one top-level category is required.",
+                )
+
+            top_level_categories = clean_categories[:3]
+        else:
+            return LLMResult(
+                success=False,
+                error_type="CATEGORY_REQUIRED",
+                error_message="At least one top-level category is required.",
+            )
+
+        logger.info(
+            f"Successfully processed content: title='{title[:50]}...', "
+            f"summary_len={len(summary)}, tags_count={len(tags)}, "
+            f"categories_count={len(top_level_categories)}"
+        )
+
+        return LLMResult(
+            success=True,
+            title=title,
+            summary=summary,
+            tags=tags,
+            top_level_categories=top_level_categories,
+        )
 
     def _build_system_prompt(
         self,
@@ -337,13 +395,11 @@ class LLMProcessorService:
             "(lowercase, hyphenated if multi-word)\n"
         )
 
-        # Add existing user tags context
         if existing_user_tags:
             prompt += (
                 f"- Existing user tags (reuse when applicable): {existing_user_tags}\n"
             )
 
-        # Add valid categories
         if valid_categories:
             prompt += f"- Available categories: {valid_categories}\n"
         else:
@@ -367,8 +423,6 @@ class LLMProcessorService:
         """Build the user message with content to process."""
         import re
 
-        # For HTML content, strip tags/scripts/styles to plain text first so the
-        # 3000-char window contains actual article text, not <head> boilerplate.
         if "html" in content_type:
             text = re.sub(r"<script[^>]*>.*?</script>", " ", content, flags=re.DOTALL)
             text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.DOTALL)
