@@ -28,9 +28,9 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-067 | Disable search button + "coming soon" tooltip | ✅ Completed (PR #160) |
 | DEV-068 | Chat panel "coming soon" mode (disable input, inject bot message) | ✅ Completed (PR #161) |
 | DEV-069 | User allowlisting backend (ALLOWED_EMAILS env var gate) | ✅ Completed (PR #162) |
-| DEV-071 | Multi-LLM provider abstraction (LLM_PROVIDER env var) | 🔄 Active |
-| DEV-047 | Backend Dockerfile (API + worker services) | ⏳ Pending |
-| DEV-070 | Coming-soon page at /coming-soon — needs DEV-069 | 🔄 Active |
+| DEV-071 | Multi-LLM provider abstraction (LLM_PROVIDER env var) | ✅ Completed (PR #164) |
+| DEV-047 | Backend Dockerfile (API + worker services) | ✅ Completed (PR #165) |
+| DEV-070 | Coming-soon page at /coming-soon — needs DEV-069 | ✅ Completed (PR #163) |
 | OPS-002 | Provision cloud services (Supabase + Neo4j AuraDB + Upstash) | ⏳ Pending (manual) |
 
 ---
