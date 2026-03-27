@@ -44,7 +44,7 @@ describe("LoginPage", () => {
     jest.restoreAllMocks();
   });
 
-  it("renders login page with app name and social OAuth buttons", () => {
+  it("renders login page with app name and Google OAuth button", () => {
     render(<LoginPage />);
 
     expect(screen.getByText("Learning Space")).toBeInTheDocument();
@@ -52,49 +52,8 @@ describe("LoginPage", () => {
       screen.getByText("Sign in to your account to continue"),
     ).toBeInTheDocument();
     expect(screen.getByText("Google")).toBeInTheDocument();
-    expect(screen.getByText("X")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toBeInTheDocument();
   });
 
-  it("renders forgot password link", () => {
-    render(<LoginPage />);
-    expect(screen.getByText("Forgot password?")).toBeInTheDocument();
-  });
-
-  it("renders sign up link", () => {
-    render(<LoginPage />);
-    expect(screen.getByText("Sign up")).toBeInTheDocument();
-  });
-
-  it("initiates X OAuth login when button is clicked", async () => {
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {});
-
-    const mockResponse = {
-      ok: true,
-      json: jest.fn(() =>
-        Promise.resolve({
-          authorization_url: "https://twitter.com/authorize?state=test-state",
-          provider: "x",
-          state: "test-state",
-        }),
-      ),
-    };
-    (fetch as jest.Mock).mockResolvedValue(mockResponse);
-
-    render(<LoginPage />);
-
-    fireEvent.click(screen.getByText("X"));
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("http://localhost:8000/auth/login/x");
-    });
-
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      "oauth_state_x",
-      "test-state",
-    );
-  });
 
   it("initiates Google OAuth login when button is clicked", async () => {
     jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {});
@@ -171,49 +130,4 @@ describe("LoginPage", () => {
     expect(googleButton.closest("button")).toBeDisabled();
   });
 
-  it("submits email/password form and navigates to dashboard on success", async () => {
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          access_token: "token-123",
-          user: { id: "1", email: "test@example.com", display_name: "Test" },
-        }),
-    });
-
-    render(<LoginPage />);
-
-    fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: "password" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        "http://localhost:8000/auth/login",
-        expect.objectContaining({ method: "POST" }),
-      );
-    });
-  });
-
-  it("shows error when email/password login fails", async () => {
-    (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401 });
-
-    render(<LoginPage />);
-
-    fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "bad@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: "wrong" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
-    });
-  });
 });
