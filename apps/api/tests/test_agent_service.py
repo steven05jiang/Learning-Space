@@ -29,12 +29,13 @@ class TestAgentService:
     async def agent_service_with_mocked_llm(self, agent_service):
         """Create an AgentService with mocked LLM components."""
         with patch("services.agent_service.settings") as mock_settings:
+            mock_settings.llm_provider = "anthropic"
             mock_settings.anthropic_api_key = "test-key"
             mock_settings.anthropic_model = "claude-haiku-4-5-20251001"
 
-            with patch("services.agent_service.ChatAnthropic") as mock_chat:
+            with patch("services.agent_service.get_llm_client") as mock_get_client:
                 mock_llm = Mock()
-                mock_chat.return_value = mock_llm
+                mock_get_client.return_value = mock_llm
                 agent_service.llm = mock_llm
 
                 # Mock the graph compilation
@@ -52,6 +53,7 @@ class TestAgentService:
     async def test_initialization_without_api_key(self, agent_service):
         """Test initialization without API key."""
         with patch("services.agent_service.settings") as mock_settings:
+            mock_settings.llm_provider = "anthropic"
             mock_settings.anthropic_api_key = ""
 
             await agent_service._initialize()
@@ -63,6 +65,7 @@ class TestAgentService:
     async def test_initialization_with_test_key(self, agent_service):
         """Test initialization with test API key."""
         with patch("services.agent_service.settings") as mock_settings:
+            mock_settings.llm_provider = "anthropic"
             mock_settings.anthropic_api_key = "test-anthropic-key-for-development"
 
             await agent_service._initialize()
@@ -74,12 +77,13 @@ class TestAgentService:
     async def test_initialization_with_valid_key(self, agent_service):
         """Test successful initialization with valid API key."""
         with patch("services.agent_service.settings") as mock_settings:
+            mock_settings.llm_provider = "anthropic"
             mock_settings.anthropic_api_key = "valid-key"
             mock_settings.anthropic_model = "claude-haiku-4-5-20251001"
 
-            with patch("services.agent_service.ChatAnthropic") as mock_chat:
+            with patch("services.agent_service.get_llm_client") as mock_get_client:
                 mock_llm = Mock()
-                mock_chat.return_value = mock_llm
+                mock_get_client.return_value = mock_llm
 
                 with patch.object(agent_service, "_build_graph") as mock_build_graph:
                     await agent_service._initialize()
@@ -92,6 +96,7 @@ class TestAgentService:
         """Test query when agent is not initialized."""
         # Ensure agent is not initialized by patching settings during query
         with patch("services.agent_service.settings") as mock_settings:
+            mock_settings.llm_provider = "anthropic"
             mock_settings.anthropic_api_key = ""
 
             # Ensure agent is not initialized

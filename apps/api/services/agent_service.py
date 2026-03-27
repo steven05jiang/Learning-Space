@@ -4,7 +4,6 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import Tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -19,6 +18,7 @@ from models.resource import Resource
 from models.user import User
 from schemas.agent import AgentQuery, AgentResponse, ToolCallResult
 from services.graph_service import graph_service
+from services.llm_client import get_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -46,20 +46,23 @@ class AgentService:
         if self._initialized:
             return
 
-        if (
-            not settings.anthropic_api_key
-            or settings.anthropic_api_key == "test-anthropic-key-for-development"
-        ):
-            logger.warning("Anthropic API key not configured - agent will not work")
+        # Check for test key - this applies to all providers for consistency
+        provider_key = getattr(settings, f"{settings.llm_provider}_api_key", "")
+        if not provider_key or provider_key == "test-anthropic-key-for-development":
+            logger.warning(
+                f"LLM provider '{settings.llm_provider}' API key not configured - "
+                "agent will not work"
+            )
             self._initialized = False
             return
 
-        # Initialize the LLM
-        self.llm = ChatAnthropic(
-            api_key=settings.anthropic_api_key,
-            model=settings.anthropic_model,
-            temperature=0,
-        )
+        try:
+            # Initialize the LLM using the factory
+            self.llm = get_llm_client()
+        except ValueError as e:
+            logger.warning(f"Failed to initialize LLM client: {e}")
+            self._initialized = False
+            return
 
         # Create the graph
         await self._build_graph()
