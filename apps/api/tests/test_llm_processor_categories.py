@@ -1,10 +1,10 @@
 """Tests for LLM processor category validation and context features (DEV-062)."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
-from services.llm_processor import LLMProcessorService, LLMResult
+from services.llm_processor import LLMProcessorService
 
 
 class TestLLMProcessorCategories:
@@ -30,12 +30,16 @@ class TestLLMProcessorCategories:
             "Science & Technology",
             "Business & Economics",
             "Education & Knowledge",
-            "Health & Medicine"
+            "Health & Medicine",
         ]
 
-    def test_build_system_prompt_with_context(self, llm_service, mock_existing_tags, mock_valid_categories):
+    def test_build_system_prompt_with_context(
+        self, llm_service, mock_existing_tags, mock_valid_categories
+    ):
         """Test that system prompt includes existing tags and valid categories."""
-        prompt = llm_service._build_system_prompt(mock_existing_tags, mock_valid_categories)
+        prompt = llm_service._build_system_prompt(
+            mock_existing_tags, mock_valid_categories
+        )
 
         # Check that existing tags are included
         assert "machine-learning" in prompt
@@ -61,7 +65,9 @@ class TestLLMProcessorCategories:
         assert "Categories from:" in prompt
 
     @pytest.mark.asyncio
-    async def test_process_content_valid_categories(self, llm_service, mock_valid_categories):
+    async def test_process_content_valid_categories(
+        self, llm_service, mock_valid_categories
+    ):
         """Test successful processing with valid categories."""
         # Mock successful Anthropic API response
         mock_response = Mock()
@@ -71,7 +77,7 @@ class TestLLMProcessorCategories:
             "title": "Machine Learning Basics",
             "summary": "An introduction to machine learning concepts and applications.",
             "tags": ["machine-learning", "ai", "python"],
-            "top_level_categories": ["Science & Technology", "Education & Knowledge"]
+            "top_level_categories": ["Science & Technology", "Education & Knowledge"],
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
@@ -80,7 +86,7 @@ class TestLLMProcessorCategories:
             "Content about machine learning",
             "text/plain",
             existing_user_tags=["machine-learning"],
-            valid_categories=mock_valid_categories
+            valid_categories=mock_valid_categories,
         )
 
         assert result.success is True
@@ -91,7 +97,9 @@ class TestLLMProcessorCategories:
         assert result.error_type is None
 
     @pytest.mark.asyncio
-    async def test_process_content_invalid_category(self, llm_service, mock_valid_categories):
+    async def test_process_content_invalid_category(
+        self, llm_service, mock_valid_categories
+    ):
         """Test processing fails with invalid category."""
         # Mock Anthropic API response with invalid category
         mock_response = Mock()
@@ -101,15 +109,13 @@ class TestLLMProcessorCategories:
             "title": "Test Article",
             "summary": "Test summary",
             "tags": ["test"],
-            "top_level_categories": ["Invalid Category", "Science & Technology"]
+            "top_level_categories": ["Invalid Category", "Science & Technology"],
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
 
         result = await llm_service.process_content(
-            "Test content",
-            "text/plain",
-            valid_categories=mock_valid_categories
+            "Test content", "text/plain", valid_categories=mock_valid_categories
         )
 
         assert result.success is False
@@ -118,7 +124,9 @@ class TestLLMProcessorCategories:
         assert "not a valid category" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_process_content_empty_categories(self, llm_service, mock_valid_categories):
+    async def test_process_content_empty_categories(
+        self, llm_service, mock_valid_categories
+    ):
         """Test processing fails when no categories provided."""
         # Mock Anthropic API response with empty categories
         mock_response = Mock()
@@ -128,15 +136,13 @@ class TestLLMProcessorCategories:
             "title": "Test Article",
             "summary": "Test summary",
             "tags": ["test"],
-            "top_level_categories": []
+            "top_level_categories": [],
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
 
         result = await llm_service.process_content(
-            "Test content",
-            "text/plain",
-            valid_categories=mock_valid_categories
+            "Test content", "text/plain", valid_categories=mock_valid_categories
         )
 
         assert result.success is False
@@ -144,7 +150,9 @@ class TestLLMProcessorCategories:
         assert "At least one top-level category is required" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_process_content_missing_categories_field(self, llm_service, mock_valid_categories):
+    async def test_process_content_missing_categories_field(
+        self, llm_service, mock_valid_categories
+    ):
         """Test processing fails when categories field is not a list."""
         # Mock Anthropic API response with non-list categories
         mock_response = Mock()
@@ -154,15 +162,13 @@ class TestLLMProcessorCategories:
             "title": "Test Article",
             "summary": "Test summary",
             "tags": ["test"],
-            "top_level_categories": "Science & Technology"  # String instead of list
+            "top_level_categories": "Science & Technology",  # String instead of list
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
 
         result = await llm_service.process_content(
-            "Test content",
-            "text/plain",
-            valid_categories=mock_valid_categories
+            "Test content", "text/plain", valid_categories=mock_valid_categories
         )
 
         assert result.success is False
@@ -170,7 +176,9 @@ class TestLLMProcessorCategories:
         assert "At least one top-level category is required" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_process_content_partial_valid_categories(self, llm_service, mock_valid_categories):
+    async def test_process_content_partial_valid_categories(
+        self, llm_service, mock_valid_categories
+    ):
         """Test processing with mix of valid and invalid categories."""
         # Mock Anthropic API response with mix of valid/invalid categories
         mock_response = Mock()
@@ -180,15 +188,17 @@ class TestLLMProcessorCategories:
             "title": "Test Article",
             "summary": "Test summary",
             "tags": ["test"],
-            "top_level_categories": ["Science & Technology", "Invalid Category", "Education & Knowledge"]
+            "top_level_categories": [
+                "Science & Technology",
+                "Invalid Category",
+                "Education & Knowledge",
+            ],
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
 
         result = await llm_service.process_content(
-            "Test content",
-            "text/plain",
-            valid_categories=mock_valid_categories
+            "Test content", "text/plain", valid_categories=mock_valid_categories
         )
 
         # Should fail on first invalid category encountered
@@ -197,7 +207,9 @@ class TestLLMProcessorCategories:
         assert "Invalid Category" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_process_content_default_categories_when_none_provided(self, llm_service):
+    async def test_process_content_default_categories_when_none_provided(
+        self, llm_service
+    ):
         """Test processing uses default categories when none provided."""
         # Mock Anthropic API response with default category
         mock_response = Mock()
@@ -207,14 +219,14 @@ class TestLLMProcessorCategories:
             "title": "Test Article",
             "summary": "Test summary",
             "tags": ["test"],
-            "top_level_categories": ["Science & Technology"]
+            "top_level_categories": ["Science & Technology"],
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
 
         result = await llm_service.process_content(
             "Test content",
-            "text/plain"
+            "text/plain",
             # No existing_user_tags or valid_categories provided
         )
 
@@ -222,7 +234,9 @@ class TestLLMProcessorCategories:
         assert "Science & Technology" in result.top_level_categories
 
     @pytest.mark.asyncio
-    async def test_process_content_limits_categories_to_three(self, llm_service, mock_valid_categories):
+    async def test_process_content_limits_categories_to_three(
+        self, llm_service, mock_valid_categories
+    ):
         """Test that categories are limited to maximum of 3."""
         # Mock Anthropic API response with more than 3 categories
         mock_response = Mock()
@@ -236,16 +250,14 @@ class TestLLMProcessorCategories:
                 "Science & Technology",
                 "Business & Economics",
                 "Education & Knowledge",
-                "Health & Medicine"  # This should be trimmed
-            ]
+                "Health & Medicine",  # This should be trimmed
+            ],
         }
         mock_response.content = [mock_tool_use]
         llm_service.client.messages.create = Mock(return_value=mock_response)
 
         result = await llm_service.process_content(
-            "Test content",
-            "text/plain",
-            valid_categories=mock_valid_categories
+            "Test content", "text/plain", valid_categories=mock_valid_categories
         )
 
         assert result.success is True

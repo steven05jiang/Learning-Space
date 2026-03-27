@@ -142,7 +142,8 @@ async def process_resource(
             categories_result = await session.execute(
                 select(Category.name)
                 .where(
-                    (Category.user_id == resource.owner_id) | (Category.user_id.is_(None))
+                    (Category.owner_id == resource.owner_id)
+                    | (Category.owner_id.is_(None))
                 )
                 .order_by(Category.name)
             )
@@ -150,13 +151,18 @@ async def process_resource(
 
             # Step 3b: LLM processing with context
             llm_result = await llm_processor_service.process_content(
-                content_to_process, final_content_type, existing_user_tags, valid_categories
+                content_to_process,
+                final_content_type,
+                existing_user_tags,
+                valid_categories,
             )
 
             if not llm_result.success:
                 # Handle specific validation errors with appropriate error types
                 if llm_result.error_type in ["CATEGORY_REQUIRED", "INVALID_CATEGORY"]:
-                    error_msg = f"Category validation failed: {llm_result.error_message}"
+                    error_msg = (
+                        f"Category validation failed: {llm_result.error_message}"
+                    )
                     resource.fetch_error_type = llm_result.error_type
                 else:
                     error_msg = f"LLM processing failed: {llm_result.error_message}"

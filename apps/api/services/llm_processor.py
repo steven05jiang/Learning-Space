@@ -8,7 +8,6 @@ import anthropic
 from anthropic import Anthropic
 
 from core.config import settings
-from core.errors import ErrorCode, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,9 @@ class LLMProcessorService:
 
         try:
             # Prepare the content processing prompt
-            system_prompt = self._build_system_prompt(existing_user_tags, valid_categories)
+            system_prompt = self._build_system_prompt(
+                existing_user_tags, valid_categories
+            )
             user_message = self._build_user_message(content, content_type)
 
             # Define the tool for structured output
@@ -230,8 +231,10 @@ class LLMProcessorService:
                             return LLMResult(
                                 success=False,
                                 error_type="INVALID_CATEGORY",
-                                error_message=f"Category '{clean_category}' is not a valid category. "
-                                f"Valid categories: {allowed_categories}",
+                                error_message=(
+                                    f"Category '{clean_category}' is not a valid "
+                                    f"category. Valid categories: {allowed_categories}"
+                                ),
                             )
 
                 # Check if categories are required and empty
@@ -313,7 +316,9 @@ class LLMProcessorService:
             )
 
     def _build_system_prompt(
-        self, existing_user_tags: Optional[List[str]] = None, valid_categories: Optional[List[str]] = None
+        self,
+        existing_user_tags: Optional[List[str]] = None,
+        valid_categories: Optional[List[str]] = None,
     ) -> str:
         """Build the system prompt for content processing."""
         prompt = (
@@ -332,7 +337,9 @@ class LLMProcessorService:
 
         # Add existing user tags context
         if existing_user_tags:
-            prompt += f"- Existing user tags (reuse when applicable): {existing_user_tags}\n"
+            prompt += (
+                f"- Existing user tags (reuse when applicable): {existing_user_tags}\n"
+            )
 
         # Add valid categories
         if valid_categories:
@@ -341,8 +348,8 @@ class LLMProcessorService:
             prompt += (
                 "- Categories from: Science & Technology, Business & Economics, "
                 "Politics & Government, Society & Culture, Education & Knowledge, "
-                "Health & Medicine, Environment & Sustainability, Arts & Entertainment, "
-                "Sports & Recreation, Lifestyle & Personal Life\n"
+                "Health & Medicine, Environment & Sustainability, "
+                "Arts & Entertainment, Sports & Recreation, Lifestyle & Personal Life\n"
             )
 
         prompt += (
