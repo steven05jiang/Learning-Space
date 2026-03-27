@@ -10,5 +10,5 @@ if [ "$SERVICE_TYPE" = "worker" ]; then
     fi
 else
     # API service: run migrations then start server
-    exec alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000
+    alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000
 fi
