@@ -324,6 +324,7 @@ async def get_linked_accounts(
                 "id": account.id,
                 "provider": account.provider,
                 "provider_account_id": account.provider_account_id,
+                "username": account.username,
                 "last_login_at": (
                     account.last_login_at.isoformat() if account.last_login_at else None
                 ),

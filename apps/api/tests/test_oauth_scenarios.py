@@ -122,7 +122,8 @@ class TestOAuthScenarios:
 
         # Verify tokens were updated
         auth_service.update_account_tokens.assert_called_once_with(
-            mock_db, existing_user, provider, new_access_token, None
+            mock_db, existing_user, provider, new_access_token, None,
+            username=None,
         )
 
         # Verify JWT token generated

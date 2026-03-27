@@ -80,6 +80,7 @@ class GitHubOAuthProvider(OAuthProvider):
                 return {
                     "id": str(user_data["id"]),
                     "email": user_data.get("email"),
+                    "username": user_data.get("login"),
                     "display_name": user_data.get("name") or user_data.get("login"),
                     "avatar_url": user_data.get("avatar_url"),
                 }
@@ -137,6 +138,7 @@ class GoogleOAuthProvider(OAuthProvider):
                 return {
                     "id": str(user_data["id"]),
                     "email": user_data.get("email"),
+                    "username": user_data.get("email"),  # Google identifies users by email
                     "display_name": user_data.get("name"),
                     "avatar_url": user_data.get("picture"),
                 }
@@ -227,6 +229,7 @@ class TwitterOAuthProvider(OAuthProvider):
                 return {
                     "id": str(user_data["id"]),
                     "email": user_data.get("email"),  # Use email if provided (in tests)
+                    "username": f"@{user_data['username']}" if user_data.get("username") else None,
                     "display_name": user_data.get("name"),
                     "avatar_url": user_data.get("profile_image_url"),
                 }

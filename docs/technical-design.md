@@ -951,7 +951,7 @@ Learning-Space/
 | --------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------- |
 | `DATABASE_URL`                                            | API, Worker         | PostgreSQL connection string                                                 |
 | `NEO4J_URI`                                               | API, Worker         | Neo4j bolt URI                                                               |
-| `NEO4J_USER` / `NEO4J_PASSWORD`                           | API, Worker         | Neo4j auth                                                                   |
+| `NEO4J_USERNAME` / `NEO4J_PASSWORD`                       | API, Worker         | Neo4j auth                                                                   |
 | `REDIS_URL`                                               | API, Worker         | If using Celery                                                              |
 | `OAUTH_TWITTER_CLIENT_ID` / `OAUTH_TWITTER_CLIENT_SECRET` | API                 | Twitter/X OAuth                                                              |
 | `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET`   | API                 | Google OAuth (when enabled)                                                  |

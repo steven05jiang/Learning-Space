@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     )
     database_echo: bool = False
     neo4j_uri: str = "bolt://localhost:7687"
-    neo4j_user: str = "neo4j"
+    neo4j_username: str = "neo4j"
     neo4j_password: str = "changeme"
     redis_url: str = "redis://localhost:6379"
 
@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     siliconflow_model: str = "Qwen/Qwen2.5-7B-Instruct"
     fireworks_model: str = "accounts/fireworks/models/llama-v3p1-8b-instruct"
 
+    # Base URL overrides per provider
+    siliconflow_base_url: str = "https://api.siliconflow.com/v1"
+    fireworks_base_url: str = "https://api.fireworks.ai/inference/v1"
+
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"
 
@@ -58,6 +62,14 @@ class Settings(BaseSettings):
         if not self.allowed_emails:
             return set()
         return {e.strip().lower() for e in self.allowed_emails.split(",") if e.strip()}
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: str) -> str:
+        """Ensure asyncpg driver is used for PostgreSQL (Railway provides postgresql://)."""
+        if isinstance(v, str) and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
 
     @field_validator("jwt_secret_key")
     @classmethod

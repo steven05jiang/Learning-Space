@@ -98,7 +98,7 @@ cd apps/api && TEST_DATABASE_URL=postgresql+asyncpg://learningspace:changeme@loc
 cd apps/api && TEST_DATABASE_URL=postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test \
   DATABASE_URL=postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace_test \
   JWT_SECRET_KEY=ci-test-secret-key-32-chars-minimum \
-  ENVIRONMENT=test NEO4J_URI=bolt://localhost:7687 NEO4J_USER=neo4j NEO4J_PASSWORD=changeme \
+  ENVIRONMENT=test NEO4J_URI=bolt://localhost:7687 NEO4J_USERNAME=neo4j NEO4J_PASSWORD=changeme \
   uv run pytest -m "integration and (<group_marker>)" -v 2>&1
 ```
 

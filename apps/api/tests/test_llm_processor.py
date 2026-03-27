@@ -48,8 +48,10 @@ class TestLLMProcessorService:
 
     def test_initialization_without_key(self):
         """Test initialization without API key."""
-        with patch("services.llm_processor.settings") as mock_settings:
-            mock_settings.anthropic_api_key = ""
+        with patch(
+            "services.llm_processor.get_direct_client",
+            side_effect=ValueError("API key not configured"),
+        ):
             processor = LLMProcessorService()
 
             assert processor.client is None
@@ -85,7 +87,7 @@ class TestLLMProcessorService:
 
         assert result.success is False
         assert result.error_type == "configuration_error"
-        assert "Anthropic API key not configured" in result.error_message
+        assert "LLM client not configured or invalid" in result.error_message
 
     async def test_successful_processing(self, processor_with_client):
         """Test successful content processing."""

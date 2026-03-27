@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.deps import get_current_user, get_current_user_optional
 from models.category import Category
 from models.database import get_db
+from models.resource import Resource
 from models.user import User
 from schemas.category import CategoryCreate, CategoryResponse
 
@@ -141,6 +142,25 @@ async def delete_category(
     if category.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
+
+    # Block deletion if any resources still reference this category.
+    # Fetch category arrays for the user's resources and check in Python —
+    # avoids JSONB-specific SQL so this works on both PostgreSQL and SQLite (tests).
+    cats_result = await db.execute(
+        select(Resource.top_level_categories).where(
+            Resource.owner_id == current_user.id
+        )
+    )
+    resource_count = sum(
+        1
+        for (cats,) in cats_result
+        if cats and category.name in cats
+    )
+    if resource_count:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Category is used by {resource_count} resource(s). Remove it from all resources before deleting.",
         )
 
     await db.delete(category)

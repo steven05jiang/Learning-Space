@@ -26,7 +26,7 @@ class Neo4jDriverService:
         logger.info("Connecting to Neo4j database...")
 
         self._driver = AsyncGraphDatabase.driver(
-            settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
+            settings.neo4j_uri, auth=(settings.neo4j_username, settings.neo4j_password)
         )
 
         # Verify connectivity

@@ -35,6 +35,7 @@ interface Account {
   id: number;
   provider: string;
   provider_account_id: string;
+  username: string | null;
   created_at: string;
   last_login_at?: string;
 }
@@ -51,6 +52,7 @@ interface Provider {
   id: string;
   name: string;
   icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
 }
 
 interface Category {
@@ -62,13 +64,13 @@ interface Category {
 }
 
 const PROVIDERS: Provider[] = [
-  { id: "github", name: "GitHub", icon: Github },
+  { id: "github", name: "GitHub", icon: Github, disabled: true },
   { id: "google", name: "Google", icon: Mail },
   { id: "twitter", name: "X (Twitter)", icon: ({ className }) => (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
     </svg>
-  ) },
+  ), disabled: true },
 ];
 
 export default function SettingsPage() {
@@ -150,17 +152,30 @@ export default function SettingsPage() {
 
         const userData = await response.json();
 
-        // Set user data - accounts may not be included in current API response
-        setUser({
-          ...userData,
-          accounts: userData.accounts || [], // Default to empty array if not included
-        });
+        // Fetch linked OAuth accounts from the dedicated endpoint
+        let accounts: Account[] = [];
+        try {
+          const accountsResponse = await fetch(`${apiBase}/auth/accounts`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+          if (accountsResponse.ok) {
+            const accountsData = await accountsResponse.json();
+            accounts = accountsData.accounts ?? [];
+          }
+        } catch {
+          // Non-fatal: accounts section will show empty
+        }
+
+        setUser({ ...userData, accounts });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load user data");
         // Fallback to localStorage data
         try {
           const parsedUser = JSON.parse(userInfo!);
-          setUser({ ...parsedUser, accounts: [] });
+          setUser({ ...parsedUser, accounts: [] }); // accounts unknown without API
         } catch {
           localStorage.removeItem("user_info");
           localStorage.removeItem("auth_token");
@@ -445,6 +460,17 @@ export default function SettingsPage() {
         return;
       }
 
+      if (response.status === 409) {
+        const errorData = await response.json().catch(() => null);
+        const detail = errorData?.detail ?? "";
+        const match = detail.match(/(\d+) resource/);
+        const count = match ? match[1] : "some";
+        setCategoryError(
+          `This category is used by ${count} resource(s). Go to My Resources, remove this category from those resources, then try again.`
+        );
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`Failed to delete category: ${response.statusText}`);
       }
@@ -533,8 +559,10 @@ export default function SettingsPage() {
                     <p className="font-medium text-foreground">{provider.name}</p>
                     {linkedAccount ? (
                       <p className="text-sm text-muted-foreground">
-                        Connected as {linkedAccount.provider_account_id}
+                        Connected{linkedAccount.username ? ` as ${linkedAccount.username}` : ""}
                       </p>
+                    ) : provider.disabled ? (
+                      <p className="text-sm text-muted-foreground">Coming soon</p>
                     ) : (
                       <p className="text-sm text-muted-foreground">Not connected</p>
                     )}
@@ -559,6 +587,11 @@ export default function SettingsPage() {
                         {isUnlinking ? "Disconnecting..." : "Disconnect"}
                       </Button>
                     </>
+                  ) : provider.disabled ? (
+                    <Button variant="outline" size="sm" disabled>
+                      <Plus className="h-4 w-4" />
+                      Connect
+                    </Button>
                   ) : (
                     <Button
                       variant="outline"
@@ -678,8 +711,10 @@ export default function SettingsPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Category</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete the category &quot;{category.name}&quot;?
-                                  This action cannot be undone.
+                                  Are you sure you want to delete &quot;{category.name}&quot;?
+                                  This action cannot be undone. If any resources are still
+                                  assigned to this category, deletion will be blocked — remove
+                                  the category from those resources first.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
