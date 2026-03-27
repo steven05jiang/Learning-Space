@@ -37,6 +37,14 @@ interface User {
   avatar_url?: string;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  is_system: boolean;
+  user_id?: number;
+  created_at: string;
+}
+
 interface Resource {
   id: string;
   url?: string;
@@ -120,6 +128,7 @@ export default function ResourceDetailPage() {
   const [resource, setResource] = useState<Resource | null>(null);
   const [isLoadingResource, setIsLoadingResource] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Reprocess state
   const [isReprocessing, setIsReprocessing] = useState(false);
@@ -171,6 +180,58 @@ export default function ResourceDetailPage() {
 
     setIsLoading(false);
   }, [router, isMock]);
+
+  // Fetch categories
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchCategories = async () => {
+      if (isMock) {
+        // Mock system categories for testing
+        setCategories([
+          { id: 1, name: "Technology", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 2, name: "Science", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 3, name: "Business", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 4, name: "Arts", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 5, name: "Health", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 6, name: "Education", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 7, name: "Politics", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 8, name: "Entertainment", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 9, name: "Sports", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+          { id: 10, name: "Philosophy", is_system: true, created_at: "2024-01-01T00:00:00Z" },
+        ]);
+        return;
+      }
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      try {
+        const response = await fetch(`${apiBase}/categories`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const data: Category[] = await response.json();
+          setCategories(data);
+        }
+        // If categories fetch fails, continue without setting error
+        // The validation will just check against an empty array
+      } catch (err) {
+        // Silent fail - categories are not critical for viewing
+        console.warn("Failed to fetch categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, [user, isMock]);
 
   // Fetch resource
   useEffect(() => {
@@ -257,11 +318,10 @@ export default function ResourceDetailPage() {
 
   // Check if at least one system category tag remains
   const hasSystemCategoryTag = (tags: string[]): boolean => {
-    const systemCategories = [
-      "Technology", "Science", "Business", "Arts", "Health",
-      "Education", "Politics", "Entertainment", "Sports", "Philosophy"
-    ];
-    return tags.some(tag => systemCategories.includes(tag));
+    const systemCategoryNames = categories
+      .filter(cat => cat.is_system)
+      .map(cat => cat.name);
+    return tags.some(tag => systemCategoryNames.includes(tag));
   };
 
   const handleEditTags = () => {
@@ -289,7 +349,11 @@ export default function ResourceDetailPage() {
     const newTags = editTags.filter(tag => tag !== tagToRemove);
     // Validate that at least one system category remains
     if (!hasSystemCategoryTag(newTags)) {
-      setError("At least one root-level category tag must remain (Technology, Science, Business, Arts, Health, Education, Politics, Entertainment, Sports, Philosophy)");
+      const systemCategories = categories
+        .filter(cat => cat.is_system)
+        .map(cat => cat.name)
+        .join(", ");
+      setError(`At least one root-level category tag must remain${systemCategories ? ` (${systemCategories})` : ""}`);
       return;
     }
     setEditTags(newTags);
@@ -314,7 +378,11 @@ export default function ResourceDetailPage() {
 
     // Final validation before save
     if (!hasSystemCategoryTag(editTags)) {
-      setError("At least one root-level category tag must remain (Technology, Science, Business, Arts, Health, Education, Politics, Entertainment, Sports, Philosophy)");
+      const systemCategories = categories
+        .filter(cat => cat.is_system)
+        .map(cat => cat.name)
+        .join(", ");
+      setError(`At least one root-level category tag must remain${systemCategories ? ` (${systemCategories})` : ""}`);
       return;
     }
 

@@ -367,6 +367,58 @@ class TestUpdateResource:
         response = await client.patch("/resources/1", json=update_data)
         assert response.status_code == 401
 
+    @pytest.mark.asyncio
+    async def test_update_resource_tags_enqueues_graph_sync(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        auth_headers: dict,
+        test_user,
+    ):
+        """Test that updating resource tags enqueues graph sync job."""
+        # Create a resource with tags
+        resource = Resource(
+            owner_id=test_user.id,
+            content_type="url",
+            original_content="https://example.com/test-tags",
+            title="Test Tags Resource",
+            tags=["original", "tags"],
+            status=ResourceStatus.READY,
+        )
+        db_session.add(resource)
+        await db_session.commit()
+        await db_session.refresh(resource)
+
+        # Mock the queue service
+        with patch(
+            "routers.resources.queue_service.enqueue_graph_sync"
+        ) as mock_enqueue:
+            mock_enqueue.return_value = "job123"
+
+            # Update tags
+            update_data = {"tags": ["new", "updated", "tags"]}
+            response = await client.patch(
+                f"/resources/{resource.id}", json=update_data, headers=auth_headers
+            )
+
+            # Verify response
+            assert response.status_code == 200
+            data = response.json()
+            assert data["tags"] == ["new", "updated", "tags"]
+
+            # Verify graph sync job was enqueued with correct parameters
+            mock_enqueue.assert_called_once_with(
+                str(resource.id),
+                operation="update",
+                owner_id=test_user.id,
+                old_tags=["original", "tags"],
+                tags=["new", "updated", "tags"],
+            )
+
+        # Verify in database
+        await db_session.refresh(resource)
+        assert resource.tags == ["new", "updated", "tags"]
+
 
 class TestDeleteResource:
     """Test cases for DELETE /resources/{id}."""
