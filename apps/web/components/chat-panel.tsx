@@ -36,8 +36,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
         {
           id: "1",
           role: "assistant",
-          content:
-            "Hello! I'm your AI learning assistant. How can I help you today?",
+          content: "AI Chat is coming soon! Check back later.",
         },
       ];
 
@@ -230,13 +229,13 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your resources..."
-            disabled={isLoading}
+            disabled={isLoading || !isMock}
             className="flex-1 rounded-full bg-muted/50"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || !isMock}
             className="h-9 w-9 shrink-0 rounded-full"
           >
             <Send className="h-4 w-4" />
