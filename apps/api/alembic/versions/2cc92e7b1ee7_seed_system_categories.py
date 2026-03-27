@@ -9,6 +9,8 @@ Create Date: 2026-03-27 00:09:21.558425
 from datetime import datetime
 from typing import Sequence, Union
 
+import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -33,16 +35,14 @@ SYSTEM_CATEGORIES = [
 
 def upgrade() -> None:
     """Seed system categories."""
-    now = datetime.utcnow()
-    op.execute(
-        f"""
-        INSERT INTO categories (name, is_system, owner_id, created_at)
-        VALUES {
-            ", ".join(f"('{name}', TRUE, NULL, '{now}')" for name in SYSTEM_CATEGORIES)
-        }
-        ON CONFLICT DO NOTHING
-        """
+    now = datetime.utcnow().isoformat()
+    conn = op.get_bind()
+    stmt = sa.text(
+        "INSERT INTO categories (name, is_system, owner_id, created_at)"
+        " VALUES (:name, TRUE, NULL, :now) ON CONFLICT DO NOTHING"
     )
+    for name in SYSTEM_CATEGORIES:
+        conn.execute(stmt, {"name": name, "now": now})
 
 
 def downgrade() -> None:

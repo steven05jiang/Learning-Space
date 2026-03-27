@@ -194,7 +194,7 @@ class LLMProcessorService:
                         clean_tag = tag.strip().lower().replace(" ", "-")
                         if clean_tag and clean_tag not in clean_tags:
                             clean_tags.append(clean_tag)
-                tags = clean_tags[:3]  # Default to 3 tags; user can add more
+                tags = clean_tags[:8]
             else:
                 tags = []
 
