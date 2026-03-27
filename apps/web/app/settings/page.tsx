@@ -9,12 +9,26 @@ import {
   Unlink,
   Loader2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  X,
+  Lock
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useMock } from "@/lib/mock/hooks";
 
 interface Account {
@@ -39,6 +53,14 @@ interface Provider {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  is_system: boolean;
+  user_id?: number;
+  created_at: string;
+}
+
 const PROVIDERS: Provider[] = [
   { id: "github", name: "GitHub", icon: Github },
   { id: "google", name: "Google", icon: Mail },
@@ -56,6 +78,14 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unlinkingAccount, setUnlinkingAccount] = useState<number | null>(null);
+
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<number | null>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   // Auth check and fetch user data
   useEffect(() => {
@@ -145,6 +175,88 @@ export default function SettingsPage() {
     fetchUserData();
   }, [router, isMock]);
 
+  // Fetch categories when user is loaded
+  const fetchCategories = useCallback(async () => {
+    if (!user) return;
+
+    setIsLoadingCategories(true);
+    setCategoryError(null);
+
+    if (isMock) {
+      // Mock categories data
+      setCategories([
+        {
+          id: 1,
+          name: "Technology",
+          is_system: true,
+          user_id: undefined,
+          created_at: "2026-03-10T10:00:00Z",
+        },
+        {
+          id: 2,
+          name: "Science",
+          is_system: true,
+          user_id: undefined,
+          created_at: "2026-03-10T10:00:00Z",
+        },
+        {
+          id: 3,
+          name: "My Personal Research",
+          is_system: false,
+          user_id: 1,
+          created_at: "2026-03-15T14:30:00Z",
+        },
+        {
+          id: 4,
+          name: "Learning Notes",
+          is_system: false,
+          user_id: 1,
+          created_at: "2026-03-16T09:15:00Z",
+        },
+      ]);
+      setIsLoadingCategories(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      const response = await fetch(`${apiBase}/categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch categories: ${response.statusText}`);
+      }
+
+      const categoriesData = await response.json();
+      setCategories(categoriesData);
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to load categories");
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, [user, isMock, router]);
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      fetchCategories();
+    }
+  }, [user, isLoading, fetchCategories]);
+
   const handleAddAccount = useCallback((provider: string) => {
     // Navigate to OAuth link flow
     const redirectUrl = `/auth/link/${provider}`;
@@ -214,6 +326,126 @@ export default function SettingsPage() {
   const getLinkedAccount = useCallback((providerId: string) => {
     return user?.accounts?.find(account => account.provider === providerId);
   }, [user?.accounts]);
+
+  const handleAddCategory = useCallback(async () => {
+    if (!user || !newCategoryName.trim()) return;
+
+    setIsAddingCategory(true);
+    setCategoryError(null);
+
+    if (isMock) {
+      // Mock add category
+      const newCategory: Category = {
+        id: Math.max(...categories.map(c => c.id)) + 1,
+        name: newCategoryName.trim(),
+        is_system: false,
+        user_id: 1,
+        created_at: new Date().toISOString(),
+      };
+      setCategories(prev => [...prev, newCategory]);
+      setNewCategoryName("");
+      setIsAddingCategory(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      const response = await fetch(`${apiBase}/categories`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: newCategoryName.trim() }),
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
+      }
+
+      if (response.status === 409) {
+        const errorData = await response.json().catch(() => null);
+        setCategoryError(errorData?.detail || "Category name already exists");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to create category: ${response.statusText}`);
+      }
+
+      const newCategory = await response.json();
+      setCategories(prev => [...prev, newCategory]);
+      setNewCategoryName("");
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to create category");
+    } finally {
+      setIsAddingCategory(false);
+    }
+  }, [user, newCategoryName, categories, isMock, router]);
+
+  const handleDeleteCategory = useCallback(async (categoryId: number, categoryName: string) => {
+    if (!user || isMock) {
+      if (isMock) {
+        // Mock delete
+        setCategories(prev => prev.filter(c => c.id !== categoryId));
+        return;
+      }
+      return;
+    }
+
+    setDeletingCategory(categoryId);
+    setCategoryError(null);
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+      const response = await fetch(`${apiBase}/categories/${categoryId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
+      }
+
+      if (response.status === 403) {
+        setCategoryError("Cannot delete system category");
+        return;
+      }
+
+      if (response.status === 404) {
+        setCategoryError("Category not found or access denied");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete category: ${response.statusText}`);
+      }
+
+      // Remove category from local state
+      setCategories(prev => prev.filter(c => c.id !== categoryId));
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to delete category");
+    } finally {
+      setDeletingCategory(null);
+    }
+  }, [user, isMock, router]);
 
   if (isLoading) {
     return (
@@ -330,6 +562,142 @@ export default function SettingsPage() {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* Categories section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Categories</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Category error alert */}
+          {categoryError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{categoryError}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Add category form */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Category name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isAddingCategory && newCategoryName.trim()) {
+                  handleAddCategory();
+                }
+              }}
+              disabled={isAddingCategory}
+            />
+            <Button
+              onClick={handleAddCategory}
+              disabled={isAddingCategory || !newCategoryName.trim()}
+              size="sm"
+            >
+              {isAddingCategory ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Add
+            </Button>
+          </div>
+
+          {/* Categories list */}
+          {isLoadingCategories ? (
+            <div className="space-y-3">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : (
+            <>
+              {categories.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No categories found. Add your first category above.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {categories.map((category) => {
+                    const isDeleting = deletingCategory === category.id;
+                    const isUserCategory = !category.is_system;
+
+                    return (
+                      <div
+                        key={category.id}
+                        className="flex items-center justify-between p-3 border border-border rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          {category.is_system ? (
+                            <Lock className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <div className="h-4 w-4" />
+                          )}
+                          <div>
+                            <p className="font-medium text-foreground">{category.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {category.is_system
+                                ? "System category"
+                                : `Created ${new Date(category.created_at).toLocaleDateString()}`
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {isUserCategory && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <X className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete the category &quot;{category.name}&quot;?
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteCategory(category.id, category.name)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Empty state for custom categories */}
+                  {categories.filter(c => !c.is_system).length === 0 && (
+                    <div className="text-center py-4 border border-dashed border-border rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        No custom categories yet. Add one above to get started.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
