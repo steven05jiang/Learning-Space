@@ -4,14 +4,14 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-27 (v2.2 plan update — DEV-066–071 added)
+**Last Updated:** 2026-03-27 (DEV-066 complete PR #158)
 
 ---
 
 ## Progress Summary
 
 - Total: 138 tasks (71 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 92
+- ✅ Completed: 93
 - 🔄 Active: 0
 - ⏳ Pending: 46
 - ⚠️ Stuck: 0
@@ -191,7 +191,7 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 
 _Goal: ship to production for feedback. Auth hardening + feature gates + multi-LLM + cheap cloud stack._
 
-- [ ] DEV-066: Restrict login UI to Google-only — remove X/Twitter button + username/password form from login page
+- [x] DEV-066: Restrict login UI to Google-only — remove X/Twitter button + username/password form from login page (PR #158 ✅)
 - [ ] DEV-067: Disable search button — add disabled state + "Search coming soon" tooltip
 - [ ] DEV-068: Chat panel "coming soon" mode — disable input/send, inject initial bot message
 - [ ] DEV-069: User allowlisting backend — ALLOWED_EMAILS env var gate on OAuth callback → redirect /coming-soon
