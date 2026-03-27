@@ -171,7 +171,9 @@ async def process_resource(
             try:
                 if llm_result.tags and llm_result.top_level_categories:
                     await graph_service.update_graph(
-                        resource.owner_id, llm_result.tags, llm_result.top_level_categories
+                        resource.owner_id,
+                        llm_result.tags,
+                        llm_result.top_level_categories
                     )
                     logger.info(
                         f"Hierarchical graph updated for resource {resource_id} "
@@ -179,17 +181,18 @@ async def process_resource(
                         f"{len(llm_result.top_level_categories)} categories"
                     )
 
-                    # Also update the old-style tag relationships for backward compatibility
+                    # Also update old-style tag relationships for backward compatibility
                     if len(llm_result.tags) >= 2:
                         await graph_service.update_from_resource(
                             resource.owner_id, llm_result.tags
                         )
                 else:
                     tag_count = len(llm_result.tags) if llm_result.tags else 0
-                    category_count = len(llm_result.top_level_categories) if llm_result.top_level_categories else 0
+                    cat_count = (len(llm_result.top_level_categories)
+                                if llm_result.top_level_categories else 0)
                     logger.info(
                         f"Skipping graph update for resource {resource_id}: "
-                        f"insufficient tags ({tag_count}) or categories ({category_count})"
+                        f"insufficient tags ({tag_count}) or categories ({cat_count})"
                     )
             except Exception as e:
                 # Don't fail the entire job for graph update errors

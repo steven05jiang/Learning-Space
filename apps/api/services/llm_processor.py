@@ -85,7 +85,7 @@ class LLMProcessorService:
             # Define the tool for structured output
             process_content_tool = {
                 "name": "extract_content_data",
-                "description": "Extract title, summary, tags, and top-level categories from content",
+                "description": "Extract title, summary, tags, and top-level categories",
                 "input_schema": {
                     "type": "object",
                     "properties": {
@@ -112,7 +112,7 @@ class LLMProcessorService:
                             "type": "array",
                             "items": {"type": "string"},
                             "description": (
-                                "Top-level categories (1-3 categories from the available list)"
+                                "Top-level categories (1-3 from available list)"
                             ),
                         },
                     },
@@ -190,7 +190,7 @@ class LLMProcessorService:
             # Clean and validate top_level_categories
             if isinstance(top_level_categories, list):
                 clean_categories = []
-                # For now, use placeholder categories until DEV-062 implements the full prompt
+                # For now, use placeholder categories until DEV-062
                 default_categories = [
                     "Science & Technology",
                     "Business & Economics",
@@ -208,7 +208,8 @@ class LLMProcessorService:
                     if isinstance(category, str) and category.strip():
                         clean_category = category.strip()
                         # For now, just validate against default categories
-                        if clean_category in default_categories and clean_category not in clean_categories:
+                        if (clean_category in default_categories and
+                            clean_category not in clean_categories):
                             clean_categories.append(clean_category)
 
                 # If no valid categories found, default to "Science & Technology"
@@ -294,8 +295,9 @@ class LLMProcessorService:
             "- Title should be descriptive but concise (max 200 characters)\n"
             "- Summary should be comprehensive but readable (100-500 words)\n"
             "- Tags should be lowercase, hyphenated if multi-word\n"
-            "- Categories should be selected from: Science & Technology, Business & Economics, "
-            "Politics & Government, Society & Culture, Education & Knowledge, Health & Medicine, "
+            "- Categories from: Science & Technology, Business & Economics, "
+            "Politics & Government, Society & Culture, Education & Knowledge, "
+            "Health & Medicine, "
             "Environment & Sustainability, Arts & Entertainment, Sports & Recreation, "
             "Lifestyle & Personal Life\n"
             "- Select 1-3 most relevant categories\n"

@@ -2,7 +2,8 @@
 Graph service for managing hierarchical relationships in Neo4j.
 
 This service handles creating, updating, and cleaning up hierarchical relationships
-(Root -> Category -> Tag) in the knowledge graph based on user resource processing activities.
+(Root -> Category -> Tag) in the knowledge graph based on user resource processing
+activities.
 """
 
 import logging
@@ -40,10 +41,11 @@ class GraphService:
             top_level_categories: List of category names from LLM processing
         """
         if not tags or not top_level_categories:
+            tag_count = len(tags) if tags else 0
+            cat_count = len(top_level_categories) if top_level_categories else 0
             logger.debug(
                 f"Skipping graph update for owner_id={owner_id}: "
-                f"missing tags ({len(tags) if tags else 0}) or "
-                f"categories ({len(top_level_categories) if top_level_categories else 0})"
+                f"missing tags ({tag_count}) or categories ({cat_count})"
             )
             return
 
@@ -371,7 +373,8 @@ class GraphService:
                     OPTIONAL MATCH (t)-[:RELATED_TO]-()
                     WITH root_node, r, t, bt,
                          CASE WHEN t IS NOT NULL THEN 1 ELSE 0 END as tag_resource_count
-                    WHERE tag_resource_count >= 1 OR t IS NULL  // Only show tags with resources
+                    WHERE tag_resource_count >= 1 OR t IS NULL
+                    // Only show tags with resources
 
                     // If it's a Tag, get its Category and related Tags
                     OPTIONAL MATCH (root_node:Tag)-[bt2:BELONGS_TO]->(c:Category)
@@ -431,7 +434,6 @@ class GraphService:
                 else:
                     # Expanded view
                     root_node = record["root_node"]
-                    r = record.get("r")
                     t = record.get("t")
                     c = record.get("c")
                     related_tag = record.get("related_tag")
@@ -535,7 +537,8 @@ class GraphService:
         Get direct neighbors of a specific node in the hierarchical graph.
 
         For Category nodes: returns child Tag nodes (BELONGS_TO)
-        For Tag nodes: returns related Tag nodes (RELATED_TO) and parent Categories (BELONGS_TO)
+        For Tag nodes: returns related Tag nodes (RELATED_TO) and parent
+        Categories (BELONGS_TO)
 
         Args:
             owner_id: User ID to scope the query to
@@ -578,7 +581,6 @@ class GraphService:
             nodes_set = set()
 
             async for record in result:
-                root_node = record.get("root_node")
                 child_tag = record.get("child_tag")
                 related_tag = record.get("related_tag")
                 parent_cat = record.get("parent_cat")

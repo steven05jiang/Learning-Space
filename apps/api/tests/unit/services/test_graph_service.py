@@ -1,7 +1,8 @@
 """Unit tests for GraphService hierarchical functionality."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from services.graph_service import GraphService
 
@@ -15,11 +16,17 @@ def graph_service():
 @pytest.fixture
 def mock_neo4j_driver():
     """Mock Neo4j driver for unit testing."""
+    import contextlib
+
     mock_driver = AsyncMock()
     mock_session = AsyncMock()
-    mock_driver.get_session.return_value = mock_session
-    mock_session.__aenter__.return_value = mock_session
-    mock_session.__aexit__.return_value = None
+
+    # Mock the driver.get_session() to return an async context manager
+    @contextlib.asynccontextmanager
+    async def mock_session_context():
+        yield mock_session
+
+    mock_driver.get_session = lambda: mock_session_context()
     return mock_driver, mock_session
 
 
