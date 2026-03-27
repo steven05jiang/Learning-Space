@@ -519,7 +519,7 @@ class GraphService:
                                 "id": "My Learning Space",
                                 "label": "My Learning Space",
                                 "node_type": "root",
-                                "level": "root",
+                                "level": "current",
                                 "resource_count": 0,
                             }
                         )
