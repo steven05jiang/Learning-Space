@@ -278,6 +278,9 @@ async def update_resource(
 
     # Check if original_content is being updated
     original_content_changed = "original_content" in update_data
+    # Check if tags are being updated
+    tags_changed = "tags" in update_data
+    old_tags = resource.tags or []
 
     # Apply updates
     for field, value in update_data.items():
@@ -294,6 +297,27 @@ async def update_resource(
     # Commit changes (updated_at is automatically updated by SQLAlchemy onupdate)
     await db.commit()
     await db.refresh(resource)
+
+    # Enqueue graph sync if tags changed (non-blocking — don't await the job result)
+    if tags_changed:
+        new_tags = resource.tags or []
+        try:
+            await queue_service.enqueue_graph_sync(
+                str(resource_id),
+                operation="update",
+                owner_id=current_user.id,
+                old_tags=old_tags,
+                tags=new_tags,
+            )
+            logger.info(
+                f"Graph sync job enqueued for resource {resource_id} "
+                f"(tags changed from {old_tags} to {new_tags})"
+            )
+        except Exception as e:
+            # Don't fail the update response for graph sync errors
+            logger.warning(
+                f"Graph sync job enqueueing failed for resource {resource_id}: {e}"
+            )
 
     logger.info(f"Updated resource {resource_id} for user {current_user.id}")
 
