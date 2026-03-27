@@ -189,7 +189,7 @@ async def test_graph_updated_after_resource_processed(
     }
     assert relationship_pairs == expected_pairs
 
-    # Relationships should have weight >= 1 (update_graph + update_from_resource both run)
+    # Weight >= 1: both update_graph and update_from_resource run
     for rel in relationships:
         assert rel["weight"] >= 1
 
