@@ -99,7 +99,8 @@ async def test_graph_updated_after_resource_processed(
     INT-029: Graph updated after resource processed
 
     Create a resource, run the worker pipeline (mocked LLM + fetcher)
-    Assert hierarchical nodes created in Neo4j (Root, Category, Tag) with proper relationships
+    Assert hierarchical nodes created in Neo4j (Root, Category, Tag) with proper
+    relationships
     Assert both hierarchical structure and legacy tag relationships were created
     """
     # Create user and resource
@@ -167,7 +168,9 @@ async def test_graph_updated_after_resource_processed(
     assert "Science & Technology" in category_names
 
     # Verify CHILD_OF relationships (Category -> Root)
-    child_of_edges = [e for e in graph_data["edges"] if e["target"] == "My Learning Space"]
+    child_of_edges = [
+        e for e in graph_data["edges"] if e["target"] == "My Learning Space"
+    ]
     assert len(child_of_edges) >= 1
 
     # Verify legacy tag relationships are still created for backward compatibility
@@ -233,7 +236,7 @@ async def test_graph_updated_after_resource_deletion(
     await graph_service.update_graph(
         user.id,
         tags=["Python", "Django", "WebDev"],
-        top_level_categories=["Science & Technology"]
+        top_level_categories=["Science & Technology"],
     )
 
     # Verify initial hierarchical graph state
@@ -278,9 +281,11 @@ async def test_graph_updated_after_resource_reprocessing(
     """
     INT-031: Graph updated after resource re-processing
 
-    Create + process a resource with tags ["AI", "Testing"] and category ["Science & Technology"]
+    Create + process a resource with tags ["AI", "Testing"] and
+    category ["Science & Technology"]
     Update original_content on the resource (triggers re-processing)
-    Run worker again with new LLM tags ["ML", "Research"] and category ["Education & Knowledge"]
+    Run worker again with new LLM tags ["ML", "Research"] and
+    category ["Education & Knowledge"]
     Assert old tags removed from graph, new tags/categories applied
     """
     # Create user and resource
@@ -304,9 +309,7 @@ async def test_graph_updated_after_resource_reprocessing(
 
     # Add initial hierarchical graph relationships
     await graph_service.update_graph(
-        user.id,
-        tags=["AI", "Testing"],
-        top_level_categories=["Science & Technology"]
+        user.id, tags=["AI", "Testing"], top_level_categories=["Science & Technology"]
     )
 
     # Verify initial graph state
@@ -316,7 +319,9 @@ async def test_graph_updated_after_resource_reprocessing(
     assert initial_relationships[0]["tag2"] == "Testing"
 
     initial_graph = await graph_service.get_graph(user.id, root=None)
-    initial_categories = [n for n in initial_graph["nodes"] if n["node_type"] == "category"]
+    initial_categories = [
+        n for n in initial_graph["nodes"] if n["node_type"] == "category"
+    ]
     assert "Science & Technology" in {n["label"] for n in initial_categories}
 
     # Simulate resource update (content changed, triggers re-processing)
@@ -428,12 +433,12 @@ async def test_user_views_root_graph(
     await graph_service.update_graph(
         user.id,
         tags=["Python", "Programming", "Coding"],
-        top_level_categories=["Science & Technology"]
+        top_level_categories=["Science & Technology"],
     )
     await graph_service.update_graph(
         user.id,
         tags=["Strategy", "Business", "Management"],
-        top_level_categories=["Business & Economics"]
+        top_level_categories=["Business & Economics"],
     )
 
     # Get root graph (should show Root + Categories, not Tags)
@@ -496,10 +501,10 @@ async def test_user_views_graph_centered_on_category(
     client, db_session, mock_neo4j_driver, clean_graph
 ):
     """
-    INT-033: User views graph centered on specific category — GET /graph?root=<category_name>
+    INT-033: User views graph centered on specific category — GET /graph?root=<name>
 
     Create + process resources with known tags and categories
-    GET /graph?root=<category_name> - should show Category as current + its Tags as children
+    GET /graph?root=<category_name> - show Category as current + its Tags as children
     Assert response is centered on that category node showing the hierarchical structure
     """
     from core.jwt import create_access_token
@@ -543,16 +548,18 @@ async def test_user_views_graph_centered_on_category(
     await graph_service.update_graph(
         user.id,
         tags=["Python", "Programming", "Backend"],
-        top_level_categories=["Science & Technology"]
+        top_level_categories=["Science & Technology"],
     )
     await graph_service.update_graph(
         user.id,
         tags=["MachineLearning", "AI", "DataScience"],
-        top_level_categories=["Science & Technology"]
+        top_level_categories=["Science & Technology"],
     )
 
     # Get graph centered on "Science & Technology" category
-    response = await client.get("/graph?root=Science & Technology", headers=auth_headers)
+    response = await client.get(
+        "/graph?root=Science & Technology", headers=auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -577,7 +584,14 @@ async def test_user_views_graph_centered_on_category(
 
     child_ids = {node["id"] for node in child_nodes}
     # Should include tags from both resources
-    expected_tags = {"Python", "Programming", "Backend", "MachineLearning", "AI", "DataScience"}
+    expected_tags = {
+        "Python",
+        "Programming",
+        "Backend",
+        "MachineLearning",
+        "AI",
+        "DataScience",
+    }
     assert child_ids.intersection(expected_tags) == child_ids
 
     # All child nodes should be topic-level tags
@@ -635,7 +649,7 @@ async def test_user_expands_graph_node(
     await graph_service.update_graph(
         user.id,
         tags=["DataScience", "Analytics", "Python", "Statistics"],
-        top_level_categories=["Science & Technology"]
+        top_level_categories=["Science & Technology"],
     )
 
     # Test 1: Expand a Category node (should return its child Tags)
@@ -711,7 +725,7 @@ async def test_user_views_resources_for_graph_node(
     Create + process resources with known tags and categories
     Test both tag-based and category-based resource retrieval:
     - GET /graph/nodes/{tag_name}/resources - should return resources with that tag
-    - GET /graph/nodes/{category_name}/resources - should return resources in that category
+    - GET /graph/nodes/{category_name}/resources - return resources in that category
     """
     from core.jwt import create_access_token
 
@@ -795,14 +809,14 @@ async def test_user_views_resources_for_graph_node(
         assert "Python" in item["tags"]  # Should contain the queried tag
 
     # Test 2: Get resources for a category (Science & Technology)
-    # Note: The endpoint currently filters by tags, but let's test if it could work with category names
+    # Note: The endpoint currently filters by tags, not category names
     # Since the router currently only looks at tags JSONB, this will return 0 results
     # But this shows the test structure for when category-based filtering is implemented
     science_tech_url = "/graph/nodes/Science & Technology/resources"
     response = await client.get(science_tech_url, headers=auth_headers)
     assert response.status_code == 200
 
-    # Currently returns 0 because the endpoint only searches tags, not top_level_categories
+    # Currently returns 0 because the endpoint only searches tags
     # This is expected behavior with the current implementation
     category_data = response.json()
     assert category_data["total"] == 0
@@ -813,7 +827,8 @@ async def test_user_views_resources_for_graph_node(
     assert response.status_code == 200
 
     programming_data = response.json()
-    assert programming_data["total"] == 2  # Only Python resources have "Programming" tag
+    # Only Python resources have "Programming" tag
+    assert programming_data["total"] == 2
     assert len(programming_data["items"]) == 2
 
     programming_titles = {item["title"] for item in programming_data["items"]}

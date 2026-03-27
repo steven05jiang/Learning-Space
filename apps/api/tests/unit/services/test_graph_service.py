@@ -35,9 +35,7 @@ async def test_update_graph_creates_hierarchy(graph_service, mock_neo4j_driver):
     """Test that update_graph creates Root -> Category -> Tag hierarchy."""
     mock_driver, mock_session = mock_neo4j_driver
 
-    with patch(
-        "services.graph_service.get_neo4j_driver", return_value=mock_driver
-    ):
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_graph(
             owner_id=123,
             tags=["machine-learning", "python", "ai"],
@@ -71,13 +69,13 @@ async def test_update_graph_creates_hierarchy(graph_service, mock_neo4j_driver):
 
 
 @pytest.mark.asyncio
-async def test_update_graph_creates_belongs_to_relationships(graph_service, mock_neo4j_driver):
+async def test_update_graph_creates_belongs_to_relationships(
+    graph_service, mock_neo4j_driver
+):
     """Test that BELONGS_TO relationships are created between Tags and Categories."""
     mock_driver, mock_session = mock_neo4j_driver
 
-    with patch(
-        "services.graph_service.get_neo4j_driver", return_value=mock_driver
-    ):
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_graph(
             owner_id=123,
             tags=["python", "ai"],
@@ -90,20 +88,21 @@ async def test_update_graph_creates_belongs_to_relationships(graph_service, mock
 
     # Should have 2 BELONGS_TO queries (python->category, ai->category)
     tag_to_category_queries = [
-        query for query in belongs_to_queries
+        query
+        for query in belongs_to_queries
         if "MERGE (t)-[b:BELONGS_TO]->(c)" in query
     ]
     assert len(tag_to_category_queries) == 2
 
 
 @pytest.mark.asyncio
-async def test_update_graph_creates_related_to_relationships(graph_service, mock_neo4j_driver):
+async def test_update_graph_creates_related_to_relationships(
+    graph_service, mock_neo4j_driver
+):
     """Test that RELATED_TO relationships are created between co-occurring Tags."""
     mock_driver, mock_session = mock_neo4j_driver
 
-    with patch(
-        "services.graph_service.get_neo4j_driver", return_value=mock_driver
-    ):
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_graph(
             owner_id=123,
             tags=["python", "ai", "machine-learning"],
@@ -116,7 +115,8 @@ async def test_update_graph_creates_related_to_relationships(graph_service, mock
 
     # Should have 3 RELATED_TO queries for 3 tags: (python,ai), (python,ml), (ai,ml)
     tag_to_tag_queries = [
-        query for query in related_to_queries
+        query
+        for query in related_to_queries
         if "MERGE (t1)-[r:RELATED_TO]-(t2)" in query
     ]
     assert len(tag_to_tag_queries) == 3
@@ -127,9 +127,7 @@ async def test_update_graph_skips_empty_inputs(graph_service, mock_neo4j_driver)
     """Test that update_graph skips processing when inputs are empty."""
     mock_driver, mock_session = mock_neo4j_driver
 
-    with patch(
-        "services.graph_service.get_neo4j_driver", return_value=mock_driver
-    ):
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         # Test with empty tags
         await graph_service.update_graph(
             owner_id=123,
@@ -149,7 +147,9 @@ async def test_update_graph_skips_empty_inputs(graph_service, mock_neo4j_driver)
 
 
 @pytest.mark.asyncio
-async def test_get_graph_returns_hierarchical_structure(graph_service, mock_neo4j_driver):
+async def test_get_graph_returns_hierarchical_structure(
+    graph_service, mock_neo4j_driver
+):
     """Test that get_graph returns hierarchical structure with node_type."""
     mock_driver, mock_session = mock_neo4j_driver
 
@@ -175,9 +175,7 @@ async def test_get_graph_returns_hierarchical_structure(graph_service, mock_neo4
 
     mock_result.__aiter__ = mock_async_iter
 
-    with patch(
-        "services.graph_service.get_neo4j_driver", return_value=mock_driver
-    ):
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         result = await graph_service.get_graph(owner_id=123, root=None)
 
     # Verify structure
@@ -201,7 +199,9 @@ async def test_get_graph_returns_hierarchical_structure(graph_service, mock_neo4
 
 
 @pytest.mark.asyncio
-async def test_get_neighbors_returns_hierarchical_neighbors(graph_service, mock_neo4j_driver):
+async def test_get_neighbors_returns_hierarchical_neighbors(
+    graph_service, mock_neo4j_driver
+):
     """Test that get_neighbors returns appropriate neighbors based on node type."""
     mock_driver, mock_session = mock_neo4j_driver
 
@@ -247,9 +247,7 @@ async def test_get_neighbors_returns_hierarchical_neighbors(graph_service, mock_
 
     mock_result.__aiter__ = mock_async_iter
 
-    with patch(
-        "services.graph_service.get_neo4j_driver", return_value=mock_driver
-    ):
+    with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         result = await graph_service.get_neighbors(
             owner_id=123, node_id="Science & Technology", direction="out"
         )

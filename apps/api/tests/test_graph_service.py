@@ -293,14 +293,14 @@ async def test_owner_id_scoping_in_queries(graph_service, mock_neo4j_driver):
 async def test_update_graph_creates_hierarchical_structure(
     graph_service, mock_neo4j_driver
 ):
-    """Test that update_graph creates Root, Category, and Tag nodes with proper relationships."""
+    """Test that update_graph creates Root, Category, and Tag nodes."""
     mock_driver, mock_session = mock_neo4j_driver
 
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_graph(
             owner_id=1,
             tags=["machine-learning", "ai", "python"],
-            top_level_categories=["Science & Technology", "Education & Knowledge"]
+            top_level_categories=["Science & Technology", "Education & Knowledge"],
         )
 
         # Expected calls:
@@ -393,7 +393,7 @@ async def test_update_graph_normalizes_inputs(graph_service, mock_neo4j_driver):
         await graph_service.update_graph(
             owner_id=1,
             tags=["  python  ", "machine-learning", "  ai  "],
-            top_level_categories=["  Science & Technology  "]
+            top_level_categories=["  Science & Technology  "],
         )
 
         # Verify normalized values were used in calls
@@ -419,15 +419,15 @@ async def test_update_graph_normalizes_inputs(graph_service, mock_neo4j_driver):
 
 
 @pytest.mark.asyncio
-async def test_update_graph_with_single_tag_and_category(graph_service, mock_neo4j_driver):
+async def test_update_graph_with_single_tag_and_category(
+    graph_service, mock_neo4j_driver
+):
     """Test that update_graph works with minimum viable inputs."""
     mock_driver, mock_session = mock_neo4j_driver
 
     with patch("services.graph_service.get_neo4j_driver", return_value=mock_driver):
         await graph_service.update_graph(
-            owner_id=1,
-            tags=["python"],
-            top_level_categories=["Science & Technology"]
+            owner_id=1, tags=["python"], top_level_categories=["Science & Technology"]
         )
 
         # Expected calls:
