@@ -35,7 +35,7 @@ SYSTEM_CATEGORIES = [
 
 def upgrade() -> None:
     """Seed system categories."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.utcnow()
     conn = op.get_bind()
     stmt = sa.text(
         "INSERT INTO categories (name, is_system, owner_id, created_at)"
