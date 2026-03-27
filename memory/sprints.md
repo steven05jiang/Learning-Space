@@ -5,13 +5,43 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
-## Sprint 2026-03-23-A — Feedback Implementation
+## Sprint 2026-03-27-A — Deploy Hardening + Cloud Provisioning
 
 **Status:** 🔄 Active
+**Sprint Goal:** Complete deploy-hardening dev tasks and provision cloud infrastructure so the app can be shipped to production on Vercel + Railway
+**Exit Gate:** All DEV-066–071 + DEV-047 merged, OPS-002 provisioned → OPS-003 (Railway deployment) fully unblocked
+**Started:** 2026-03-27
+**Completed:** (pending)
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- DEV-070 depends on DEV-069; dispatch after DEV-069 merges
+- DEV-066–069, DEV-071, DEV-047 are all independently unblocked — dispatch in priority order
+- OPS-002 is manual user work — instructions provided directly, no implementer dispatch
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-066 | Restrict login to Google-only (remove X button + email/password form) | ✅ Completed (PR #158) |
+| DEV-067 | Disable search button + "coming soon" tooltip | ⏳ Pending |
+| DEV-068 | Chat panel "coming soon" mode (disable input, inject bot message) | ⏳ Pending |
+| DEV-069 | User allowlisting backend (ALLOWED_EMAILS env var gate) | ⏳ Pending |
+| DEV-071 | Multi-LLM provider abstraction (LLM_PROVIDER env var) | ⏳ Pending |
+| DEV-047 | Backend Dockerfile (API + worker services) | ⏳ Pending |
+| DEV-070 | Coming-soon page at /coming-soon — needs DEV-069 | ⏳ Pending (needs DEV-069) |
+| OPS-002 | Provision cloud services (Supabase + Neo4j AuraDB + Upstash) | ⏳ Pending (manual) |
+
+---
+
+## Sprint 2026-03-23-A — Feedback Implementation
+
+**Status:** ✅ Complete
 **Sprint Goal:** Implement all FB-001 through FB-005 feedback items so DEMO-006 (Feedback Verification) is runnable
 **Exit Gate:** DEMO-006 — Feedback Verification demo executes successfully
 **Started:** 2026-03-23
-**Completed:** (pending)
+**Completed:** 2026-03-27
 
 ### Notes
 
@@ -34,7 +64,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-062 | LLM prompt: tag reuse + top_level_categories (FB-003) — needs DEV-060 | ✅ Completed (PR #149) |
 | DEV-063 | Category management UI in Settings (FB-003) — needs DEV-060 | ✅ Completed (PR #152) |
 | DEV-064 | Tag editor in resource detail UI (FB-004) — needs DEV-061 | ✅ Completed (PR #154) |
-| DEMO-006 | Feedback Verification Demo — needs DEV-056–DEV-065 | ⏳ Pending |
+| DEMO-006 | Feedback Verification Demo — needs DEV-056–DEV-065 | ⏳ Deferred (user verified manually 2026-03-27) |
 
 ---
 
