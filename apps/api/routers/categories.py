@@ -160,7 +160,10 @@ async def delete_category(
     if resource_count:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Category is used by {resource_count} resource(s). Remove it from all resources before deleting.",
+            detail=(
+                f"Category is used by {resource_count} resource(s). "
+                "Remove it from all resources before deleting."
+            ),
         )
 
     await db.delete(category)

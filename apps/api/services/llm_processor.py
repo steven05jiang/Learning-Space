@@ -28,7 +28,9 @@ _TOOL_PROPERTIES = {
     "tags": {
         "type": "array",
         "items": {"type": "string"},
-        "description": "Exactly 3 specific tags/keywords (lowercase, hyphenated if multi-word)",
+        "description": (
+            "Exactly 3 specific tags/keywords (lowercase, hyphenated if multi-word)"
+        ),
     },
     "top_level_categories": {
         "type": "array",
@@ -81,7 +83,8 @@ class LLMProcessorService:
                 except Exception as e:
                     logger.warning(f"Failed to initialize Anthropic client: {e}")
         else:
-            # Production path: delegate to the configured provider via get_direct_client().
+            # Production path: delegate to the configured provider
+            # via get_direct_client().
             self.api_key = None
             model_map = {
                 "anthropic": settings.anthropic_model,
@@ -133,7 +136,7 @@ class LLMProcessorService:
         return tool_use.input
 
     def _invoke_openai_compat(self, system_prompt: str, user_message: str) -> dict:
-        """Call an OpenAI-compatible chat completions API and return extracted_data dict."""
+        """Call an OpenAI-compatible chat completions API and return extracted_data."""
         tool_def = {
             "type": "function",
             "function": {
@@ -261,7 +264,10 @@ class LLMProcessorService:
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            logger.error(f"Unexpected error processing content: {error_message}", exc_info=True)
+            logger.error(
+                f"Unexpected error processing content: {error_message}",
+                exc_info=True,
+            )
             return LLMResult(
                 success=False,
                 error_type="unknown_error",
