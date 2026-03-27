@@ -29,9 +29,22 @@
 ## Hosting
 
 ### Railway
-- **Services:** API, Worker (see `apps/api/Dockerfile`)
-- **Template:** created (OPS-002 Step 5)
-- **Env vars:** all vars from `apps/api/.env.production.example` set in Railway dashboard
+- **Services:** API, Worker
+- **API URL:** https://web-production-XXXX.up.railway.app (to be updated after deployment)
+- **Worker:** Background service for resource processing
+- **Dockerfile:** `apps/api/Dockerfile` with `SERVICE_TYPE` build arg (api/worker)
+- **Auto-deploy:** Enabled from `main` branch
+- **Migrations:** API service runs `alembic upgrade head` on startup
+- **Config:** `railway.toml` at repository root
+- **Environment variables:**
+  - `DATABASE_URL` (Supabase PostgreSQL)
+  - `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` (Neo4j AuraDB)
+  - `REDIS_URL` (Upstash Redis)
+  - `JWT_SECRET_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - `OAUTH_REDIRECT_BASE_URL`, `ALLOWED_EMAILS`
+  - `LLM_PROVIDER`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`
+  - `SERVICE_TYPE` (api/worker)
+- **Free tier limits:** $5/month credit, 512MB memory per service, 1GB disk per service
 
 ---
 

@@ -1,5 +1,8 @@
 FROM python:3.12-slim
 
+# Build argument to determine service type (api or worker)
+ARG SERVICE_TYPE=api
+
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -17,9 +20,38 @@ COPY . .
 # Install the project itself
 RUN uv sync --frozen --no-dev
 
+# Install additional dependencies for worker service (Playwright)
+RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
+        apt-get update && apt-get install -y \
+        curl wget gnupg ca-certificates \
+        fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 \
+        libcairo2 libcups2 libdbus-1-3 libdrm2 libgdk-pixbuf2.0-0 \
+        libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 \
+        libxcomposite1 libxdamage1 libxrandr2 libxss1 xdg-utils \
+        && apt-get clean && rm -rf /var/lib/apt/lists/* \
+        && playwright install chromium && playwright install-deps chromium; \
+    fi
+
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Set environment for Playwright if it's worker service
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# Create non-root user for worker (security best practice)
+RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
+        useradd --create-home --shell /bin/bash app \
+        && chown -R app:app /app \
+        && chown -R app:app /ms-playwright 2>/dev/null || true; \
+    fi
+
+# Expose port 8000 for API service
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use conditional CMD based on service type
+CMD if [ "$SERVICE_TYPE" = "worker" ]; then \
+        if [ "$(id -u)" = "0" ]; then exec su app -c "python -m workers.run_worker"; \
+        else python -m workers.run_worker; fi; \
+    else \
+        alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000; \
+    fi
