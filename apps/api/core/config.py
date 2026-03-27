@@ -27,8 +27,20 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 30
 
     # LLM/AI Settings
+    # LLM provider: "anthropic" | "groq" | "siliconflow" | "fireworks"
+    llm_provider: str = "anthropic"
+
+    # Provider API keys (only the one matching llm_provider needs to be set)
     anthropic_api_key: str = ""  # Optional for development
+    groq_api_key: str = ""
+    siliconflow_api_key: str = ""
+    fireworks_api_key: str = ""
+
+    # Model overrides per provider (sensible defaults below)
     anthropic_model: str = "claude-haiku-4-5-20251001"  # Default model
+    groq_model: str = "llama-3.1-8b-instant"
+    siliconflow_model: str = "Qwen/Qwen2.5-7B-Instruct"
+    fireworks_model: str = "accounts/fireworks/models/llama-v3p1-8b-instruct"
 
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"

@@ -25,12 +25,12 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | Task | Description | Status |
 |------|-------------|--------|
 | DEV-066 | Restrict login to Google-only (remove X button + email/password form) | ✅ Completed (PR #158) |
-| DEV-067 | Disable search button + "coming soon" tooltip | ⏳ Pending |
-| DEV-068 | Chat panel "coming soon" mode (disable input, inject bot message) | ⏳ Pending |
-| DEV-069 | User allowlisting backend (ALLOWED_EMAILS env var gate) | ⏳ Pending |
-| DEV-071 | Multi-LLM provider abstraction (LLM_PROVIDER env var) | ⏳ Pending |
+| DEV-067 | Disable search button + "coming soon" tooltip | ✅ Completed (PR #160) |
+| DEV-068 | Chat panel "coming soon" mode (disable input, inject bot message) | ✅ Completed (PR #161) |
+| DEV-069 | User allowlisting backend (ALLOWED_EMAILS env var gate) | ✅ Completed (PR #162) |
+| DEV-071 | Multi-LLM provider abstraction (LLM_PROVIDER env var) | 🔄 Active |
 | DEV-047 | Backend Dockerfile (API + worker services) | ⏳ Pending |
-| DEV-070 | Coming-soon page at /coming-soon — needs DEV-069 | ⏳ Pending (needs DEV-069) |
+| DEV-070 | Coming-soon page at /coming-soon — needs DEV-069 | 🔄 Active |
 | OPS-002 | Provision cloud services (Supabase + Neo4j AuraDB + Upstash) | ⏳ Pending (manual) |
 
 ---
