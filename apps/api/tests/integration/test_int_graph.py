@@ -123,6 +123,7 @@ async def test_graph_updated_after_resource_processed(
         title="AI and Machine Learning Article",
         summary="An article discussing AI and ML techniques.",
         tags=["AI", "MachineLearning", "Technology"],
+        top_level_categories=["Science & Technology"],
     )
 
     # Mock AsyncSessionLocal to return test session

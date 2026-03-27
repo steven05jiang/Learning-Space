@@ -129,7 +129,13 @@ async def get_graph(
 
     return GraphResponse(
         nodes=[
-            {"id": node["id"], "label": node["label"], "level": node["level"]}
+            {
+                "id": node["id"],
+                "label": node["label"],
+                "level": node["level"],
+                "node_type": node["node_type"],
+                "resource_count": node.get("resource_count", 0),
+            }
             for node in graph_data["nodes"]
         ],
         edges=[
@@ -156,7 +162,13 @@ async def expand_graph(
 
     return GraphResponse(
         nodes=[
-            {"id": node["id"], "label": node["label"], "level": node["level"]}
+            {
+                "id": node["id"],
+                "label": node["label"],
+                "level": node["level"],
+                "node_type": node["node_type"],
+                "resource_count": node.get("resource_count", 0),
+            }
             for node in graph_data["nodes"]
         ],
         edges=[

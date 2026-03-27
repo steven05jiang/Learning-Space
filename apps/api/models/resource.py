@@ -58,6 +58,7 @@ class Resource(Base):
     title = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
     tags = Column(JSONBType, nullable=True, default=list)
+    top_level_categories = Column(JSONBType, nullable=False, default=list)
     status = Column(
         Enum(ResourceStatus), default=ResourceStatus.PENDING, nullable=False
     )
