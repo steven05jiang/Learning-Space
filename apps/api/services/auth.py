@@ -131,7 +131,11 @@ class AuthService:
         if user:
             # Scenario 1: Provider account already linked, update tokens
             await self.update_account_tokens(
-                db, user, provider, access_token, refresh_token,
+                db,
+                user,
+                provider,
+                access_token,
+                refresh_token,
                 username=user_info.get("username"),
             )
         else:
@@ -223,7 +227,11 @@ class AuthService:
         if existing_user and existing_user.id == current_user.id:
             # Account already linked to this user, just update tokens
             await self.update_account_tokens(
-                db, current_user, provider, access_token, refresh_token,
+                db,
+                current_user,
+                provider,
+                access_token,
+                refresh_token,
                 username=user_info.get("username"),
             )
         else:

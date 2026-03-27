@@ -152,11 +152,7 @@ async def delete_category(
             Resource.owner_id == current_user.id
         )
     )
-    resource_count = sum(
-        1
-        for (cats,) in cats_result
-        if cats and category.name in cats
-    )
+    resource_count = sum(1 for (cats,) in cats_result if cats and category.name in cats)
     if resource_count:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
