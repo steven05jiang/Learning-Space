@@ -43,6 +43,7 @@ class QueueService:
         operation: str = "update",
         owner_id: int = None,
         tags: list = None,
+        old_tags: list = None,
     ) -> str:
         """Enqueue a graph synchronization job.
 
@@ -50,7 +51,8 @@ class QueueService:
             entity_id: The ID of the entity to sync
             operation: Type of sync operation ('create', 'update', 'delete')
             owner_id: Owner ID for delete operations
-            tags: Tag list for delete operations
+            tags: Current tag list
+            old_tags: Previous tag list (used to detect removed tags on update)
 
         Returns:
             Job ID as string
@@ -72,7 +74,12 @@ class QueueService:
         )
 
         job_id = await enqueue_job(
-            "sync_graph", entity_id, operation=operation, owner_id=owner_id, tags=tags
+            "sync_graph",
+            entity_id,
+            operation=operation,
+            owner_id=owner_id,
+            tags=tags,
+            old_tags=old_tags,
         )
         logger.info(f"Graph sync job enqueued with ID: {job_id}")
         return job_id

@@ -27,6 +27,7 @@ class TestProcessResource:
         resource.title = None
         resource.summary = None
         resource.tags = []
+        resource.top_level_categories = []
         resource.updated_at = datetime.now(timezone.utc)
         return resource
 
@@ -43,6 +44,7 @@ class TestProcessResource:
         resource.title = None
         resource.summary = None
         resource.tags = []
+        resource.top_level_categories = []
         resource.updated_at = datetime.now(timezone.utc)
         return resource
 

@@ -112,7 +112,12 @@ class TestQueueService:
 
             assert job_id == "job456"
             mock_enqueue.assert_called_once_with(
-                "sync_graph", "entity123", operation="create", owner_id=None, tags=None
+                "sync_graph",
+                "entity123",
+                operation="create",
+                owner_id=None,
+                tags=None,
+                old_tags=None,
             )
 
     @pytest.mark.asyncio

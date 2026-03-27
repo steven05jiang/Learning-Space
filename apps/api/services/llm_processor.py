@@ -115,7 +115,8 @@ class LLMProcessorService:
                             "type": "array",
                             "items": {"type": "string"},
                             "description": (
-                                "Relevant tags/keywords (3-8 tags, lowercase)"
+                                "Exactly 3 specific tags/keywords "
+                                "(lowercase, hyphenated if multi-word)"
                             ),
                         },
                         "top_level_categories": {
@@ -193,7 +194,7 @@ class LLMProcessorService:
                         clean_tag = tag.strip().lower().replace(" ", "-")
                         if clean_tag and clean_tag not in clean_tags:
                             clean_tags.append(clean_tag)
-                tags = clean_tags[:8]  # Limit to 8 tags
+                tags = clean_tags[:8]
             else:
                 tags = []
 
@@ -332,7 +333,8 @@ class LLMProcessorService:
             "Guidelines:\n"
             "- Title should be descriptive but concise (max 200 characters)\n"
             "- Summary should be comprehensive but readable (100-500 words)\n"
-            "- Tags should be lowercase, hyphenated if multi-word\n"
+            "- Generate exactly 3 specific, descriptive tags "
+            "(lowercase, hyphenated if multi-word)\n"
         )
 
         # Add existing user tags context

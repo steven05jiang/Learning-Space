@@ -5,7 +5,7 @@ import logging
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import String, cast, func, select
+from sqlalchemy import String, cast, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,32 +41,43 @@ async def get_node_resources(
     scoped to the authenticated user. Uses GIN index on tags for efficient querying.
     """
     # Validate node_id to prevent LIKE injection attacks
-    if not re.match(r"^[\w\s-]+$", node_id):
+    # Allow alphanumeric, spaces, hyphens, underscores, & (for categories like
+    # "Science & Technology"), / and parentheses for other category names
+    if not re.match(r"^[\w\s\-&/()]+$", node_id):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="node_id contains invalid characters. Only alphanumeric "
             "characters, hyphens, underscores, and spaces are allowed.",
         )
 
-    # Query resources where tags contains the node_id (tag name)
+    # Query resources where tags OR top_level_categories contains the node_id
     # Handle both PostgreSQL (production) and SQLite (testing) JSON queries
+    from sqlalchemy import or_
+
     if db.bind.dialect.name == "postgresql":
         # Use PostgreSQL JSONB containment operator @> for efficient GIN index usage
-        tag_condition = Resource.tags.op("@>")(cast([node_id], JSONB))
+        node_condition = or_(
+            Resource.tags.op("@>")(cast([node_id], JSONB)),
+            Resource.top_level_categories.op("@>")(cast([node_id], JSONB)),
+        )
     else:
         # For SQLite (and other databases), use JSON search
-        # This searches for the tag value in the JSON array
-        tag_condition = cast(Resource.tags, String).like(f"%{json.dumps(node_id)}%")
+        node_condition = or_(
+            cast(Resource.tags, String).like(f"%{json.dumps(node_id)}%"),
+            cast(Resource.top_level_categories, String).like(
+                f"%{json.dumps(node_id)}%"
+            ),
+        )
 
     query = (
         select(Resource)
-        .where(Resource.owner_id == current_user.id, tag_condition)
+        .where(Resource.owner_id == current_user.id, node_condition)
         .order_by(Resource.created_at.desc())
     )
 
     # Get total count for pagination metadata
     count_query = select(func.count(Resource.id)).where(
-        Resource.owner_id == current_user.id, tag_condition
+        Resource.owner_id == current_user.id, node_condition
     )
 
     total_result = await db.execute(count_query)
@@ -147,6 +158,52 @@ async def get_graph(
             for edge in graph_data["edges"]
         ],
     )
+
+
+@router.post("/reindex", status_code=status.HTTP_200_OK)
+async def reindex_graph(
+    current_user: User = Depends(get_current_user),
+    graph_svc: GraphService = Depends(get_graph_service),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Purge orphan nodes from the user's knowledge graph.
+
+    Collects all tags and top_level_categories currently referenced by the
+    user's resources in Postgres, then removes any Tag/Category nodes in
+    Neo4j that are no longer referenced.
+    """
+    # Collect all tags still referenced by this user's resources
+    tags_result = await db.execute(
+        text(
+            "SELECT DISTINCT jsonb_array_elements_text(tags) AS tag "
+            "FROM resources WHERE owner_id = :uid AND tags IS NOT NULL"
+        ),
+        {"uid": current_user.id},
+    )
+    valid_tags = [row.tag for row in tags_result.fetchall()]
+
+    # Collect all categories still referenced
+    cats_result = await db.execute(
+        text(
+            "SELECT DISTINCT jsonb_array_elements_text(top_level_categories) AS cat "
+            "FROM resources WHERE owner_id = :uid "
+            "AND top_level_categories IS NOT NULL"
+        ),
+        {"uid": current_user.id},
+    )
+    valid_categories = [row.cat for row in cats_result.fetchall()]
+
+    result = await graph_svc.purge_orphan_nodes(
+        current_user.id, valid_tags, valid_categories
+    )
+
+    logger.info(
+        f"Graph reindexed for user {current_user.id}: "
+        f"{result['deleted_tags']} orphan tags, "
+        f"{result['deleted_categories']} orphan categories removed"
+    )
+    return result
 
 
 @router.post("/expand", response_model=GraphResponse)

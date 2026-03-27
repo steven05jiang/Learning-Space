@@ -4,7 +4,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from sqlalchemy import select
+from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.category import Category
@@ -184,42 +185,44 @@ async def process_resource(
             )
 
             # Step 4: Update resource in DB
+            # Always update title and summary from LLM.
+            # Preserve existing tags/categories — the user may have edited them.
             resource.title = llm_result.title
             resource.summary = llm_result.summary
-            resource.tags = llm_result.tags or []
-            resource.top_level_categories = llm_result.top_level_categories or []
+            if not resource.tags:
+                resource.tags = llm_result.tags or []
+            if not resource.top_level_categories:
+                resource.top_level_categories = llm_result.top_level_categories or []
             resource.status = ResourceStatus.READY
             resource.processing_status = ProcessingStatus.SUCCESS
             resource.status_message = None
             resource.updated_at = datetime.utcnow()
             await session.commit()
 
-            # Step 5: Hierarchical graph update
+            # Step 5: Graph update using actual tags (preserves user edits)
+            effective_tags = resource.tags or []
+            effective_categories = resource.top_level_categories or []
             try:
-                if llm_result.tags and llm_result.top_level_categories:
+                if effective_tags and effective_categories:
                     await graph_service.update_graph(
                         resource.owner_id,
-                        llm_result.tags,
-                        llm_result.top_level_categories,
+                        effective_tags,
+                        effective_categories,
                     )
                     logger.info(
                         f"Hierarchical graph updated for resource {resource_id} "
-                        f"with {len(llm_result.tags)} tags and "
-                        f"{len(llm_result.top_level_categories)} categories"
+                        f"with {len(effective_tags)} tags and "
+                        f"{len(effective_categories)} categories"
                     )
 
                     # Also update old-style tag relationships for backward compatibility
-                    if len(llm_result.tags) >= 2:
+                    if len(effective_tags) >= 2:
                         await graph_service.update_from_resource(
-                            resource.owner_id, llm_result.tags
+                            resource.owner_id, effective_tags
                         )
                 else:
-                    tag_count = len(llm_result.tags) if llm_result.tags else 0
-                    cat_count = (
-                        len(llm_result.top_level_categories)
-                        if llm_result.top_level_categories
-                        else 0
-                    )
+                    tag_count = len(effective_tags)
+                    cat_count = len(effective_categories)
                     logger.info(
                         f"Skipping graph update for resource {resource_id}: "
                         f"insufficient tags ({tag_count}) or categories ({cat_count})"
@@ -325,6 +328,7 @@ async def sync_graph(
     operation: str = "update",
     owner_id: int = None,
     tags: list = None,
+    old_tags: list = None,
 ) -> Dict[str, Any]:
     """Synchronize entity data with the knowledge graph.
 
@@ -356,7 +360,73 @@ async def sync_graph(
         await graph_service.cleanup_orphan_tags(owner_id)
         return {"entity_id": entity_id, "operation": operation, "status": "synced"}
 
-    # create/update not yet implemented (placeholder)
+    if operation in ("create", "update") and owner_id is not None:
+        # Fetch the resource to get current tags + top_level_categories
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Resource).where(Resource.id == int(entity_id))
+            )
+            resource = result.scalar_one_or_none()
+
+            if resource:
+                current_tags = resource.tags or []
+                top_level_categories = resource.top_level_categories or []
+
+                # Update graph with current tags
+                if current_tags and top_level_categories:
+                    await graph_service.update_graph(
+                        owner_id, current_tags, top_level_categories
+                    )
+
+                # Remove orphan tags: removed tags with no remaining resources
+                if old_tags:
+                    removed_tags = set(old_tags) - set(current_tags)
+                    for tag in removed_tags:
+                        count_result = await session.execute(
+                            select(func.count(Resource.id)).where(
+                                Resource.owner_id == owner_id,
+                                Resource.tags.op("@>")(func.cast([tag], JSONB)),
+                            )
+                        )
+                        count = count_result.scalar() or 0
+                        if count == 0:
+                            await graph_service.delete_tag_node(owner_id, tag)
+
+                # Purge orphan categories: categories no longer in any resource
+                valid_cats_result = await session.execute(
+                    text(
+                        "SELECT DISTINCT jsonb_array_elements_text("
+                        "top_level_categories) AS cat "
+                        "FROM resources WHERE owner_id = :uid "
+                        "AND top_level_categories IS NOT NULL"
+                    ),
+                    {"uid": owner_id},
+                )
+                valid_categories = [row.cat for row in valid_cats_result.fetchall()]
+                valid_tags_result = await session.execute(
+                    text(
+                        "SELECT DISTINCT jsonb_array_elements_text(tags) AS tag "
+                        "FROM resources WHERE owner_id = :uid "
+                        "AND tags IS NOT NULL"
+                    ),
+                    {"uid": owner_id},
+                )
+                valid_tags_all = [row.tag for row in valid_tags_result.fetchall()]
+                await graph_service.purge_orphan_nodes(
+                    owner_id, valid_tags_all, valid_categories
+                )
+
+                logger.info(
+                    f"Graph synced for resource {entity_id}: "
+                    f"{len(current_tags)} tags, "
+                    f"{len(top_level_categories)} categories"
+                )
+                return {
+                    "entity_id": entity_id,
+                    "operation": operation,
+                    "status": "synced",
+                }
+
     return {"entity_id": entity_id, "operation": operation, "status": "noop"}
 
 

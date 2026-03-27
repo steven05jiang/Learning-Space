@@ -27,6 +27,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMock } from "@/lib/mock/hooks";
 import { mockResources } from "@/lib/mock";
 
@@ -51,6 +58,7 @@ interface Resource {
   title?: string;
   summary?: string;
   tags: string[];
+  top_level_categories: string[];
   status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   processing_status: "pending" | "processing" | "success" | "failed";
   content_type: string;
@@ -98,6 +106,7 @@ function toApiResource(r: (typeof mockResources)[0]): Resource {
     title: r.title,
     summary: r.summary,
     tags: r.tags,
+    top_level_categories: [],
     status:
       r.status === "processed"
         ? "READY"
@@ -144,6 +153,11 @@ export default function ResourceDetailPage() {
   const [newTag, setNewTag] = useState("");
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [isUpdatingTags, setIsUpdatingTags] = useState(false);
+
+  // Category editing state
+  const [editCategories, setEditCategories] = useState<string[]>([]);
+  const [isEditingCategories, setIsEditingCategories] = useState(false);
+  const [isUpdatingCategories, setIsUpdatingCategories] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -316,14 +330,6 @@ export default function ResourceDetailPage() {
     setEditTitle(resource?.title || "");
   };
 
-  // Check if at least one system category tag remains
-  const hasSystemCategoryTag = (tags: string[]): boolean => {
-    const systemCategoryNames = categories
-      .filter(cat => cat.is_system)
-      .map(cat => cat.name);
-    return tags.some(tag => systemCategoryNames.includes(tag));
-  };
-
   const handleEditTags = () => {
     setError(null);
     setIsEditingTags(true);
@@ -346,17 +352,7 @@ export default function ResourceDetailPage() {
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    const newTags = editTags.filter(tag => tag !== tagToRemove);
-    // Validate that at least one system category remains
-    if (!hasSystemCategoryTag(newTags)) {
-      const systemCategories = categories
-        .filter(cat => cat.is_system)
-        .map(cat => cat.name)
-        .join(", ");
-      setError(`At least one root-level category tag must remain${systemCategories ? ` (${systemCategories})` : ""}`);
-      return;
-    }
-    setEditTags(newTags);
+    setEditTags(editTags.filter(tag => tag !== tagToRemove));
     setError(null);
   };
 
@@ -375,16 +371,6 @@ export default function ResourceDetailPage() {
 
   const handleSaveTags = async () => {
     if (!resource) return;
-
-    // Final validation before save
-    if (!hasSystemCategoryTag(editTags)) {
-      const systemCategories = categories
-        .filter(cat => cat.is_system)
-        .map(cat => cat.name)
-        .join(", ");
-      setError(`At least one root-level category tag must remain${systemCategories ? ` (${systemCategories})` : ""}`);
-      return;
-    }
 
     setIsUpdatingTags(true);
     setError(null);
@@ -440,6 +426,71 @@ export default function ResourceDetailPage() {
       );
     } finally {
       setIsUpdatingTags(false);
+    }
+  };
+
+  const handleEditCategories = () => {
+    setError(null);
+    setIsEditingCategories(true);
+    setEditCategories([...(resource?.top_level_categories || [])]);
+  };
+
+  const handleCancelEditCategories = () => {
+    setIsEditingCategories(false);
+    setEditCategories([...(resource?.top_level_categories || [])]);
+  };
+
+  const handleRemoveCategory = (cat: string) => {
+    setEditCategories(editCategories.filter((c) => c !== cat));
+    setError(null);
+  };
+
+  const handleAddCategory = (cat: string) => {
+    if (cat && !editCategories.includes(cat)) {
+      setEditCategories([...editCategories, cat]);
+    }
+  };
+
+  const handleSaveCategories = async () => {
+    if (!resource) return;
+    setIsUpdatingCategories(true);
+    setError(null);
+    try {
+      if (isMock) {
+        await new Promise((r) => setTimeout(r, 500));
+        setResource({ ...resource, top_level_categories: [...editCategories] });
+        setIsEditingCategories(false);
+        toast({ title: "Categories updated successfully!" });
+        setIsUpdatingCategories(false);
+        return;
+      }
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) { router.push("/login"); return; }
+
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const response = await fetch(`${apiBase}/resources/${resource.id}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ top_level_categories: editCategories }),
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+        router.push("/login");
+        return;
+      }
+      if (!response.ok) throw new Error(`Failed to update categories: ${response.statusText}`);
+
+      const updatedResource: Resource = await response.json();
+      setResource(updatedResource);
+      setIsEditingCategories(false);
+      toast({ title: "Categories updated successfully!" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update categories");
+    } finally {
+      setIsUpdatingCategories(false);
     }
   };
 
@@ -698,7 +749,7 @@ export default function ResourceDetailPage() {
         </Button>
 
         <div className="flex items-center gap-2">
-          {!isEditing && !isEditingTags && (
+          {!isEditing && (
             <>
               <Button
                 variant="outline"
@@ -727,15 +778,6 @@ export default function ResourceDetailPage() {
               >
                 <Edit2 className="h-4 w-4" />
                 Edit Title
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEditTags}
-                className="gap-2"
-              >
-                <Edit2 className="h-4 w-4" />
-                Edit Tags
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -901,10 +943,114 @@ export default function ResourceDetailPage() {
             </div>
           )}
 
+          {/* Categories */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Categories</Label>
+              {!isEditingCategories && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEditCategories}
+                  className="gap-1 h-7 px-2 text-xs"
+                >
+                  <Edit2 className="h-3 w-3" />
+                  Edit
+                </Button>
+              )}
+            </div>
+            {isEditingCategories ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {editCategories.map((cat) => (
+                    <Badge
+                      key={cat}
+                      variant="outline"
+                      className="text-xs flex items-center gap-1"
+                    >
+                      {cat}
+                      <button
+                        onClick={() => handleRemoveCategory(cat)}
+                        className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                        title={`Remove ${cat}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <Select
+                  onValueChange={handleAddCategory}
+                  disabled={isUpdatingCategories}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Add a category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories
+                      .filter((c) => !editCategories.includes(c.name))
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveCategories}
+                    disabled={isUpdatingCategories || editCategories.length === 0}
+                    className="gap-2"
+                  >
+                    {isUpdatingCategories ? (
+                      <><Spinner className="h-4 w-4" />Saving...</>
+                    ) : (
+                      <><Save className="h-4 w-4" />Save</>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelEditCategories}
+                    disabled={isUpdatingCategories}
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {(resource.top_level_categories || []).length > 0 ? (
+                  resource.top_level_categories.map((cat) => (
+                    <Badge key={cat} variant="outline" className="text-xs">
+                      {cat}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No categories assigned</span>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Tags */}
-          {(resource.tags.length > 0 || isEditingTags) && (
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">Tags</Label>
+              {!isEditingTags && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEditTags}
+                  className="gap-1 h-7 px-2 text-xs"
+                >
+                  <Edit2 className="h-3 w-3" />
+                  Edit
+                </Button>
+              )}
+            </div>
               {isEditingTags ? (
                 <div className="space-y-4">
                   {/* Current tags with remove buttons */}
@@ -981,19 +1127,22 @@ export default function ResourceDetailPage() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {resource.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="text-xs"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
+                  {resource.tags.length > 0 ? (
+                    resource.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {tag}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No tags assigned</span>
+                  )}
                 </div>
               )}
-            </div>
-          )}
+          </div>
 
           {/* Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">

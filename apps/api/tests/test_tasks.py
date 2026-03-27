@@ -1,6 +1,6 @@
 """Tests for worker tasks."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -88,8 +88,23 @@ class TestSyncGraph:
 
     @pytest.mark.asyncio
     async def test_sync_graph_create_operation(self):
-        """Test sync_graph with create operation returns noop."""
-        with patch("workers.tasks.graph_service") as mock_graph_service:
+        """Test sync_graph create returns noop when resource not found in DB."""
+        mock_session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        class _MockCtx:
+            async def __aenter__(self):
+                return mock_session
+
+            async def __aexit__(self, *args):
+                pass
+
+        with (
+            patch("workers.tasks.graph_service") as mock_graph_service,
+            patch("workers.tasks.AsyncSessionLocal", return_value=_MockCtx()),
+        ):
             mock_graph_service.remove_resource_tags = AsyncMock()
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
@@ -105,7 +120,7 @@ class TestSyncGraph:
             mock_graph_service.remove_resource_tags.assert_not_called()
             mock_graph_service.cleanup_orphan_tags.assert_not_called()
 
-            # Verify result
+            # Verify result — noop because resource was not found in DB
             assert result == {
                 "entity_id": "123",
                 "operation": "create",
@@ -114,8 +129,23 @@ class TestSyncGraph:
 
     @pytest.mark.asyncio
     async def test_sync_graph_update_operation(self):
-        """Test sync_graph with update operation returns noop."""
-        with patch("workers.tasks.graph_service") as mock_graph_service:
+        """Test sync_graph update returns noop when resource not found in DB."""
+        mock_session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        class _MockCtx:
+            async def __aenter__(self):
+                return mock_session
+
+            async def __aexit__(self, *args):
+                pass
+
+        with (
+            patch("workers.tasks.graph_service") as mock_graph_service,
+            patch("workers.tasks.AsyncSessionLocal", return_value=_MockCtx()),
+        ):
             mock_graph_service.remove_resource_tags = AsyncMock()
             mock_graph_service.cleanup_orphan_tags = AsyncMock()
 
@@ -131,7 +161,7 @@ class TestSyncGraph:
             mock_graph_service.remove_resource_tags.assert_not_called()
             mock_graph_service.cleanup_orphan_tags.assert_not_called()
 
-            # Verify result
+            # Verify result — noop because resource was not found in DB
             assert result == {
                 "entity_id": "123",
                 "operation": "update",

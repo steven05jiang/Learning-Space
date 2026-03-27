@@ -808,11 +808,16 @@ async def test_user_views_resources_for_graph_node(
         assert "tags" in item
         assert "Python" in item["tags"]  # Should contain the queried tag
 
-    # Test 2: Get resources for a category (Science & Technology)
-    # Note: "Science & Technology" is rejected by node_id validation (& is invalid)
-    science_tech_url = "/graph/nodes/Science & Technology/resources"
+    # Test 2: Get resources for a category node (Science & Technology)
+    # & is now allowed in node_id to support category names
+    science_tech_url = "/graph/nodes/Science %26 Technology/resources"
     response = await client.get(science_tech_url, headers=auth_headers)
-    assert response.status_code == 422  # & is not allowed in node_id
+    assert response.status_code == 200  # & is now a valid character in node_id
+
+    # Test 2b: Characters like < are still invalid
+    invalid_url = "/graph/nodes/bad<node/resources"
+    response = await client.get(invalid_url, headers=auth_headers)
+    assert response.status_code == 422
 
     # Test 3: Get resources for a common tag across categories (Programming)
     programming_url = "/graph/nodes/Programming/resources"
