@@ -46,20 +46,40 @@ async def test_process_resource_start_to_processing_transition():
     mock_llm_result.title = "Test Title"
     mock_llm_result.summary = "Test summary"
     mock_llm_result.tags = ["test", "content"]
+    mock_llm_result.top_level_categories = ["Science & Technology"]
 
     with patch("workers.tasks.AsyncSessionLocal") as mock_session:
         mock_session_instance = AsyncMock()
         mock_session.return_value.__aenter__.return_value = mock_session_instance
 
-        # Mock query result
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session_instance.execute.return_value = mock_result
+        # Mock resource query result
+        mock_resource_result = MagicMock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock categories query result
+        mock_category_row = MagicMock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = MagicMock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        def mock_execute_side_effect(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session_instance.execute = AsyncMock(side_effect=mock_execute_side_effect)
 
         with patch("workers.tasks.llm_processor_service") as mock_llm:
             mock_llm.process_content = AsyncMock(return_value=mock_llm_result)
 
-            with patch("workers.tasks.graph_service"):
+            with patch("workers.tasks.graph_service") as mock_graph:
+                mock_graph.get_user_tags = AsyncMock(return_value=["existing"])
                 await process_resource({}, "123")
 
                 # Verify state transitions happened in correct order
@@ -92,20 +112,40 @@ async def test_process_resource_success_path():
     mock_llm_result.title = "Test Title"
     mock_llm_result.summary = "Test summary"
     mock_llm_result.tags = ["test", "content"]
+    mock_llm_result.top_level_categories = ["Science & Technology"]
 
     with patch("workers.tasks.AsyncSessionLocal") as mock_session:
         mock_session_instance = AsyncMock()
         mock_session.return_value.__aenter__.return_value = mock_session_instance
 
-        # Mock query result
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session_instance.execute.return_value = mock_result
+        # Mock resource query result
+        mock_resource_result = MagicMock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock categories query result
+        mock_category_row = MagicMock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = MagicMock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        def mock_execute_side_effect(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session_instance.execute = AsyncMock(side_effect=mock_execute_side_effect)
 
         with patch("workers.tasks.llm_processor_service") as mock_llm:
             mock_llm.process_content = AsyncMock(return_value=mock_llm_result)
 
-            with patch("workers.tasks.graph_service"):
+            with patch("workers.tasks.graph_service") as mock_graph:
+                mock_graph.get_user_tags = AsyncMock(return_value=["existing"])
                 result = await process_resource({}, "123")
 
                 # Verify final processing_status is SUCCESS
@@ -176,15 +216,35 @@ async def test_process_resource_failure_path_llm_error():
         mock_session_instance = AsyncMock()
         mock_session.return_value.__aenter__.return_value = mock_session_instance
 
-        # Mock query result
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session_instance.execute.return_value = mock_result
+        # Mock resource query result
+        mock_resource_result = MagicMock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock categories query result
+        mock_category_row = MagicMock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = MagicMock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        def mock_execute_side_effect(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session_instance.execute = AsyncMock(side_effect=mock_execute_side_effect)
 
         with patch("workers.tasks.llm_processor_service") as mock_llm:
             mock_llm.process_content = AsyncMock(return_value=mock_llm_result)
 
-            result = await process_resource({}, "123")
+            with patch("workers.tasks.graph_service") as mock_graph:
+                mock_graph.get_user_tags = AsyncMock(return_value=["existing"])
+                result = await process_resource({}, "123")
 
             # Verify processing_status is FAILED
             assert mock_resource.processing_status == ProcessingStatus.FAILED
@@ -267,20 +327,40 @@ async def test_process_resource_processing_state_allows_retry():
     mock_llm_result.title = "Test Title"
     mock_llm_result.summary = "Test summary"
     mock_llm_result.tags = ["test", "content"]
+    mock_llm_result.top_level_categories = ["Science & Technology"]
 
     with patch("workers.tasks.AsyncSessionLocal") as mock_session:
         mock_session_instance = AsyncMock()
         mock_session.return_value.__aenter__.return_value = mock_session_instance
 
-        # Mock query result
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session_instance.execute.return_value = mock_result
+        # Mock resource query result
+        mock_resource_result = MagicMock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock categories query result
+        mock_category_row = MagicMock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = MagicMock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        def mock_execute_side_effect(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session_instance.execute = AsyncMock(side_effect=mock_execute_side_effect)
 
         with patch("workers.tasks.llm_processor_service") as mock_llm:
             mock_llm.process_content = AsyncMock(return_value=mock_llm_result)
 
-            with patch("workers.tasks.graph_service"):
+            with patch("workers.tasks.graph_service") as mock_graph:
+                mock_graph.get_user_tags = AsyncMock(return_value=["existing"])
                 result = await process_resource({}, "123")
 
                 # Verify task was processed (not skipped)
@@ -306,20 +386,40 @@ async def test_process_resource_pending_state_allows_processing():
     mock_llm_result.title = "Test Title"
     mock_llm_result.summary = "Test summary"
     mock_llm_result.tags = ["test", "content"]
+    mock_llm_result.top_level_categories = ["Science & Technology"]
 
     with patch("workers.tasks.AsyncSessionLocal") as mock_session:
         mock_session_instance = AsyncMock()
         mock_session.return_value.__aenter__.return_value = mock_session_instance
 
-        # Mock query result
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_resource
-        mock_session_instance.execute.return_value = mock_result
+        # Mock resource query result
+        mock_resource_result = MagicMock()
+        mock_resource_result.scalar_one_or_none.return_value = mock_resource
+
+        # Mock categories query result
+        mock_category_row = MagicMock()
+        mock_category_row.name = "Science & Technology"
+        mock_categories_result = MagicMock()
+        mock_categories_result.fetchall.return_value = [mock_category_row]
+
+        # Mock session.execute to return different results based on call order
+        execute_call_count = 0
+
+        def mock_execute_side_effect(*args, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            if execute_call_count == 1:
+                return mock_resource_result
+            else:
+                return mock_categories_result
+
+        mock_session_instance.execute = AsyncMock(side_effect=mock_execute_side_effect)
 
         with patch("workers.tasks.llm_processor_service") as mock_llm:
             mock_llm.process_content = AsyncMock(return_value=mock_llm_result)
 
-            with patch("workers.tasks.graph_service"):
+            with patch("workers.tasks.graph_service") as mock_graph:
+                mock_graph.get_user_tags = AsyncMock(return_value=["existing"])
                 result = await process_resource({}, "123")
 
                 # Verify task was processed (not skipped)
