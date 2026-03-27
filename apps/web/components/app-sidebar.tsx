@@ -31,7 +31,6 @@ const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Resources", href: "/resources", icon: BookOpen },
   { title: "Knowledge Graph", href: "/knowledge-graph", icon: Network },
-  { title: "Search", href: "/search", icon: Search },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -103,6 +102,17 @@ export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Disabled Search item */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Search coming soon"
+                  className="opacity-50 cursor-not-allowed pointer-events-none"
+                >
+                  <Search className="h-4 w-4" />
+                  <span>Search</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
