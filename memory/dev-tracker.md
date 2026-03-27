@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-27 (DEV-064 PR #154 merged)
+**Last Updated:** 2026-03-27 (v2.2 plan update — DEV-066–071 added)
 
 ---
 
 ## Progress Summary
 
-- Total: 127 tasks (65 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD)
+- Total: 138 tasks (71 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD + 5 OPS [tracked separately])
 - ✅ Completed: 92
 - 🔄 Active: 0
-- ⏳ Pending: 35
+- ⏳ Pending: 46
 - ⚠️ Stuck: 0
 
 ---
@@ -94,9 +94,9 @@ _Design specs: `docs/design-resource-fetching.md` (FB-001), `docs/design-categor
 
 ## 🟢 Tier 4 — Hardening
 
-- [ ] DEV-047: Create Dockerfiles for frontend and backend — Required for any deployment
-- [ ] DEV-048: Create Helm chart — Kubernetes deployment
-- [ ] DEV-049: Configure ArgoCD application — GitOps automation
+- [ ] DEV-047: Create backend Dockerfile — Required for Railway deployment (scope narrowed: frontend uses Vercel native build, no Dockerfile needed)
+- [ ] ~~DEV-048~~: ~~Create Helm chart~~ — DEFERRED: k8s deployment replaced by Vercel+Railway cheap cloud stack (v2.2)
+- [ ] ~~DEV-049~~: ~~Configure ArgoCD application~~ — DEFERRED: k8s deployment replaced by Vercel+Railway cheap cloud stack (v2.2)
 - [ ] DEV-050: Integration test — Auth end-to-end — Full auth flow with real DB
 - [ ] DEV-051: Integration test — Resource pipeline end-to-end — Full create-to-graph flow
 
@@ -186,6 +186,17 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [ ] INT-053: Docker images build successfully (BDD: Deployment) (blocked: DEV-047)
 - [ ] INT-054: Helm chart deploys to Kubernetes (BDD: Deployment) (blocked: DEV-048)
 - [ ] INT-055: ArgoCD syncs from Git (BDD: Deployment) (blocked: DEV-049)
+
+## 🚀 Deploy Prioritization (v2.2 — 2026-03-27)
+
+_Goal: ship to production for feedback. Auth hardening + feature gates + multi-LLM + cheap cloud stack._
+
+- [ ] DEV-066: Restrict login UI to Google-only — remove X/Twitter button + username/password form from login page
+- [ ] DEV-067: Disable search button — add disabled state + "Search coming soon" tooltip
+- [ ] DEV-068: Chat panel "coming soon" mode — disable input/send, inject initial bot message
+- [ ] DEV-069: User allowlisting backend — ALLOWED_EMAILS env var gate on OAuth callback → redirect /coming-soon
+- [ ] DEV-070: Coming-soon page — static /coming-soon page for non-allowlisted users
+- [ ] DEV-071: Multi-LLM provider abstraction — LLM_PROVIDER env var; support Groq/SiliconFlow/Fireworks + Anthropic
 
 ## 🎬 Demos
 
