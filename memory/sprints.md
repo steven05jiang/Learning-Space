@@ -27,8 +27,8 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | Task | Description | Status |
 |------|-------------|--------|
 | DEV-033 | POST /chat endpoint — create/continue conversation, persist messages, call agent | ✅ Completed (PR #222) |
-| DEV-034 | GET /chat/conversations + GET /chat/conversations/{id}/messages | ⏳ Pending (needs DEV-033) |
-| DEV-053 | Wire chat UI to real API + remove coming-soon mode (DEV-068 reversal) | ⏳ Pending (needs DEV-033, DEV-034) |
+| DEV-034 | GET /chat/conversations + GET /chat/conversations/{id}/messages | ✅ Completed (PR #224) |
+| DEV-053 | Wire chat UI to real API + remove coming-soon mode (DEV-068 reversal) | 🔄 Active |
 | DEV-036 | Unit tests — Chat / Agent | ⏳ Pending (needs DEV-033, DEV-034) |
 | INT-036 | User sends a chat message — agent returns answer + conversation_id | ⏳ Pending (needs DEV-033) |
 | INT-037 | User continues a conversation with context | ⏳ Pending (needs DEV-033) |
