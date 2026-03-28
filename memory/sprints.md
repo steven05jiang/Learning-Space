@@ -26,8 +26,8 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 |------|-------------|--------|
 | DEV-072 | Alembic migration — resources_search_idx GIN functional index | ✅ Completed (PR #196) |
 | DEV-073 | ResourceSearchService — full-text search + SearchResult/ResourceSearchItem/AgentResourceResult models | ✅ Completed (PR #198) |
-| DEV-074 | GET /resources/search endpoint + Pydantic schemas + rank field | 🔄 Active |
-| DEV-075 | search_resources LangGraph tool + AgentResourceResult + system prompt | ⏳ Pending (needs DEV-073) |
+| DEV-074 | GET /resources/search endpoint + Pydantic schemas + rank field | ✅ Completed (PR #200) |
+| DEV-075 | search_resources LangGraph tool + AgentResourceResult + system prompt | 🔄 Active |
 | DEV-076 | Search page UI (Next.js) + re-enable search nav | ⏳ Pending (needs DEV-074) |
 | DEV-077 | Unit tests — ResourceSearchService + search endpoint | ⏳ Pending (needs DEV-073, DEV-074) |
 | INT-056 | Keyword search returns ranked READY results only | ⏳ Pending (needs DEV-073, DEV-074) |
