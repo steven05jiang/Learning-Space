@@ -60,7 +60,7 @@ SERVICE_TYPE=api
 
 6. Railway will automatically detect the build configuration from `railway.toml` in the repository root
 7. No manual build commands are needed - Railway will use the Dockerfile specified in the configuration
-8. Ensure "Root Directory" is set to `/` (repository root)
+8. **Important:** Set "Root Directory" to `apps/api` in the service Settings → Source → Root Directory field. This ensures the Docker build context is `apps/api/` where the Dockerfile expects to find its source files.
 
 ## Step 3: Configure Worker Service
 
@@ -75,7 +75,7 @@ SERVICE_TYPE=worker
 
 5. Railway will automatically detect the build configuration from `railway.toml` in the repository root
 6. No manual build commands are needed - Railway will use the Dockerfile specified in the configuration
-7. Ensure "Root Directory" is set to `/` (repository root)
+7. **Important:** Set "Root Directory" to `apps/api` in the service Settings → Source → Root Directory field (same as the API service).
 
 ## Step 4: Configure Auto-Deploy
 
