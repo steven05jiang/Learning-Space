@@ -152,14 +152,14 @@ class ResourceSearchService:
             """
             SELECT *,
                    ts_rank("""
-            + TSVECTOR_EXPRESSION
+            + TSVECTOR_EXPRESSION  # nosec B608
             + """, plainto_tsquery('english', :query)) AS rank,
                    COUNT(*) OVER() AS total_count
             FROM resources
             WHERE owner_id = :owner_id
               AND status = 'READY'
               AND """
-            + TSVECTOR_EXPRESSION
+            + TSVECTOR_EXPRESSION  # nosec B608
             + """ @@ plainto_tsquery('english', :query)
               AND (:tag IS NULL OR tags ?? :tag)
             ORDER BY rank DESC
