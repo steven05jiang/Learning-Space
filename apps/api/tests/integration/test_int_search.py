@@ -11,9 +11,8 @@ the search endpoint returns only READY resources with proper ranking.
 """
 
 import pytest
-from sqlalchemy import select
 
-from models.resource import Resource, ResourceStatus
+from models.resource import ResourceStatus
 from models.user import User
 from tests.integration.factories import make_resource
 
@@ -24,9 +23,9 @@ async def test_keyword_search_returns_ready_resources_only_with_rank(
     client, auth_headers, db_session, test_user: User
 ):
     """
-    INT-056: User searches for resources by keyword — returns ranked READY resources only.
+    INT-056: User searches for resources by keyword.
 
-    This test validates that:
+    Returns ranked READY resources only. This test validates that:
     - Only READY resources are returned (PENDING/FAILED excluded)
     - Results are ordered by relevance (rank DESC)
     - Each result has a rank field > 0
@@ -92,7 +91,7 @@ async def test_keyword_search_returns_ready_resources_only_with_rank(
         original_content="https://example.com/python-testing",
     )
 
-    # Create a READY resource for another user (should be excluded due to user isolation)
+    # Create a READY resource for another user (excluded due to user isolation)
     other_user_resource = await make_resource(
         db_session,
         other_user.id,
@@ -134,7 +133,7 @@ async def test_keyword_search_returns_ready_resources_only_with_rank(
 
     # Validate that results are ordered by relevance (rank DESC)
     ranks = [resource["rank"] for resource in data["resources"]]
-    assert ranks == sorted(ranks, reverse=True), "Results should be ordered by rank DESC"
+    assert ranks == sorted(ranks, reverse=True), "Results should be ordered DESC"
 
     # Validate that the correct resources were returned (by checking IDs)
     returned_ids = {resource["id"] for resource in data["resources"]}
@@ -148,12 +147,14 @@ async def test_keyword_search_returns_ready_resources_only_with_rank(
         str(failed_resource.id),
         str(other_user_resource.id),
     }
-    assert returned_ids.isdisjoint(excluded_ids), "Excluded resources should not appear in results"
+    assert returned_ids.isdisjoint(excluded_ids), "Excluded resources not in results"
 
 
 @pytest.mark.integration
 @pytest.mark.search
-async def test_search_with_tag_filter(client, auth_headers, db_session, test_user: User):
+async def test_search_with_tag_filter(
+    client, auth_headers, db_session, test_user: User
+):
     """
     INT-056: Additional test for tag filtering functionality.
 
@@ -170,7 +171,7 @@ async def test_search_with_tag_filter(client, auth_headers, db_session, test_use
         status=ResourceStatus.READY,
     )
 
-    python_advanced = await make_resource(
+    await make_resource(
         db_session,
         test_user.id,
         title="Advanced Python",
