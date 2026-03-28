@@ -351,6 +351,7 @@ class TestAgentService:
         with patch("services.agent_service.get_db") as mock_get_db:
             # Mock database session
             mock_db = AsyncMock()
+
             async def mock_generator():
                 yield mock_db
 
@@ -393,7 +394,7 @@ class TestAgentService:
                         created_at=datetime.now(UTC),
                         updated_at=datetime.now(UTC),
                         rank=0.8,
-                    )
+                    ),
                 ]
 
                 # Mock the async search method with call tracking

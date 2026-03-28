@@ -128,6 +128,7 @@ class AgentService:
     @property
     def _search_resources_tool(self):
         """Create the search_resources tool with current user context."""
+
         @tool
         async def search_resources(
             query: str,
@@ -161,8 +162,8 @@ class AgentService:
                     owner_id=self._current_user_id,  # Pass integer ID directly
                     query=query,
                     tag=tag,
-                    limit=10,   # hard cap for agent context efficiency
-                    offset=0,   # no pagination in agent context
+                    limit=10,  # hard cap for agent context efficiency
+                    offset=0,  # no pagination in agent context
                 )
 
                 # Convert to AgentResourceResult and return as dictionaries
@@ -201,7 +202,6 @@ class AgentService:
 
         # Otherwise, end the conversation
         return "end"
-
 
     async def _get_graph_context_wrapper(self, tag: str) -> str:
         """Wrapper for get_graph_context tool."""
