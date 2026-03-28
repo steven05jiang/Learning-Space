@@ -175,6 +175,14 @@ class TestProcessResource:
         mock_graph_service.update_from_resource = AsyncMock()
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
+        mock_embedding_service = AsyncMock()
+        mock_embedding_service.build_embedding_text.return_value = (  # noqa: E501
+            "Test content for embedding"
+        )
+        mock_embedding_service.generate_embedding = AsyncMock(return_value=[0.1] * 2048)
+        mock_embedding_service.upsert_resource_embedding = AsyncMock()
+        monkeypatch.setattr("workers.tasks.embedding_service", mock_embedding_service)
+
         # Execute the task
         result = await process_resource({}, "123")
 
@@ -190,6 +198,7 @@ class TestProcessResource:
             "content_fetch",
             "llm_processing",
             "db_update",
+            "embedding_generation",
             "graph_update",
         }
         assert set(result["stages_completed"]) == expected_stages
