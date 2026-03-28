@@ -13,7 +13,10 @@ import pytest
 
 from models.resource import ResourceStatus
 from models.user import User
-from services.resource_search_service import resource_search_service, AgentResourceResult
+from services.resource_search_service import (
+    AgentResourceResult,
+    resource_search_service,
+)
 from tests.integration.factories import make_resource
 
 
@@ -26,7 +29,8 @@ async def test_agent_search_resources_returns_trimmed_results(
     INT-059: Agent search_resources tool returns trimmed AgentResourceResult list.
 
     Validates that AgentResourceResult conversion returns:
-    - Correctly shaped dicts with fields: id, title, summary, tags, top_level_categories, url
+    - Correctly shaped dicts with fields: id, title, summary, tags,
+      top_level_categories, url
     - No rank, status, created_at, updated_at fields in result
     - url = original_content for URL-type resources
     - url = None for text-type resources
@@ -105,12 +109,12 @@ async def test_agent_search_resources_returns_trimmed_results(
         await make_resource(
             db_session,
             test_user.id,
-            title=f"Python Resource {i+4}",
-            summary=f"Additional Python resource #{i+4} for limit testing",
+            title=f"Python Resource {i + 4}",
+            summary=f"Additional Python resource #{i + 4} for limit testing",
             tags=["python", f"tag{i}"],
             status=ResourceStatus.READY,
             content_type="url",
-            original_content=f"https://example.com/python-resource-{i+4}",
+            original_content=f"https://example.com/python-resource-{i + 4}",
         )
 
     await db_session.commit()
@@ -127,8 +131,7 @@ async def test_agent_search_resources_returns_trimmed_results(
 
     # Convert to AgentResourceResult and return as dictionaries (same as the tool does)
     results = [
-        AgentResourceResult.from_item(r).__dict__
-        for r in search_result.resources
+        AgentResourceResult.from_item(r).__dict__ for r in search_result.resources
     ]
 
     # Validate basic response structure
@@ -141,51 +144,84 @@ async def test_agent_search_resources_returns_trimmed_results(
         assert isinstance(result, dict), "Each result should be a dictionary"
 
         # Check required fields are present
-        required_fields = {"id", "title", "summary", "tags", "top_level_categories", "url"}
-        assert set(result.keys()) == required_fields, f"Result should have exactly these fields: {required_fields}"
+        required_fields = {
+            "id",
+            "title",
+            "summary",
+            "tags",
+            "top_level_categories",
+            "url",
+        }
+        assert set(result.keys()) == required_fields, (
+            f"Result should have exactly these fields: {required_fields}"
+        )
 
         # Check forbidden fields are not present
         forbidden_fields = {"rank", "status", "created_at", "updated_at"}
         for forbidden_field in forbidden_fields:
-            assert forbidden_field not in result, f"Result should not contain {forbidden_field}"
+            assert forbidden_field not in result, (
+                f"Result should not contain {forbidden_field}"
+            )
 
         # Validate field types and basic structure
         assert isinstance(result["id"], str), "id should be string"
         assert isinstance(result["title"], str), "title should be string"
         assert isinstance(result["summary"], str), "summary should be string"
         assert isinstance(result["tags"], list), "tags should be list"
-        assert isinstance(result["top_level_categories"], list), "top_level_categories should be list"
-        assert result["url"] is None or isinstance(result["url"], str), "url should be None or string"
+        assert isinstance(result["top_level_categories"], list), (
+            "top_level_categories should be list"
+        )
+        assert result["url"] is None or isinstance(result["url"], str), (
+            "url should be None or string"
+        )
 
     # Find our specific test resources in results to validate URL field behavior
-    url_results = [r for r in results if r["id"] in [str(url_resource_1.id), str(url_resource_2.id)]]
+    url_results = [
+        r
+        for r in results
+        if r["id"] in [str(url_resource_1.id), str(url_resource_2.id)]
+    ]
     text_results = [r for r in results if r["id"] == str(text_resource.id)]
 
     # Validate URL field for URL-type resources
     for url_result in url_results:
-        assert url_result["url"] is not None, "URL-type resources should have non-null url field"
-        assert url_result["url"].startswith("https://example.com/"), "url should be the original_content"
+        assert url_result["url"] is not None, (
+            "URL-type resources should have non-null url field"
+        )
+        assert url_result["url"].startswith("https://example.com/"), (
+            "url should be the original_content"
+        )
 
     # Validate URL field for text-type resources
     for text_result in text_results:
-        assert text_result["url"] is None, "Text-type resources should have null url field"
+        assert text_result["url"] is None, (
+            "Text-type resources should have null url field"
+        )
 
     # Validate user isolation - no results should belong to other_user
     result_ids = {result["id"] for result in results}
-    assert str(other_user_resource.id) not in result_ids, "Should not return other user's resources"
-    assert str(pending_resource.id) not in result_ids, "Should not return non-READY resources"
+    assert str(other_user_resource.id) not in result_ids, (
+        "Should not return other user's resources"
+    )
+    assert str(pending_resource.id) not in result_ids, (
+        "Should not return non-READY resources"
+    )
 
     # Validate that we got at least our known matching resources
-    expected_ids = {str(url_resource_1.id), str(url_resource_2.id), str(text_resource.id)}
+    expected_ids = {
+        str(url_resource_1.id),
+        str(url_resource_2.id),
+        str(text_resource.id),
+    }
     actual_ids = {result["id"] for result in results}
-    assert expected_ids.issubset(actual_ids), "Should include our test resources in results"
+    assert expected_ids.issubset(actual_ids), (
+        "Should include our test resources in results"
+    )
 
 
 @pytest.mark.integration
 @pytest.mark.search
-async def test_agent_search_resources_with_tag_filter(
-    db_session, test_user: User
-):
+async def test_agent_search_resources_with_tag_filter(db_session, test_user: User):
     """
     INT-059: Test search with tag filtering.
 
@@ -201,7 +237,7 @@ async def test_agent_search_resources_with_tag_filter(
         status=ResourceStatus.READY,
     )
 
-    advanced_resource = await make_resource(
+    await make_resource(
         db_session,
         test_user.id,
         title="Advanced Python",
@@ -223,8 +259,7 @@ async def test_agent_search_resources_with_tag_filter(
     )
 
     results = [
-        AgentResourceResult.from_item(r).__dict__
-        for r in search_result.resources
+        AgentResourceResult.from_item(r).__dict__ for r in search_result.resources
     ]
 
     # Should only return the tutorial resource
@@ -269,8 +304,7 @@ async def test_agent_search_resources_no_results(db_session, test_user: User):
     )
 
     results = [
-        AgentResourceResult.from_item(r).__dict__
-        for r in search_result.resources
+        AgentResourceResult.from_item(r).__dict__ for r in search_result.resources
     ]
 
     assert results == [], "Should return empty list when no matches"
@@ -323,8 +357,7 @@ async def test_agent_resource_result_url_field_behavior(db_session, test_user: U
     )
 
     results = [
-        AgentResourceResult.from_item(r).__dict__
-        for r in search_result.resources
+        AgentResourceResult.from_item(r).__dict__ for r in search_result.resources
     ]
 
     assert len(results) == 2, "Should find both resources"
@@ -334,5 +367,7 @@ async def test_agent_resource_result_url_field_behavior(db_session, test_user: U
     text_result = next(r for r in results if r["id"] == str(text_resource.id))
 
     # Validate URL field behavior
-    assert url_result["url"] == "https://example.com/tech-article", "URL-type resource should have url = original_content"
+    assert url_result["url"] == "https://example.com/tech-article", (
+        "URL-type resource should have url = original_content"
+    )
     assert text_result["url"] is None, "Text-type resource should have url = None"
