@@ -7,10 +7,12 @@ from core.config import settings
 Base = declarative_base()
 
 # Create async engine
+# statement_cache_size=0 required when using Supabase transaction pooler (pgbouncer)
 engine = create_async_engine(
     settings.database_url,
     echo=settings.database_echo,
     future=True,
+    connect_args={"statement_cache_size": 0},
 )
 
 # Create async session factory
