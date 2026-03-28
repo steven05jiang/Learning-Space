@@ -156,10 +156,10 @@ async def test_search_with_tag_filter(
     client, auth_headers, db_session, test_user: User
 ):
     """
-    INT-056: Additional test for tag filtering functionality.
+    INT-057: User filters search results by tag — results narrowed to matching tag.
 
     Validates that the tag parameter works correctly and narrows results
-    to resources containing the specified tag.
+    to resources containing the specified tag. Tests both valid and nonexistent tags.
     """
     # Create resources with different tags
     python_tutorial = await make_resource(
@@ -171,7 +171,7 @@ async def test_search_with_tag_filter(
         status=ResourceStatus.READY,
     )
 
-    await make_resource(
+    python_advanced = await make_resource(
         db_session,
         test_user.id,
         title="Advanced Python",
@@ -182,7 +182,8 @@ async def test_search_with_tag_filter(
 
     await db_session.commit()
 
-    # Search for "python" with tag filter for "tutorial"
+    # Test 1: Search for "python" with tag filter for "tutorial"
+    # Should only return the tutorial resource
     response = await client.get(
         "/resources/search",
         params={"q": "python", "tag": "tutorial"},
@@ -197,6 +198,36 @@ async def test_search_with_tag_filter(
     assert len(data["resources"]) == 1
     assert data["resources"][0]["id"] == str(python_tutorial.id)
     assert "tutorial" in data["resources"][0]["tags"]
+
+    # Test 2: Search for "python" with tag filter for "advanced"
+    # Should only return the advanced resource
+    response = await client.get(
+        "/resources/search",
+        params={"q": "python", "tag": "advanced"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["resources"]) == 1
+    assert data["resources"][0]["id"] == str(python_advanced.id)
+    assert "advanced" in data["resources"][0]["tags"]
+
+    # Test 3: Search with a nonexistent tag
+    # Should return empty list (total=0), not an error
+    response = await client.get(
+        "/resources/search",
+        params={"q": "python", "tag": "nonexistent"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total"] == 0
+    assert len(data["resources"]) == 0
 
 
 @pytest.mark.integration
