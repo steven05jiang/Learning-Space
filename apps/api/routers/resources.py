@@ -35,7 +35,7 @@ router = APIRouter(prefix="/resources", tags=["resources"])
 
 @router.get("/search", response_model=ResourceSearchResponse)
 async def search_resources(
-    q: str = Query(..., min_length=1, strip_whitespace=True),
+    q: str = Query(..., strip_whitespace=True),
     tag: Optional[str] = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
