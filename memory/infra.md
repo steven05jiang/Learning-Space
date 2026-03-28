@@ -46,6 +46,14 @@
   - `SERVICE_TYPE` (set to `api` or `worker` per service)
 - **Pricing:** $5/month flat (includes $5 compute credit), 512MB RAM per service
 
+### Vercel (Frontend)
+- **URL:** https://learning-space-app.vercel.app
+- **Root directory:** `apps/web`
+- **Auto-deploy:** Enabled from `main` branch
+- **Environment variables:**
+  - `NEXT_PUBLIC_API_BASE_URL` (Railway API URL)
+- **Deployed:** 2026-03-27
+
 ### Fly.io (Alternative)
 - **Services:** API, Worker
 - **Config:** `apps/api/fly.api.toml`, `apps/api/fly.worker.toml`
@@ -58,3 +66,4 @@
 ## Change Log
 
 - 2026-03-27 — Supabase, Neo4j AuraDB, Upstash provisioned (US East 1); Railway config added as primary provider; Fly.io config kept as alternative
+- 2026-03-27 — Vercel frontend deployed at https://learning-space-app.vercel.app
