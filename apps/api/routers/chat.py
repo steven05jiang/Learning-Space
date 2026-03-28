@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List
 from uuid import UUID
 
@@ -122,7 +122,7 @@ async def chat(
         db.add(assistant_message)
 
         # Step 9: Update conversation timestamp
-        conversation.updated_at = datetime.utcnow()
+        conversation.updated_at = datetime.now(UTC)
 
         # Commit all changes
         await db.commit()
