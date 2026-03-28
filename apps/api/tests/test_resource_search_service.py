@@ -4,7 +4,7 @@ Tests for ResourceSearchService.
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
@@ -54,12 +54,7 @@ async def test_search_empty_query_returns_empty_result(search_service):
     mock_session = AsyncMock()
 
     result = await search_service.search(
-        session=mock_session,
-        owner_id=uuid4(),
-        query="",
-        tag=None,
-        limit=20,
-        offset=0
+        session=mock_session, owner_id=uuid4(), query="", tag=None, limit=20, offset=0
     )
 
     assert isinstance(result, SearchResult)
@@ -73,7 +68,7 @@ async def test_search_empty_query_returns_empty_result(search_service):
         query="   ",
         tag=None,
         limit=20,
-        offset=0
+        offset=0,
     )
 
     assert result.resources == []
