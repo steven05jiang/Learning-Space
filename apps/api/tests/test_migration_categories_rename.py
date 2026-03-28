@@ -4,9 +4,7 @@ Validates the rename/merge map, JSON update logic, and deduplication without
 requiring alembic to run — mirrors the pattern in test_migration_processing_status.py.
 """
 
-import json
 
-import pytest
 
 # Import the migration module directly so constants stay in sync
 import importlib.util
@@ -57,8 +55,9 @@ def test_rename_map_produces_all_canonical_names():
 def test_resource_old_to_new_produces_all_canonical_names():
     """Every target name in RESOURCE_OLD_TO_NEW must be a canonical category."""
     targets = set(RESOURCE_OLD_TO_NEW.values())
+    unexpected = targets - CANONICAL_CATEGORIES
     assert targets <= CANONICAL_CATEGORIES, (
-        f"Unexpected target names in RESOURCE_OLD_TO_NEW: {targets - CANONICAL_CATEGORIES}"
+        f"Unexpected target names in RESOURCE_OLD_TO_NEW: {unexpected}"
     )
 
 
@@ -69,8 +68,6 @@ def test_new_categories_are_canonical():
 
 def test_all_canonical_categories_are_reachable():
     """After applying rename + new inserts, all 10 canonical names must be present."""
-    # Start with the old seed names
-    old_names = set(RENAME_MAP.keys())
     # Apply renames (drop merged rows, keep renamed ones)
     after_rename = set()
     for old, new in RENAME_MAP.items():
