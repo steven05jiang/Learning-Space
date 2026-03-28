@@ -204,7 +204,7 @@ async def test_full_text_search_query_structure():
     assert "ts_rank" in sql_text
     assert "COUNT(*) OVER()" in sql_text
     assert "status = 'READY'" in sql_text
-    assert "tags ?? :tag" in sql_text  # JSONB ? operator (doubled for SQLAlchemy)
+    assert "jsonb_exists(tags, :tag)" in sql_text  # JSONB existence check via function
     assert "ORDER BY rank DESC" in sql_text
 
     # Check parameters

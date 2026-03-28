@@ -161,7 +161,7 @@ class ResourceSearchService:
               AND """
             + TSVECTOR_EXPRESSION  # nosec B608
             + """ @@ plainto_tsquery('english', :query)
-              AND (:tag IS NULL OR tags ?? :tag)
+              AND (:tag IS NULL OR jsonb_exists(tags, :tag))
             ORDER BY rank DESC
             LIMIT :limit OFFSET :offset
         """
