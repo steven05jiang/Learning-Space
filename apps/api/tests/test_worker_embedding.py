@@ -61,23 +61,33 @@ async def test_process_resource_embedding_success():
         ]
 
         with patch("workers.tasks.graph_service") as mock_graph_service:
-            mock_graph_service.get_user_tags = AsyncMock(return_value=["existing", "tag"])
+            mock_graph_service.get_user_tags = AsyncMock(
+                return_value=["existing", "tag"]
+            )
             mock_graph_service.update_graph = AsyncMock()
             mock_graph_service.update_from_resource = AsyncMock()
 
             with patch("workers.tasks.llm_processor_service") as mock_llm_service:
-                mock_llm_service.process_content = AsyncMock(return_value=mock_llm_result)
+                mock_llm_service.process_content = AsyncMock(
+                    return_value=mock_llm_result
+                )
 
                 with patch("workers.tasks.embedding_service") as mock_embedding_service:
-                    mock_embedding_service.build_embedding_text.return_value = "Test Title Test summary test content Science & Technology"
-                    mock_embedding_service.generate_embedding = AsyncMock(return_value=mock_embedding)
+                    mock_embedding_service.build_embedding_text.return_value = (
+                        "Test Title Test summary test content Science & Technology"
+                    )
+                    mock_embedding_service.generate_embedding = AsyncMock(
+                        return_value=mock_embedding
+                    )
                     mock_embedding_service.upsert_resource_embedding = AsyncMock()
 
                     # Execute
                     result = await process_resource({}, "123")
 
                     # Verify embedding service calls
-                    mock_embedding_service.build_embedding_text.assert_called_once_with(mock_resource)
+                    mock_embedding_service.build_embedding_text.assert_called_once_with(
+                        mock_resource
+                    )
                     mock_embedding_service.generate_embedding.assert_called_once_with(
                         "Test Title Test summary test content Science & Technology"
                     )
@@ -142,18 +152,26 @@ async def test_process_resource_embedding_failure_graceful():
             mock_graph_service.update_from_resource = AsyncMock()
 
             with patch("workers.tasks.llm_processor_service") as mock_llm_service:
-                mock_llm_service.process_content = AsyncMock(return_value=mock_llm_result)
+                mock_llm_service.process_content = AsyncMock(
+                    return_value=mock_llm_result
+                )
 
                 with patch("workers.tasks.embedding_service") as mock_embedding_service:
                     # Mock embedding failure
-                    mock_embedding_service.build_embedding_text.return_value = "Test Title Test summary test Science & Technology"
-                    mock_embedding_service.generate_embedding = AsyncMock(side_effect=Exception("API Error"))
+                    mock_embedding_service.build_embedding_text.return_value = (
+                        "Test Title Test summary test Science & Technology"
+                    )
+                    mock_embedding_service.generate_embedding = AsyncMock(
+                        side_effect=Exception("API Error")
+                    )
 
                     # Execute - should not raise exception
                     result = await process_resource({}, "123")
 
                     # Verify embedding service was called but failed gracefully
-                    mock_embedding_service.build_embedding_text.assert_called_once_with(mock_resource)
+                    mock_embedding_service.build_embedding_text.assert_called_once_with(
+                        mock_resource
+                    )
                     mock_embedding_service.generate_embedding.assert_called_once()
 
                     # Resource should still be processed successfully
@@ -207,10 +225,14 @@ async def test_process_resource_empty_embedding_text():
             mock_graph_service.get_user_tags = AsyncMock(return_value=[])
 
             with patch("workers.tasks.llm_processor_service") as mock_llm_service:
-                mock_llm_service.process_content = AsyncMock(return_value=mock_llm_result)
+                mock_llm_service.process_content = AsyncMock(
+                    return_value=mock_llm_result
+                )
 
                 with patch("workers.tasks.embedding_service") as mock_embedding_service:
-                    mock_embedding_service.build_embedding_text.return_value = ""  # Empty text
+                    mock_embedding_service.build_embedding_text.return_value = (
+                        ""  # Empty text
+                    )
                     mock_embedding_service.generate_embedding = AsyncMock()
                     mock_embedding_service.upsert_resource_embedding = AsyncMock()
 
@@ -218,7 +240,9 @@ async def test_process_resource_empty_embedding_text():
                     result = await process_resource({}, "123")
 
                     # Verify embedding service was called but no embedding generated
-                    mock_embedding_service.build_embedding_text.assert_called_once_with(mock_resource)
+                    mock_embedding_service.build_embedding_text.assert_called_once_with(
+                        mock_resource
+                    )
                     mock_embedding_service.generate_embedding.assert_not_called()
                     mock_embedding_service.upsert_resource_embedding.assert_not_called()
 

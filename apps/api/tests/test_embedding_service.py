@@ -1,7 +1,8 @@
 """Tests for embedding service."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from models.resource import Resource
 from services.embedding_service import embedding_service
@@ -20,7 +21,9 @@ class TestEmbeddingService:
         )
 
         result = embedding_service.build_embedding_text(resource)
-        expected = "Test Title This is a test summary. python testing Programming Technology"
+        expected = (
+            "Test Title This is a test summary. python testing Programming Technology"
+        )
         assert result == expected
 
     def test_build_embedding_text_partial_resource(self):
@@ -68,7 +71,9 @@ class TestEmbeddingService:
         mock_response.data = [MagicMock()]
         mock_response.data[0].embedding = [0.1] * 2048  # Exactly 2048 values
 
-        with patch.object(embedding_service.client.embeddings, 'create', return_value=mock_response) as mock_create:
+        with patch.object(
+            embedding_service.client.embeddings, "create", return_value=mock_response
+        ) as mock_create:
             result = await embedding_service.generate_embedding("test text")
 
         # Should return all 2048 values
@@ -90,7 +95,9 @@ class TestEmbeddingService:
         mock_response = MagicMock()
         mock_response.data = []
 
-        with patch.object(embedding_service.client.embeddings, 'create', return_value=mock_response) as mock_create:
+        with patch.object(
+            embedding_service.client.embeddings, "create", return_value=mock_response
+        ):
             result = await embedding_service.generate_embedding("test text")
 
         assert result is None
@@ -98,7 +105,11 @@ class TestEmbeddingService:
     @pytest.mark.asyncio
     async def test_generate_embedding_api_error(self):
         """Test embedding generation with API error."""
-        with patch.object(embedding_service.client.embeddings, 'create', side_effect=Exception("API Error")) as mock_create:
+        with patch.object(
+            embedding_service.client.embeddings,
+            "create",
+            side_effect=Exception("API Error"),
+        ):
             with pytest.raises(Exception, match="API Error"):
                 await embedding_service.generate_embedding("test text")
 

@@ -176,7 +176,9 @@ class TestProcessResource:
         monkeypatch.setattr("workers.tasks.graph_service", mock_graph_service)
 
         mock_embedding_service = AsyncMock()
-        mock_embedding_service.build_embedding_text.return_value = "Test content for embedding"
+        mock_embedding_service.build_embedding_text.return_value = (  # noqa: E501
+            "Test content for embedding"
+        )
         mock_embedding_service.generate_embedding = AsyncMock(return_value=[0.1] * 2048)
         mock_embedding_service.upsert_resource_embedding = AsyncMock()
         monkeypatch.setattr("workers.tasks.embedding_service", mock_embedding_service)

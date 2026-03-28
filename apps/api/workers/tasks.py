@@ -205,14 +205,18 @@ async def process_resource(
             try:
                 embedding_text = embedding_service.build_embedding_text(resource)
                 if embedding_text.strip():
-                    embedding_vector = await embedding_service.generate_embedding(embedding_text)
+                    embedding_vector = await embedding_service.generate_embedding(
+                        embedding_text
+                    )
                     if embedding_vector:
                         await embedding_service.upsert_resource_embedding(
                             session, resource.id, embedding_vector
                         )
                         logger.info(f"Embedding generated for resource {resource_id}")
                     else:
-                        logger.warning(f"Empty embedding returned for resource {resource_id}")
+                        logger.warning(
+                            f"Empty embedding returned for resource {resource_id}"
+                        )
                 else:
                     logger.info(f"No content to embed for resource {resource_id}")
             except Exception as e:

@@ -98,7 +98,9 @@ class EmbeddingService:
 
         await session.execute(
             text("""
-                INSERT INTO resource_embeddings (resource_id, embedding, model, created_at, updated_at)
+                INSERT INTO resource_embeddings (
+                    resource_id, embedding, model, created_at, updated_at
+                )
                 VALUES (:resource_id, :embedding, :model, now(), now())
                 ON CONFLICT (resource_id)
                 DO UPDATE SET
@@ -110,7 +112,7 @@ class EmbeddingService:
                 "resource_id": resource_id,
                 "embedding": embedding,
                 "model": model,
-            }
+            },
         )
         await session.commit()
         logger.info(f"Upserted embedding for resource {resource_id}")
