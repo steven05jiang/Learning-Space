@@ -60,6 +60,38 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
+## 2026-03-28 — Unified search capability (user-facing + AI agent)
+
+**Type:** Both
+**Trigger:** New requirements + technical thoughts (phased search design session)
+**Docs Affected:** `docs/requirements.md`, `docs/technical-design.md`, `docs/ux-requirements.md`, `docs/design-search.md` (new), `CLAUDE.md`
+**Summary:** Adds a unified search capability serving two consumers: a user-facing keyword search page and the AI agent's `search_resources` tool. Both share a single `ResourceSearchService` to avoid duplicate retrieval logic. Requirements formalize the two-phase delivery: Phase 1 uses PostgreSQL full-text search (tsvector + GIN index, zero new infrastructure); Phase 2 adds pgvector embeddings in Supabase and a hybrid RRF merge for semantic retrieval. A new supplement doc `docs/design-search.md` owns the full specification — service interface, output shapes, query logic, endpoint schema, agent tool contract, sequence diagrams, and a retrieval strategy comparison. Core docs are updated with targeted additions only.
+
+### Changes
+
+#### Requirements
+- Added `docs/requirements.md` §7 (Resource Search): user-facing multi-keyword search across title/summary/tags; relevance ranking; optional tag filter; READY-only results; shared service with agent; two-phase delivery summary
+- Modified `docs/requirements.md` §6 (AI Chatbot): added sentence noting agent search uses the same retrieval service as §7
+
+#### Design
+- Added `docs/design-search.md`: Full specification — `ResourceSearchService` interface, `SearchResult`/`ResourceSearchItem` internal models, HTTP full response shape (`ResourceSearchResponse` + `rank`), agent trimmed shape (`AgentResourceResult`), Phase 1 full-text query logic (functional GIN index, `plainto_tsquery`, `ts_rank`), Phase 2 hybrid retrieval (`resource_embeddings` table, pgvector IVFFlat index, `text-embedding-3-small`, RRF merge), worker pipeline addition, `GET /resources/search` endpoint spec, `search_resources` LangGraph tool contract, event flows, sequence diagrams, retrieval strategy comparison appendix
+- Modified `docs/technical-design.md` §2.1.3 (resources table): Replaced stale "GIN on tags" note with Phase 1 functional GIN index SQL + Phase 2 `resource_embeddings` pointer
+- Modified `docs/technical-design.md` §4.2 (Resources endpoints): Added `GET /resources/search` row
+- Added `docs/technical-design.md` §5.9 (Event Flows): Search flow for user and agent in Phase 1; worker embedding step in Phase 2
+- Modified `docs/technical-design.md` §8.1 (Repo layout): Added `design-search.md` to docs listing
+- Modified `docs/technical-design.md` §8.4 (Agent checklist): Formalized `search_resources` tool contract (params, trimmed return shape, limit cap, shared service call)
+- Added `docs/ux-requirements.md` §7.1 (Search Page): Layout, search input with debounce, loading/empty/blank states, tag filter dropdown, result card spec
+- Modified `CLAUDE.md` On-demand Loading Index: Added row for `docs/design-search.md`
+
+### Conflicts Resolved
+- None. `GET /resources?tag=` (browse/filter) and `GET /resources/search` (ranked search) serve different UX intents and coexist without conflict.
+
+### Open Questions
+- Phase 2 embedding model: `text-embedding-3-small` recommended; `EMBEDDING_API_KEY` env var needed. If the active LLM provider (Groq, SiliconFlow, etc.) doesn't offer embeddings, a separate OpenAI key or self-hosted embedding model is required. Decision deferred to Phase 2 sprint planning.
+- `pg_trgm` fuzzy matching: deliberately excluded as premature optimization. Log as TD- task if user-reported typo issues arise post-launch.
+
+---
+
 ## 2026-03-22 — Tiered fetch strategy, category taxonomy, tag editing constraint
 
 **Type:** Requirements
