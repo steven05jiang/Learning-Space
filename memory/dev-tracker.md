@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-27 (sprint 2026-03-27-A — DEV-066–071 + DEV-047 all complete)
+**Last Updated:** 2026-03-28 (plan v2.3 — search design breakdown: DEV-072–080, INT-056–059)
 
 ---
 
 ## Progress Summary
 
-- Total: 138 tasks (71 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD + 5 OPS [tracked separately])
+- Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
 - ✅ Completed: 98
 - 🔄 Active: 0
-- ⏳ Pending: 40
+- ⏳ Pending: 53
 - ⚠️ Stuck: 0
 
 ---
@@ -180,6 +180,12 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [ ] INT-051: User adds a new linked account from settings (BDD: Frontend Settings) (ready ✅)
 - [ ] INT-052: User sees error when unlinking last account (BDD: Frontend Settings) (ready ✅)
 
+**Group: search** — CI: every PR (Layer 1 — API integration)
+- [ ] INT-056: User searches by keyword — returns ranked READY resources; non-READY excluded (BDD: Resource Search) (blocked: DEV-073, DEV-074)
+- [ ] INT-057: User filters search by tag — results narrowed to matching tag only (BDD: Resource Search) (blocked: DEV-073, DEV-074)
+- [ ] INT-058: Empty or overlong query returns 400 validation error (BDD: Resource Search) (blocked: DEV-074)
+- [ ] INT-059: Agent search_resources tool returns trimmed AgentResourceResult list; limit=10 enforced (BDD: Agent Search) (blocked: DEV-075)
+
 ### Layer 3 — E2E Deployment (k8s smoke tests)
 
 **Group: deploy** — CI: release only (blocked: DEV-047–049)
@@ -197,6 +203,25 @@ _Goal: ship to production for feedback. Auth hardening + feature gates + multi-L
 - [x] DEV-069: User allowlisting backend — ALLOWED_EMAILS env var gate on OAuth callback → redirect /coming-soon (PR #162 ✅)
 - [x] DEV-070: Coming-soon page — static /coming-soon page for non-allowlisted users (PR #163 ✅)
 - [x] DEV-071: Multi-LLM provider abstraction — LLM_PROVIDER env var; support Groq/SiliconFlow/Fireworks + Anthropic (PR #164 ✅)
+
+## 🔍 Search — Phase 1: PostgreSQL Full-Text (v2.3 — 2026-03-28)
+
+_Design spec: `docs/design-search.md`_
+
+- [ ] DEV-072: Add Alembic migration: resources_search_idx (functional GIN index on title+summary+tags tsvector) — no new column
+- [ ] DEV-073: Implement ResourceSearchService — _full_text_search(), SearchResult, ResourceSearchItem, AgentResourceResult models
+- [ ] DEV-074: Implement GET /resources/search endpoint — ResourceSearchRequest/ResourceSearchResponse Pydantic schemas, auth gate, rank field
+- [ ] DEV-075: Add search_resources tool to LangGraph agent — AgentResourceResult shape, limit=10 cap, system prompt update (depends: DEV-032 ✅)
+- [ ] DEV-076: Implement Search page UI (Next.js) — debounced input, result cards, loading/empty/blank states, tag filter; re-enable search nav
+- [ ] DEV-077: Unit tests for ResourceSearchService and GET /resources/search
+
+## 🔍 Search — Phase 2: Hybrid Retrieval (follow-up sprint)
+
+_Design spec: `docs/design-search.md` §5_
+
+- [ ] DEV-078: Add Alembic migration: resource_embeddings table + pgvector IVFFlat index (vector(1536), ON DELETE CASCADE)
+- [ ] DEV-079: Worker embedding step — build_embedding_text() + embedding API call + upsert resource_embeddings after LLM
+- [ ] DEV-080: Extend ResourceSearchService with _vector_search() + _hybrid_search() (RRF k=60); SEARCH_MODE env var toggle
 
 ## 🎬 Demos
 
