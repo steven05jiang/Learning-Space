@@ -1,0 +1,80 @@
+# Rollout Strategy
+
+## Current Stage: Private Beta
+
+For a private beta with a small allowlist, the recommended approach is:
+
+1. **Test locally** with `make dev-stack-up` before pushing
+2. **CI must pass** before merging to `main` (enforced by branch protection)
+3. **Watch Railway deploy logs** after each merge — roll back via Railway dashboard if health check fails (Railway retains previous deploys, one-click rollback)
+4. **Add staging** once you have real users who would be disrupted by a bad deploy
+
+---
+
+## Future: Two-Environment Setup
+
+When staging becomes necessary, adopt this structure:
+
+### Environments
+
+| | Staging | Production |
+|---|---|---|
+| **API** | Railway service (`SERVICE_TYPE=api`, staging env vars) | `learning-space-api-production.up.railway.app` |
+| **Worker** | Railway service (`SERVICE_TYPE=worker`, staging env vars) | Production worker service |
+| **Frontend** | Vercel preview deployment (automatic per branch) | Vercel production deployment |
+| **Database** | Separate Supabase project (free tier allows 2) | Production Supabase project |
+| **Deploy trigger** | Push to `staging` branch | Merge to `main` |
+
+### Branch Strategy
+
+```
+feature/xxx  →  staging  →  main
+                  ↓              ↓
+            staging env    production env
+```
+
+- Feature branches merge to `staging` first
+- After soak period (hours to days depending on risk), `staging` merges to `main`
+- Railway auto-deploys on branch push; Vercel auto-creates preview URLs per branch
+
+### Database Isolation
+
+**Recommended: separate Supabase project for staging**
+- Supabase free tier allows 2 projects — use one for staging, one for production
+- Completely isolated: staging migrations and data changes cannot affect production
+- Run `alembic upgrade head` against the staging DB independently
+
+**Alternative: same DB, different schema**
+- Staging uses `search_path=staging`, production uses `public`
+- Simpler but risky — a bad migration command could affect both environments
+
+### Railway Cost
+
+One additional staging service pair (API + worker) adds ~$1–2/month to the $5 plan.
+Monitor usage in the Railway dashboard and set a spending limit to avoid surprises.
+
+### Vercel (Frontend)
+
+Vercel automatically creates **preview deployments** for every PR and branch push.
+The `staging` branch gets a stable, shareable preview URL at no extra cost.
+No additional Vercel configuration is needed.
+
+---
+
+## Rollback Procedure (Production)
+
+### API / Worker (Railway)
+1. Railway dashboard → select service → Deployments tab
+2. Find the last known-good deployment
+3. Click **Redeploy** on that entry
+4. Verify `GET /health` returns `{"status":"healthy"}` after rollback
+
+### Frontend (Vercel)
+1. Vercel dashboard → select project → Deployments
+2. Find the last known-good deployment
+3. Click **Promote to Production**
+
+### Database
+- Alembic migrations are applied forward-only on deploy
+- For rollback: run `alembic downgrade -1` manually via Railway shell or a one-off job
+- Always review migration files before merging schema changes to `main`
