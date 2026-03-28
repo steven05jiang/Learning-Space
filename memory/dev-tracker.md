@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — COMPLETE: DEV-072–077 + INT-056–059 all merged)
+**Last Updated:** 2026-03-28 (sprint 2026-03-28-B — ACTIVE: DEV-078–080 dispatched)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 108
-- 🔄 Active: 0
-- ⏳ Pending: 43
+- ✅ Completed: 109
+- 🔄 Active: 2
+- ⏳ Pending: 40
 - ⚠️ Stuck: 0
 
 ---
@@ -219,9 +219,9 @@ _Design spec: `docs/design-search.md`_
 
 _Design spec: `docs/design-search.md` §5_
 
-- [ ] DEV-078: Add Alembic migration: resource_embeddings table + pgvector IVFFlat index (vector(1536), ON DELETE CASCADE)
-- [ ] DEV-079: Worker embedding step — build_embedding_text() + embedding API call + upsert resource_embeddings after LLM
-- [ ] DEV-080: Extend ResourceSearchService with _vector_search() + _hybrid_search() (RRF k=60); SEARCH_MODE env var toggle
+- [x] DEV-078: Add Alembic migration: resource_embeddings table + pgvector IVFFlat index (vector(2048), ON DELETE CASCADE) (PR #215 ✅)
+- [~] DEV-079: Worker embedding step — build_embedding_text() + SiliconFlow Qwen3-Embedding-4B + upsert resource_embeddings after LLM
+- [~] DEV-080: Extend ResourceSearchService with _vector_search() + _hybrid_search() (RRF k=60); SEARCH_MODE env var toggle
 
 ## 🎬 Demos
 

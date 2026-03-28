@@ -5,6 +5,32 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
+## Sprint 2026-03-28-B — Phase 2 Hybrid Search
+
+**Status:** 🔄 Active
+**Sprint Goal:** Add pgvector + hybrid RRF retrieval so search_resources uses semantic retrieval when SEARCH_MODE=hybrid
+**Exit Gate:** SEARCH_MODE=hybrid returns semantically relevant results that full-text search misses (conceptual query smoke test)
+**Started:** 2026-03-28
+**Completed:** (pending)
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- Embedding provider: SiliconFlow `Qwen/Qwen3-Embedding-4B` (2048 dims) — same SILICONFLOW_API_KEY as LLM
+- DEV-079 dispatches after DEV-078 merges; DEV-080 dispatches after DEV-079 merges
+- No backfill needed — user will manually trigger reprocess via UI for existing resources
+- DEV-078 uses vector(2048) not vector(1536) (design default)
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-078 | Alembic migration — resource_embeddings table + pgvector IVFFlat index (vector 2048) | ✅ Completed (PR #215) |
+| DEV-079 | Worker embedding step — build_embedding_text() + SiliconFlow embed call + upsert resource_embeddings | ⏳ Pending (needs DEV-078) |
+| DEV-080 | ResourceSearchService _vector_search() + _hybrid_search() RRF k=60; SEARCH_MODE env var toggle | ⏳ Pending (needs DEV-079) |
+
+---
+
 ## Sprint 2026-03-28-A — Phase 1 Search
 
 **Status:** ✅ Complete
