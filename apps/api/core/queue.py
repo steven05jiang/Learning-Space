@@ -2,33 +2,29 @@
 
 import logging
 from typing import Any, Dict
+from urllib.parse import urlparse
 
 from arq import create_pool
 from arq.connections import RedisSettings
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+
+from core.config import settings
 
 QUEUE_NAME = "learning_space_queue"
 
 
-class QueueSettings(BaseSettings):
-    """Redis queue configuration."""
+def _build_redis_settings() -> RedisSettings:
+    """Build RedisSettings from REDIS_URL (supports redis:// and rediss://)."""
+    parsed = urlparse(settings.redis_url)
+    return RedisSettings(
+        host=parsed.hostname or "localhost",
+        port=parsed.port or 6379,
+        password=parsed.password,
+        database=int(parsed.path.lstrip("/") or 0),
+        ssl=parsed.scheme == "rediss",
+    )
 
-    model_config = ConfigDict(env_prefix="REDIS_")
 
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
-    redis_password: str | None = None
-
-
-queue_settings = QueueSettings()
-redis_settings = RedisSettings(
-    host=queue_settings.redis_host,
-    port=queue_settings.redis_port,
-    database=queue_settings.redis_db,
-    password=queue_settings.redis_password,
-)
+redis_settings = _build_redis_settings()
 
 
 async def create_queue_pool():
