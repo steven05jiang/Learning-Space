@@ -32,17 +32,12 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
 
   const initialMessages: Message[] = isMock
     ? mockMessages.map((m) => ({ id: m.id, role: m.role, content: m.content }))
-    : [
-        {
-          id: "1",
-          role: "assistant",
-          content: "AI Chat is coming soon! Check back later.",
-        },
-      ];
+    : [];
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mockResponseIndex = useRef(0);
@@ -86,28 +81,42 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
         },
       ]);
     } else {
-      // API mode: call the AI agent endpoint
+      // API mode: call the AI chat endpoint
       try {
         const token = localStorage.getItem("auth_token");
         const apiBase =
           process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+        const requestBody: { message: string; conversation_id?: string } = {
+          message: userMessage.content,
+        };
+        if (conversationId) {
+          requestBody.conversation_id = conversationId;
+        }
+
         const res = await fetch(`${apiBase}/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ message: userMessage.content }),
+          body: JSON.stringify(requestBody),
         });
 
         if (res.ok) {
           const data = await res.json();
+
+          // Store conversation ID for subsequent messages
+          if (data.conversation_id) {
+            setConversationId(data.conversation_id);
+          }
+
           setMessages((prev) => [
             ...prev,
             {
               id: (Date.now() + 1).toString(),
               role: "assistant",
-              content: data.response ?? data.message ?? "No response.",
+              content: data.response ?? "No response.",
             },
           ]);
         } else {
@@ -116,8 +125,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             {
               id: (Date.now() + 1).toString(),
               role: "assistant",
-              content:
-                "AI chat integration coming soon. Run with `npm run dev:mock` to try mock mode.",
+              content: "Sorry, I couldn't reach the AI service. Please try again.",
             },
           ]);
         }
@@ -127,8 +135,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
           {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content:
-              "Could not reach the AI service. Run with `npm run dev:mock` to try mock mode.",
+            content: "Sorry, I couldn't reach the AI service. Please try again.",
           },
         ]);
       }
@@ -229,13 +236,13 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your resources..."
-            disabled={isLoading || !isMock}
+            disabled={isLoading}
             className="flex-1 rounded-full bg-muted/50"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={!input.trim() || isLoading || !isMock}
+            disabled={!input.trim() || isLoading}
             className="h-9 w-9 shrink-0 rounded-full"
           >
             <Send className="h-4 w-4" />
