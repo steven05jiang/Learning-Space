@@ -51,7 +51,10 @@ def sample_search_result():
 @pytest.mark.asyncio
 async def test_search_empty_query_returns_empty_result(search_service):
     """Test that empty or whitespace-only queries return empty results."""
+    mock_session = AsyncMock()
+
     result = await search_service.search(
+        session=mock_session,
         owner_id=uuid4(),
         query="",
         tag=None,
@@ -65,6 +68,7 @@ async def test_search_empty_query_returns_empty_result(search_service):
 
     # Test whitespace-only query
     result = await search_service.search(
+        session=mock_session,
         owner_id=uuid4(),
         query="   ",
         tag=None,
@@ -80,7 +84,7 @@ def test_resource_search_item_from_row(sample_search_result):
     """Test ResourceSearchItem.from_row() correctly parses SQLAlchemy row."""
     mock_row, item = sample_search_result
 
-    assert item.id == UUID(str(mock_row.id))
+    assert item.id == str(mock_row.id)
     assert item.title == "Building AI Agents with LangGraph"
     assert item.summary == "A guide to building stateful multi-step AI agents."
     assert item.tags == ["LangGraph", "AI Agents", "LLM Tools"]
