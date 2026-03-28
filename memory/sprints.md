@@ -29,7 +29,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-074 | GET /resources/search endpoint + Pydantic schemas + rank field | ✅ Completed (PR #200) |
 | DEV-075 | search_resources LangGraph tool + AgentResourceResult + system prompt | ✅ Completed (PR #202) |
 | DEV-076 | Search page UI (Next.js) + re-enable search nav | ✅ Completed (PR #204) |
-| DEV-077 | Unit tests — ResourceSearchService + search endpoint | 🔄 Active |
+| DEV-077 | Unit tests — ResourceSearchService + search endpoint | ✅ Completed (PR #206) |
 | INT-056 | Keyword search returns ranked READY results only | ⏳ Pending (needs DEV-073, DEV-074) |
 | INT-057 | Tag filter narrows search results | ⏳ Pending (needs DEV-073, DEV-074) |
 | INT-058 | Empty/overlong query returns 400 validation error | ⏳ Pending (needs DEV-074) |
