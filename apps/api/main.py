@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from core.config import settings
 from core.errors import (
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Learning Space API", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
