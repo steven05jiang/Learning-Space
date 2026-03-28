@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (sprint 2026-03-28-B — ACTIVE: DEV-078–080 dispatched)
+**Last Updated:** 2026-03-28 (sprint 2026-03-28-B COMPLETE — DEV-078–080 merged; project-sync audit)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 110
+- ✅ Completed: 112
 - 🔄 Active: 0
-- ⏳ Pending: 40
+- ⏳ Pending: 32
 - ⚠️ Stuck: 0
 
 ---
@@ -171,9 +171,9 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [ ] INT-042: Resource shows processing status indicator (BDD: Frontend Resource UI) (ready ✅)
 - [ ] INT-043: Resource shows FAILED status with actionable message (BDD: Frontend Resource UI) (ready ✅)
 - [ ] INT-044: User browses resource list (BDD: Frontend Resource UI) (ready ✅)
-- [ ] INT-045: User views the knowledge graph — force-directed render (BDD: Frontend Graph) (blocked: DEV-052)
-- [ ] INT-046: User clicks a node to expand — graph expands (BDD: Frontend Graph) (blocked: DEV-052)
-- [ ] INT-047: User clicks a node to see resources — panel shown (BDD: Frontend Graph) (blocked: DEV-052)
+- [ ] INT-045: User views the knowledge graph — force-directed render (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
+- [ ] INT-046: User clicks a node to expand — graph expands (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
+- [ ] INT-047: User clicks a node to see resources — panel shown (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
 - [ ] INT-048: User opens the chat interface — panel slides open (BDD: Frontend Chat) (blocked: DEV-053)
 - [ ] INT-049: User sends a message and receives a response (BDD: Frontend Chat) (blocked: DEV-053)
 - [ ] INT-050: User views linked accounts in settings (BDD: Frontend Settings) (ready ✅)
