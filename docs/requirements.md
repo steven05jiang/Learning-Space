@@ -194,7 +194,24 @@ The AI Agent should be able to:
 - Navigate the knowledge graph
 - Suggest related topics
 
-The agent will use internal system APIs as tools.
+The agent will use internal system APIs as tools. The agent's resource search capability uses the same underlying retrieval service as the user-facing search (§7) — no duplicate retrieval logic.
+
+---
+
+## 7. Resource Search
+
+Users can search their resources by keyword directly from the search page.
+
+- Search accepts one or more keywords and matches across resource title, summary, and tags.
+- Results are ranked by relevance (most relevant first).
+- An optional tag filter narrows results to resources associated with that tag.
+- Only successfully processed resources (`status = READY`) appear in search results.
+- Both the user-facing search and the AI agent's `search_resources` tool use the same underlying search service, ensuring consistent retrieval behavior.
+
+Search is implemented in two phases. Full specification: `docs/design-search.md`.
+
+- **Phase 1** — PostgreSQL full-text search (tsvector + GIN index): multi-keyword, stemming, relevance ranking. Zero new infrastructure.
+- **Phase 2** — Hybrid retrieval (full-text + pgvector embeddings + RRF merge): adds semantic matching so natural language queries like "what do I know about distributed systems?" surface conceptually relevant resources even when exact keywords don't match.
 
 ---
 

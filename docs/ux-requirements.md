@@ -226,6 +226,45 @@ AI Agent
 
 ---
 
+# 7.1 Search Page
+
+The Search page is the target of the "Search" sidebar nav item.
+
+### Layout
+
+```
++----------------------------------+
+| Search                           |
+|                                  |
+| [ 🔍  Search your resources... ] |
+|                              [x] | ← clear button, shown when query is non-empty
+|                                  |
+| Filters: tag dropdown (optional) |
+|                                  |
+| Results (N found)                |
+| ┌──────────────────────────────┐ |
+| │ Resource Card (ranked)       │ |
+| │ Title · summary · tags · url │ |
+| └──────────────────────────────┘ |
+| ...                              |
++----------------------------------+
+```
+
+### Behavior
+
+- Search input is auto-focused on page load.
+- Search triggers on each keystroke with a 300 ms debounce (no submit button required; hitting Enter also triggers immediately).
+- Results replace the list below in real time as user types.
+- **Loading state**: show a spinner inside the input while request is in flight.
+- **Empty state** (query entered, no results): show "No resources found for '...'. Try a broader search." message.
+- **Blank state** (no query yet): show a prompt, e.g. "Start typing to search your resources."
+- Optional tag filter renders as a dropdown populated from `GET /categories`; clears when query is cleared.
+- Each result card links to the resource detail page on click.
+- Results show: title, summary (truncated to 2 lines), tags (as chips), and the URL/source if applicable.
+- `rank` score is not displayed to the user.
+
+---
+
 ### Sidebar Design
 
 - width: ~240px

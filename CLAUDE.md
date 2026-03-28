@@ -181,6 +181,7 @@ Routes determine write targets. Unlisted projects share the main MEMORY.md.
 | Requirements                  | `Read docs/requirements.md`                   |
 | Resource fetching strategy    | `Read docs/design-resource-fetching.md`        |
 | Category taxonomy / graph     | `Read docs/design-category-taxonomy.md`        |
+| Search capability / agent search tool | `Read docs/design-search.md`         |
 | Feature goals/todos           | `Read memory/dev-tracker.md`                  |
 | Bug status                    | `Read memory/bugs-tracker.md`                 |
 | Ops status                    | `Read memory/ops-tracker.md`                  |
