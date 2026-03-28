@@ -49,8 +49,10 @@ class Settings(BaseSettings):
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"
 
-    # Tiered fetcher: API-required domains (domain:provider pairs)
-    api_required_domains: str = "twitter.com:twitter,x.com:twitter"
+    # Tiered fetcher: domains that require API access (domain:provider pairs).
+    # These return NOT_SUPPORTED until an API integration is implemented.
+    # Default is empty — all domains are attempted with best effort.
+    api_required_domains: str = ""
 
     # Comma-separated list of allowed emails. Empty = allow all (open access).
     allowed_emails: str = ""
