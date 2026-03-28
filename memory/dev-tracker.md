@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (DEV-033 merged PR #222)
+**Last Updated:** 2026-03-28 (DEV-034 merged PR #224; DEV-053 dispatched)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 113
-- 🔄 Active: 0
-- ⏳ Pending: 31
+- ✅ Completed: 114
+- 🔄 Active: 1
+- ⏳ Pending: 29
 - ⚠️ Stuck: 0
 
 ---
@@ -61,14 +61,14 @@
 - [x] DEV-035: Implement conversation storage (DB schema) — Chat persistence (PR #117 ✅)
 - [x] DEV-032: Implement LangGraph agent with tools — Core chat intelligence (PR #119 ✅)
 - [x] DEV-033: Implement POST /chat endpoint — Chat API (PR #222 ✅)
-- [ ] DEV-034: Implement GET /chat/conversations and messages — Chat history
+- [x] DEV-034: Implement GET /chat/conversations and messages — Chat history (PR #224 ✅)
 - [x] DEV-040: Implement Settings — Account Management UI — Manage linked accounts UI (PR #59 ✅)
 - [x] DEV-043: Implement resource detail / edit / delete — Full resource management UI (PR #58 ✅)
 - [x] DEV-044: Implement graph visualization component — react-force-graph-2d UI shell (PR #40, #41 ✅)
 - [x] DEV-045: Implement resource panel on node click — node detail dialog UI shell (PR #40 ✅)
 - [x] DEV-046: Implement chat UI — chat panel UI shell with scroll fixes (PR #40, #41 ✅)
 - [x] DEV-052: Wire graph visualization to real API — connect existing UI to GET /graph, POST /graph/expand, GET /graph/nodes/{id}/resources (PR #105 ✅)
-- [ ] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations
+- [~] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations
 - [x] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline (PR #108 ✅)
 - [x] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints (PR #110 ✅)
 - [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
