@@ -406,7 +406,7 @@ N rounds before approval
    git add memory/completed/TASK-XXX.md memory/dev-tracker.md memory/sprints.md
    git commit -m "chore: mark TASK-XXX complete (PR #N merged)"
    GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/tracker-TASK-XXX-complete
-   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX complete (PR #N merged)" --body "..."
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --base staging --title "chore: mark TASK-XXX complete (PR #N merged)" --body "..."
    ```
 
    **Dispatch the `pr-reviewer` subagent** against that PR:
@@ -436,7 +436,7 @@ N rounds before approval
    git add memory/active/TASK-XXX.md memory/dev-tracker.md memory/sprints.md
    git commit -m "chore: mark TASK-XXX stuck — <brief reason>"
    GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/tracker-TASK-XXX-stuck
-   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --title "chore: mark TASK-XXX stuck" --body "..."
+   GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create --base staging --title "chore: mark TASK-XXX stuck" --body "..."
    ```
 
    **Dispatch the `pr-reviewer` subagent** against that PR:

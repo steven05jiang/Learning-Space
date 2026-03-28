@@ -277,6 +277,7 @@ git add memory/backlog/
 git commit -m "chore: plan update YYYY-MM-DD — <brief summary>"
 GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/plan-update-YYYY-MM-DD
 GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create \
+  --base staging \
   --title "chore: plan update YYYY-MM-DD — <brief summary>" \
   --body "$(cat <<'EOF'
 ## Plan Update
