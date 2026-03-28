@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (DEV-053 merged PR #226; DEV-036 dispatched)
+**Last Updated:** 2026-03-28 (DEV-036 merged PR #228; INT-036–040 dispatched)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 115
-- 🔄 Active: 1
-- ⏳ Pending: 28
+- ✅ Completed: 116
+- 🔄 Active: 5
+- ⏳ Pending: 23
 - ⚠️ Stuck: 0
 
 ---
@@ -71,7 +71,7 @@
 - [x] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations (PR #226 ✅)
 - [x] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline (PR #108 ✅)
 - [x] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints (PR #110 ✅)
-- [~] DEV-036: Unit tests — Chat / Agent — Verify chat
+- [x] DEV-036: Unit tests — Chat / Agent — Verify chat (PR #228 ✅)
 - [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
 - [x] DEV-054: Duplicate URL detection with user-facing notification — 409 on duplicate submit + "already added" toast (PR #64 ✅)
@@ -158,11 +158,11 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [x] INT-035: User views resources for a graph node (BDD: Graph Exploration) (PR #113 ✅)
 
 **Group: chat** — CI: nightly (blocked: DEV-032–035)
-- [ ] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
-- [ ] INT-037: User continues a conversation with context (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
-- [ ] INT-038: Agent uses graph traversal tool (BDD: Chat Agent) (blocked: DEV-032)
-- [ ] INT-039: User lists their conversations (BDD: Chat Agent) (blocked: DEV-034)
-- [ ] INT-040: User retrieves messages in a conversation (BDD: Chat Agent) (blocked: DEV-034)
+- [~] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent)
+- [~] INT-037: User continues a conversation with context (BDD: Chat Agent)
+- [~] INT-038: Agent uses graph traversal tool (BDD: Chat Agent)
+- [~] INT-039: User lists their conversations (BDD: Chat Agent)
+- [~] INT-040: User retrieves messages in a conversation (BDD: Chat Agent)
 
 ### Layer 2 — Frontend Integration (Jest + MSW, no backend)
 
@@ -229,5 +229,5 @@ _Design spec: `docs/design-search.md` §5_
 - [x] DEMO-002: Account Management & Resource CRUD — settings, detail, edit, delete (run-1 ✅)
 - [x] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (run-1 ✅)
 - [x] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (run-1 ✅)
-- [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: DEV-032, DEV-033, DEV-034, DEV-035, DEV-053 pending)
+- [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: INT-036–040, INT-048–049 pending)
 - [ ] DEMO-006: Feedback Verification — verify FB-001 to FB-005: tiered fetch, processing_status, category taxonomy, tag editor, node popup fix (blocked: DEV-056–DEV-065)
