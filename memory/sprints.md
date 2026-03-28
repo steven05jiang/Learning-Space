@@ -7,11 +7,11 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ## Sprint 2026-03-28-B — Phase 2 Hybrid Search
 
-**Status:** 🔄 Active
+**Status:** ✅ Complete
 **Sprint Goal:** Add pgvector + hybrid RRF retrieval so search_resources uses semantic retrieval when SEARCH_MODE=hybrid
 **Exit Gate:** SEARCH_MODE=hybrid returns semantically relevant results that full-text search misses (conceptual query smoke test)
 **Started:** 2026-03-28
-**Completed:** (pending)
+**Completed:** 2026-03-28
 
 ### Notes
 
@@ -27,7 +27,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 |------|-------------|--------|
 | DEV-078 | Alembic migration — resource_embeddings table + pgvector IVFFlat index (vector 2048) | ✅ Completed (PR #215) |
 | DEV-079 | Worker embedding step — build_embedding_text() + SiliconFlow embed call + upsert resource_embeddings | ✅ Completed (PR #217) |
-| DEV-080 | ResourceSearchService _vector_search() + _hybrid_search() RRF k=60; SEARCH_MODE env var toggle | ⏳ Pending (needs DEV-079) |
+| DEV-080 | ResourceSearchService _vector_search() + _hybrid_search() RRF k=60; SEARCH_MODE env var toggle | ✅ Completed (PR #219) |
 
 ---
 
