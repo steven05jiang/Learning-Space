@@ -55,21 +55,17 @@ async def chat(
             if not conversation:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Conversation not found"
+                    detail="Conversation not found",
                 )
 
             if conversation.user_id != user_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied to conversation"
+                    detail="Access denied to conversation",
                 )
         else:
             # Create new conversation
-            conversation = Conversation(
-                id=uuid.uuid4(),
-                user_id=user_id,
-                title=None
-            )
+            conversation = Conversation(id=uuid.uuid4(), user_id=user_id, title=None)
             db.add(conversation)
             await db.flush()  # Ensure conversation has an ID
 
@@ -78,7 +74,7 @@ async def chat(
             id=uuid.uuid4(),
             conversation_id=conversation.id,
             role=MessageRole.USER,
-            content=request.message
+            content=request.message,
         )
         db.add(user_message)
         await db.flush()  # Ensure message is persisted before querying history
@@ -98,16 +94,12 @@ async def chat(
             # Exclude current user message to avoid duplication
             if msg.id != user_message.id:
                 conversation_history.append(
-                    ConversationMessage(
-                        role=msg.role.value,
-                        content=msg.content
-                    )
+                    ConversationMessage(role=msg.role.value, content=msg.content)
                 )
 
         # Build agent query
         agent_query = AgentQuery(
-            query=request.message,
-            conversation_history=conversation_history
+            query=request.message, conversation_history=conversation_history
         )
 
         # Step 7: Call agent service
@@ -118,7 +110,7 @@ async def chat(
             id=uuid.uuid4(),
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT,
-            content=agent_response.response
+            content=agent_response.response,
         )
         db.add(assistant_message)
 
@@ -133,7 +125,7 @@ async def chat(
             conversation_id=conversation.id,
             message_id=assistant_message.id,
             response=agent_response.response,
-            role="assistant"
+            role="assistant",
         )
 
     except HTTPException:
@@ -142,10 +134,8 @@ async def chat(
         raise
     except Exception as e:
         await db.rollback()
-        logger.error(
-            f"Error processing chat for user {user_id}: {e}", exc_info=True
-        )
+        logger.error(f"Error processing chat for user {user_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your message"
+            detail="An error occurred while processing your message",
         )

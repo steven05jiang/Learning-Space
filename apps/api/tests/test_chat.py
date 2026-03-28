@@ -22,8 +22,7 @@ class TestChatEndpoint:
         """Mock agent service."""
         service = AsyncMock()
         service.query.return_value = AgentResponse(
-            response="Test assistant response",
-            sources=None
+            response="Test assistant response", sources=None
         )
         return service
 
@@ -33,7 +32,7 @@ class TestChatEndpoint:
         test_user,
         auth_headers,
         db_session: AsyncSession,
-        mock_agent_service
+        mock_agent_service,
     ):
         """Test creating a new conversation through chat."""
         user = test_user
@@ -41,13 +40,12 @@ class TestChatEndpoint:
 
         # Override the agent service dependency
         from main import app
+
         app.dependency_overrides[get_agent_service] = lambda: mock_agent_service
 
         try:
             response = await client.post(
-                "/chat",
-                json={"message": "Hello, test message"},
-                headers=headers
+                "/chat", json={"message": "Hello, test message"}, headers=headers
             )
         finally:
             # Clean up dependency override
@@ -75,9 +73,11 @@ class TestChatEndpoint:
         assert conversation.title is None
 
         # Verify messages were created
-        messages_query = select(Message).where(
-            Message.conversation_id == conversation.id
-        ).order_by(Message.created_at.asc())
+        messages_query = (
+            select(Message)
+            .where(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at.asc())
+        )
         messages_result = await db_session.execute(messages_query)
         messages = list(messages_result.scalars().all())
 
@@ -102,7 +102,7 @@ class TestChatEndpoint:
         test_user,
         auth_headers,
         db_session: AsyncSession,
-        mock_agent_service
+        mock_agent_service,
     ):
         """Test continuing an existing conversation."""
         user = test_user
@@ -110,9 +110,7 @@ class TestChatEndpoint:
 
         # Create an existing conversation with messages
         conversation = Conversation(
-            id=uuid.uuid4(),
-            user_id=user.id,
-            title="Existing conversation"
+            id=uuid.uuid4(), user_id=user.id, title="Existing conversation"
         )
         db_session.add(conversation)
 
@@ -121,13 +119,13 @@ class TestChatEndpoint:
             id=uuid.uuid4(),
             conversation_id=conversation.id,
             role=MessageRole.USER,
-            content="First user message"
+            content="First user message",
         )
         msg2 = Message(
             id=uuid.uuid4(),
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT,
-            content="First assistant response"
+            content="First assistant response",
         )
         db_session.add(msg1)
         db_session.add(msg2)
@@ -137,6 +135,7 @@ class TestChatEndpoint:
 
         # Override the agent service dependency
         from main import app
+
         app.dependency_overrides[get_agent_service] = lambda: mock_agent_service
 
         try:
@@ -144,9 +143,9 @@ class TestChatEndpoint:
                 "/chat",
                 json={
                     "message": "Second user message",
-                    "conversation_id": str(conversation.id)
+                    "conversation_id": str(conversation.id),
                 },
-                headers=headers
+                headers=headers,
             )
         finally:
             # Clean up dependency override
@@ -166,9 +165,11 @@ class TestChatEndpoint:
         assert conversation.updated_at > original_updated_at
 
         # Verify all messages in conversation
-        messages_query = select(Message).where(
-            Message.conversation_id == conversation.id
-        ).order_by(Message.created_at.asc())
+        messages_query = (
+            select(Message)
+            .where(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at.asc())
+        )
         messages_result = await db_session.execute(messages_query)
         messages = list(messages_result.scalars().all())
 
@@ -190,11 +191,7 @@ class TestChatEndpoint:
         assert agent_query.conversation_history[1].content == "First assistant response"
 
     async def test_chat_conversation_not_found(
-        self,
-        client: AsyncClient,
-        test_user,
-        auth_headers,
-        mock_agent_service
+        self, client: AsyncClient, test_user, auth_headers, mock_agent_service
     ):
         """Test chatting with non-existent conversation ID."""
         headers = auth_headers
@@ -202,16 +199,14 @@ class TestChatEndpoint:
 
         # Override the agent service dependency
         from main import app
+
         app.dependency_overrides[get_agent_service] = lambda: mock_agent_service
 
         try:
             response = await client.post(
                 "/chat",
-                json={
-                    "message": "Hello",
-                    "conversation_id": non_existent_id
-                },
-                headers=headers
+                json={"message": "Hello", "conversation_id": non_existent_id},
+                headers=headers,
             )
         finally:
             # Clean up dependency override
@@ -227,7 +222,7 @@ class TestChatEndpoint:
         test_user,
         auth_headers,
         db_session: AsyncSession,
-        mock_agent_service
+        mock_agent_service,
     ):
         """Test accessing another user's conversation."""
         headers = auth_headers
@@ -236,13 +231,14 @@ class TestChatEndpoint:
         other_conversation = Conversation(
             id=uuid.uuid4(),
             user_id=999,  # Different user ID
-            title="Other user's conversation"
+            title="Other user's conversation",
         )
         db_session.add(other_conversation)
         await db_session.commit()
 
         # Override the agent service dependency
         from main import app
+
         app.dependency_overrides[get_agent_service] = lambda: mock_agent_service
 
         try:
@@ -250,9 +246,9 @@ class TestChatEndpoint:
                 "/chat",
                 json={
                     "message": "Hello",
-                    "conversation_id": str(other_conversation.id)
+                    "conversation_id": str(other_conversation.id),
                 },
-                headers=headers
+                headers=headers,
             )
         finally:
             # Clean up dependency override
@@ -268,11 +264,7 @@ class TestChatEndpoint:
         """Test validation for empty message."""
         headers = auth_headers
 
-        response = await client.post(
-            "/chat",
-            json={"message": ""},
-            headers=headers
-        )
+        response = await client.post("/chat", json={"message": ""}, headers=headers)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         error_detail = response.json()["detail"]
@@ -286,9 +278,7 @@ class TestChatEndpoint:
         long_message = "x" * 2001  # Over 2000 character limit
 
         response = await client.post(
-            "/chat",
-            json={"message": long_message},
-            headers=headers
+            "/chat", json={"message": long_message}, headers=headers
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -297,19 +287,12 @@ class TestChatEndpoint:
 
     async def test_chat_unauthenticated(self, client: AsyncClient):
         """Test that unauthenticated requests are rejected."""
-        response = await client.post(
-            "/chat",
-            json={"message": "Hello"}
-        )
+        response = await client.post("/chat", json={"message": "Hello"})
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_chat_agent_service_error(
-        self,
-        client: AsyncClient,
-        test_user,
-        auth_headers,
-        mock_agent_service
+        self, client: AsyncClient, test_user, auth_headers, mock_agent_service
     ):
         """Test handling of agent service errors."""
         headers = auth_headers
@@ -319,13 +302,12 @@ class TestChatEndpoint:
 
         # Override the agent service dependency
         from main import app
+
         app.dependency_overrides[get_agent_service] = lambda: mock_agent_service
 
         try:
             response = await client.post(
-                "/chat",
-                json={"message": "Hello"},
-                headers=headers
+                "/chat", json={"message": "Hello"}, headers=headers
             )
         finally:
             # Clean up dependency override
