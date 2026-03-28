@@ -20,16 +20,10 @@ COPY . .
 # Install the project itself
 RUN uv sync --frozen --no-dev
 
-# Install additional dependencies for worker service (Playwright)
+# Install Playwright + deps for worker service (let install-deps resolve packages for the OS)
 RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
-        apt-get update && apt-get install -y \
-        curl wget gnupg ca-certificates \
-        fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 \
-        libcairo2 libcups2 libdbus-1-3 libdrm2 libgdk-pixbuf2.0-0 \
-        libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 \
-        libxcomposite1 libxdamage1 libxrandr2 libxss1 xdg-utils \
-        && apt-get clean && rm -rf /var/lib/apt/lists/* \
-        && playwright install chromium && playwright install-deps chromium; \
+        playwright install-deps chromium \
+        && playwright install chromium; \
     fi
 
 ENV PYTHONPATH=/app
