@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — DEV-072–075 complete, DEV-076 active)
+**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — DEV-072–076 complete, DEV-077 active)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 102
+- ✅ Completed: 103
 - 🔄 Active: 1
-- ⏳ Pending: 48
+- ⏳ Pending: 47
 - ⚠️ Stuck: 0
 
 ---
@@ -212,8 +212,8 @@ _Design spec: `docs/design-search.md`_
 - [x] DEV-073: Implement ResourceSearchService — _full_text_search(), SearchResult, ResourceSearchItem, AgentResourceResult models (PR #198 ✅)
 - [x] DEV-074: Implement GET /resources/search endpoint — ResourceSearchRequest/ResourceSearchResponse Pydantic schemas, auth gate, rank field (PR #200 ✅)
 - [x] DEV-075: Add search_resources tool to LangGraph agent — AgentResourceResult shape, limit=10 cap, system prompt update (PR #202 ✅)
-- [~] DEV-076: Implement Search page UI (Next.js) — debounced input, result cards, loading/empty/blank states, tag filter; re-enable search nav
-- [ ] DEV-077: Unit tests for ResourceSearchService and GET /resources/search
+- [x] DEV-076: Implement Search page UI (Next.js) — debounced input, result cards, loading/empty/blank states, tag filter; re-enable search nav (PR #204 ✅)
+- [~] DEV-077: Unit tests for ResourceSearchService and GET /resources/search
 
 ## 🔍 Search — Phase 2: Hybrid Retrieval (follow-up sprint)
 
