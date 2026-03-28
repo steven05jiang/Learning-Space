@@ -7,15 +7,14 @@ Create Date: 2026-03-28 12:16:16.141957
 Creates a functional GIN index on resources table for full-text search.
 The index covers title, summary, and tags fields via to_tsvector expression.
 """
+
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
-revision: str = 'c88b95c7269d'
-down_revision: Union[str, Sequence[str], None] = 'b3c4d5e6f7a8'
+revision: str = "c88b95c7269d"
+down_revision: Union[str, Sequence[str], None] = "b3c4d5e6f7a8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
