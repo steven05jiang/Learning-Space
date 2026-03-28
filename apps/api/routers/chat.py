@@ -222,7 +222,10 @@ async def get_conversations(
         )
 
 
-@router.get("/conversations/{conversation_id}/messages", response_model=ConversationWithMessagesResponse)
+@router.get(
+    "/conversations/{conversation_id}/messages",
+    response_model=ConversationWithMessagesResponse,
+)
 async def get_conversation_messages(
     conversation_id: UUID,
     current_user: User = Depends(get_current_user),
@@ -284,7 +287,8 @@ async def get_conversation_messages(
         raise
     except Exception as e:
         logger.error(
-            f"Error retrieving conversation {conversation_id} for user {current_user.id}: {e}",
+            f"Error retrieving conversation {conversation_id} "
+            f"for user {current_user.id}: {e}",
             exc_info=True,
         )
         raise HTTPException(
