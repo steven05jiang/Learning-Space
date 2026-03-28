@@ -20,6 +20,9 @@ COPY . .
 # Install the project itself
 RUN uv sync --frozen --no-dev
 
+# Set Playwright browser path before install so browsers land in the right place
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # Install Playwright + deps for worker service (let install-deps resolve packages for the OS)
 RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
         /app/.venv/bin/playwright install-deps chromium \
@@ -28,9 +31,6 @@ RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
 
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
-
-# Set environment for Playwright if it's worker service
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Create non-root user (security best practice for both services)
 RUN useradd --create-home --shell /bin/bash app \
