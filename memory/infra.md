@@ -28,15 +28,14 @@
 
 ## Hosting
 
-### Fly.io (Primary)
+### Railway (Primary)
 - **Services:** API, Worker
-- **API URL:** https://learning-space-api.fly.dev (to be updated after deployment)
+- **API URL:** https://web-production-XXXX.up.railway.app (to be updated after deployment)
 - **Worker:** Background service for resource processing
-- **Dockerfile:** `apps/api/Dockerfile` with `SERVICE_TYPE` build arg (api/worker)
-- **Auto-deploy:** GitHub Actions workflow from `main` branch
-- **Migrations:** API service runs `alembic upgrade head` on startup
-- **Config:** `apps/api/fly.api.toml`, `apps/api/fly.worker.toml`
-- **GitHub Actions:** `.github/workflows/fly-deploy.yml`
+- **Dockerfile:** `apps/api/Dockerfile` with `SERVICE_TYPE` env var (api/worker)
+- **Auto-deploy:** Enabled from `main` branch
+- **Migrations:** API service runs `alembic upgrade head` on startup via `entrypoint.sh`
+- **Config:** `railway.toml` at repository root
 - **Environment variables:**
   - `DATABASE_URL` (Supabase PostgreSQL)
   - `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` (Neo4j AuraDB)
@@ -44,22 +43,18 @@
   - `JWT_SECRET_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
   - `OAUTH_REDIRECT_BASE_URL`, `ALLOWED_EMAILS`
   - `LLM_PROVIDER`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`
-  - `FLY_API_TOKEN` (for GitHub Actions deployment)
-- **Free tier limits:** 3 shared VMs (256MB each), 3GB storage, 160GB transfer
+  - `SERVICE_TYPE` (set to `api` or `worker` per service)
+- **Pricing:** $5/month flat (includes $5 compute credit), 512MB RAM per service
 
-### Railway (Alternative)
+### Fly.io (Alternative)
 - **Services:** API, Worker
-- **API URL:** https://web-production-XXXX.up.railway.app (if deployed)
-- **Worker:** Background service for resource processing
-- **Dockerfile:** `apps/api/Dockerfile` with `SERVICE_TYPE` build arg (api/worker)
-- **Auto-deploy:** Enabled from `main` branch
-- **Migrations:** API service runs `alembic upgrade head` on startup
-- **Config:** `railway.toml` at repository root
-- **Environment variables:** Same as Fly.io (minus `FLY_API_TOKEN`)
-- **Free tier limits:** $5/month credit, 512MB memory per service, 1GB disk per service
+- **Config:** `apps/api/fly.api.toml`, `apps/api/fly.worker.toml`
+- **GitHub Actions:** `.github/workflows/fly-deploy.yml`
+- **Extra env var:** `FLY_API_TOKEN` (for GitHub Actions deployment)
+- **Note:** No permanent free tier as of 2024
 
 ---
 
 ## Change Log
 
-- 2026-03-27 — Supabase, Neo4j AuraDB, Upstash provisioned (US East 1); Railway template created; Fly.io deployment added as primary provider
+- 2026-03-27 — Supabase, Neo4j AuraDB, Upstash provisioned (US East 1); Railway config added as primary provider; Fly.io config kept as alternative

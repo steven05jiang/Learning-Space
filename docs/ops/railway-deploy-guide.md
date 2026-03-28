@@ -1,6 +1,6 @@
 # Railway Deployment Guide
 
-> **Note:** This project supports multiple cloud providers. See also: [Fly.io Deploy Guide](flyio-deploy-guide.md) (current default), [Railway Deploy Guide](railway-deploy-guide.md) (alternative).
+> **Note:** This project supports multiple cloud providers. See also: [Railway Deploy Guide](railway-deploy-guide.md) (current default), [Fly.io Deploy Guide](flyio-deploy-guide.md) (alternative).
 
 This guide walks through deploying the Learning Space backend API and worker services to Railway.
 
