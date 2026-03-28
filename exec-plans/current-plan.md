@@ -1,6 +1,6 @@
 # Current Plan — Learning Space
 
-_Last updated: 2026-03-17_
+_Last updated: 2026-03-28_
 
 ## Active Version
 
@@ -190,6 +190,61 @@ _Last updated: 2026-03-17_
 - DEV-066–DEV-071 added to Tier 3 (feature complete), all HIGH priority
 - OPS-002–OPS-006 added as new deployment sequence, all HIGH priority
 - DEV-048, DEV-049 marked DEFERRED (deprioritized, not blocked)
+
+---
+
+### v2.3 — Search Design Breakdown (2026-03-28)
+
+**Status:** Active
+**Summary:** Translates the `docs/design-search.md` unified search spec (committed 2026-03-28) into 9 DEV tasks and 4 INT tests. Phase 1 (DEV-072–077) uses PostgreSQL full-text search (functional GIN index, `ResourceSearchService`, `GET /resources/search` endpoint, `search_resources` LangGraph tool, Search page UI, unit tests) and requires no new infrastructure. Phase 2 (DEV-078–080) adds pgvector hybrid retrieval with RRF merge, selectable via `SEARCH_MODE` env var. 4 new INT tests (INT-056–059) added to a new `search` CI group.
+
+#### Changes from v2.2
+
+**Dev Tasks:**
+
+- Added: DEV-072 — Alembic migration: functional GIN index on resources (tsvector)
+- Added: DEV-073 — ResourceSearchService Phase 1 (full-text search, SearchResult/ResourceSearchItem/AgentResourceResult models)
+- Added: DEV-074 — GET /resources/search endpoint (ResourceSearchRequest/ResourceSearchResponse schemas)
+- Added: DEV-075 — search_resources LangGraph tool + AgentResourceResult shape + system prompt update
+- Added: DEV-076 — Search page UI (Next.js) + re-enable search navigation (replaces DEV-067 coming-soon tooltip)
+- Added: DEV-077 — Unit tests for ResourceSearchService and search endpoint
+- Added: DEV-078 — Alembic migration: resource_embeddings table + pgvector IVFFlat index (Phase 2)
+- Added: DEV-079 — Worker embedding step: build_embedding_text + upsert resource_embeddings (Phase 2)
+- Added: DEV-080 — ResourceSearchService hybrid retrieval: _vector_search + _hybrid_search RRF k=60 (Phase 2)
+- Total DEV tasks: 71 → 80
+
+**INT Tasks:**
+
+- Added: INT-056 — User keyword search returns ranked READY results (group: search)
+- Added: INT-057 — Tag filter narrows search results (group: search)
+- Added: INT-058 — Empty/overlong query → 400 validation error (group: search)
+- Added: INT-059 — Agent search_resources returns trimmed AgentResourceResult list (group: search)
+- Total INT-BDD tasks: 55 → 59
+
+**Total tasks: 138 → 151**
+
+**Dependencies:**
+
+- New: DEV-072 → DEV-073 → DEV-074 → DEV-076
+- New: DEV-073 → DEV-075 (also needs DEV-032 ✅)
+- New: DEV-073, DEV-074 → DEV-077
+- New: DEV-072 → DEV-078 → DEV-079 → DEV-080 (also needs DEV-073)
+- New: INT-056, INT-057 blocked on DEV-073 + DEV-074
+- New: INT-058 blocked on DEV-074
+- New: INT-059 blocked on DEV-075
+
+**Priority / Tier Changes:**
+
+- DEV-072–076 added to Tier 3 (HIGH priority, Phase 1)
+- DEV-077 added to Tier 3 (MEDIUM, unit tests)
+- DEV-078–080 added as Phase 2 follow-up (MEDIUM priority)
+- INT-056–059 added to new `search` CI group (every PR, Layer 1)
+
+**Structural notes:**
+
+- Phase 1: purely additive — functional GIN index on existing `resources` table, no column changes
+- Phase 2: new `resource_embeddings` table + pgvector extension (pre-enabled on Supabase)
+- No changes to existing API contracts, auth model, or deployment architecture
 
 ---
 
