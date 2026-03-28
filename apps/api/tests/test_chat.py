@@ -316,3 +316,310 @@ class TestChatEndpoint:
 
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert "error occurred while processing" in response.json()["detail"].lower()
+
+
+class TestGetConversationsEndpoint:
+    """Tests for GET /chat/conversations endpoint."""
+
+    async def test_get_conversations_empty_list(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        """Test getting conversations when user has no conversations."""
+        headers = auth_headers
+
+        response = await client.get("/chat/conversations", headers=headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["limit"] == 20
+        assert data["offset"] == 0
+
+    async def test_get_conversations_default_pagination(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        """Test getting conversations with default pagination."""
+        user = test_user
+        headers = auth_headers
+
+        # Create some conversations for the user
+        conversations = []
+        for i in range(3):
+            conv = Conversation(
+                id=uuid.uuid4(),
+                user_id=user.id,
+                title=f"Conversation {i + 1}",
+            )
+            conversations.append(conv)
+            db_session.add(conv)
+
+        await db_session.commit()
+
+        response = await client.get("/chat/conversations", headers=headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data["items"]) == 3
+        assert data["total"] == 3
+        assert data["limit"] == 20
+        assert data["offset"] == 0
+
+        # Check that conversations are ordered by updated_at DESC (newest first)
+        returned_items = data["items"]
+        for i in range(len(returned_items) - 1):
+            curr_updated = returned_items[i]["updated_at"]
+            next_updated = returned_items[i + 1]["updated_at"]
+            assert curr_updated >= next_updated
+
+    async def test_get_conversations_custom_pagination(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        """Test getting conversations with custom pagination parameters."""
+        user = test_user
+        headers = auth_headers
+
+        # Create 5 conversations
+        for i in range(5):
+            conv = Conversation(
+                id=uuid.uuid4(),
+                user_id=user.id,
+                title=f"Conversation {i + 1}",
+            )
+            db_session.add(conv)
+
+        await db_session.commit()
+
+        # Test with limit=2, offset=1
+        response = await client.get(
+            "/chat/conversations?limit=2&offset=1", headers=headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data["items"]) == 2
+        assert data["total"] == 5
+        assert data["limit"] == 2
+        assert data["offset"] == 1
+
+    async def test_get_conversations_limit_validation(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        """Test validation of limit parameter."""
+        headers = auth_headers
+
+        # Test limit too small
+        response = await client.get("/chat/conversations?limit=0", headers=headers)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "limit must be at least 1" in response.json()["detail"]
+
+        # Test limit too large
+        response = await client.get("/chat/conversations?limit=101", headers=headers)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "limit cannot exceed 100" in response.json()["detail"]
+
+    async def test_get_conversations_offset_validation(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        """Test validation of offset parameter."""
+        headers = auth_headers
+
+        # Test negative offset
+        response = await client.get("/chat/conversations?offset=-1", headers=headers)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "offset must be non-negative" in response.json()["detail"]
+
+    async def test_get_conversations_only_user_conversations(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        """Test that only the current user's conversations are returned."""
+        user = test_user
+        headers = auth_headers
+
+        # Create conversation for current user
+        user_conv = Conversation(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            title="User's conversation",
+        )
+        db_session.add(user_conv)
+
+        # Create conversation for another user
+        other_conv = Conversation(
+            id=uuid.uuid4(),
+            user_id=999,  # Different user ID
+            title="Other user's conversation",
+        )
+        db_session.add(other_conv)
+
+        await db_session.commit()
+
+        response = await client.get("/chat/conversations", headers=headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data["items"]) == 1
+        assert data["total"] == 1
+        assert data["items"][0]["title"] == "User's conversation"
+
+    async def test_get_conversations_unauthenticated(self, client: AsyncClient):
+        """Test that unauthenticated requests are rejected."""
+        response = await client.get("/chat/conversations")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestGetConversationMessagesEndpoint:
+    """Tests for GET /chat/conversations/{conversation_id}/messages endpoint."""
+
+    async def test_get_conversation_messages_success(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        """Test successfully getting conversation with messages."""
+        user = test_user
+        headers = auth_headers
+
+        # Create a conversation
+        conversation = Conversation(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            title="Test conversation",
+        )
+        db_session.add(conversation)
+
+        # Create some messages
+        msg1 = Message(
+            id=uuid.uuid4(),
+            conversation_id=conversation.id,
+            role=MessageRole.USER,
+            content="First user message",
+        )
+        msg2 = Message(
+            id=uuid.uuid4(),
+            conversation_id=conversation.id,
+            role=MessageRole.ASSISTANT,
+            content="First assistant response",
+        )
+        msg3 = Message(
+            id=uuid.uuid4(),
+            conversation_id=conversation.id,
+            role=MessageRole.USER,
+            content="Second user message",
+        )
+
+        db_session.add_all([msg1, msg2, msg3])
+        await db_session.commit()
+
+        response = await client.get(
+            f"/chat/conversations/{conversation.id}/messages", headers=headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        # Check conversation details
+        assert data["id"] == str(conversation.id)
+        assert data["user_id"] == user.id
+        assert data["title"] == "Test conversation"
+        assert "created_at" in data
+        assert "updated_at" in data
+
+        # Check messages
+        assert len(data["messages"]) == 3
+        messages = data["messages"]
+
+        # Messages should be ordered by created_at ASC
+        assert messages[0]["content"] == "First user message"
+        assert messages[0]["role"] == "user"
+        assert messages[1]["content"] == "First assistant response"
+        assert messages[1]["role"] == "assistant"
+        assert messages[2]["content"] == "Second user message"
+        assert messages[2]["role"] == "user"
+
+        # Check message structure
+        for msg in messages:
+            assert "id" in msg
+            assert "conversation_id" in msg
+            assert msg["conversation_id"] == str(conversation.id)
+            assert "role" in msg
+            assert "content" in msg
+            assert "created_at" in msg
+
+    async def test_get_conversation_messages_empty_conversation(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        """Test getting a conversation with no messages."""
+        user = test_user
+        headers = auth_headers
+
+        # Create a conversation without messages
+        conversation = Conversation(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            title="Empty conversation",
+        )
+        db_session.add(conversation)
+        await db_session.commit()
+
+        response = await client.get(
+            f"/chat/conversations/{conversation.id}/messages", headers=headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data["id"] == str(conversation.id)
+        assert data["messages"] == []
+
+    async def test_get_conversation_messages_not_found(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        """Test getting messages for non-existent conversation."""
+        headers = auth_headers
+        non_existent_id = uuid.uuid4()
+
+        response = await client.get(
+            f"/chat/conversations/{non_existent_id}/messages", headers=headers
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.json()["detail"].lower()
+
+    async def test_get_conversation_messages_wrong_user(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        """Test accessing another user's conversation."""
+        headers = auth_headers
+
+        # Create conversation for another user
+        other_conversation = Conversation(
+            id=uuid.uuid4(),
+            user_id=999,  # Different user ID
+            title="Other user's conversation",
+        )
+        db_session.add(other_conversation)
+        await db_session.commit()
+
+        response = await client.get(
+            f"/chat/conversations/{other_conversation.id}/messages", headers=headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "access denied" in response.json()["detail"].lower()
+
+    async def test_get_conversation_messages_invalid_uuid(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        """Test getting messages with invalid UUID format."""
+        headers = auth_headers
+
+        response = await client.get(
+            "/chat/conversations/invalid-uuid/messages", headers=headers
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    async def test_get_conversation_messages_unauthenticated(self, client: AsyncClient):
+        """Test that unauthenticated requests are rejected."""
+        conversation_id = uuid.uuid4()
+        response = await client.get(f"/chat/conversations/{conversation_id}/messages")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
