@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — DEV-072+073 complete, DEV-074 active)
+**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — DEV-072+073+074 complete, DEV-075 active)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 100
+- ✅ Completed: 101
 - 🔄 Active: 1
-- ⏳ Pending: 50
+- ⏳ Pending: 49
 - ⚠️ Stuck: 0
 
 ---
@@ -210,8 +210,8 @@ _Design spec: `docs/design-search.md`_
 
 - [x] DEV-072: Add Alembic migration: resources_search_idx (functional GIN index on title+summary+tags tsvector) — no new column (PR #196 ✅)
 - [x] DEV-073: Implement ResourceSearchService — _full_text_search(), SearchResult, ResourceSearchItem, AgentResourceResult models (PR #198 ✅)
-- [~] DEV-074: Implement GET /resources/search endpoint — ResourceSearchRequest/ResourceSearchResponse Pydantic schemas, auth gate, rank field
-- [ ] DEV-075: Add search_resources tool to LangGraph agent — AgentResourceResult shape, limit=10 cap, system prompt update (depends: DEV-032 ✅)
+- [x] DEV-074: Implement GET /resources/search endpoint — ResourceSearchRequest/ResourceSearchResponse Pydantic schemas, auth gate, rank field (PR #200 ✅)
+- [~] DEV-075: Add search_resources tool to LangGraph agent — AgentResourceResult shape, limit=10 cap, system prompt update (depends: DEV-032 ✅)
 - [ ] DEV-076: Implement Search page UI (Next.js) — debounced input, result cards, loading/empty/blank states, tag filter; re-enable search nav
 - [ ] DEV-077: Unit tests for ResourceSearchService and GET /resources/search
 
