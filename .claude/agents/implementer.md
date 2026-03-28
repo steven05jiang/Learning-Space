@@ -208,7 +208,7 @@ When the PM instructs you to merge after reviewer approval:
      SUMMARY: <one paragraph of what was implemented>
      ```
 6. If **fails due to conflicts**:
-   - `git fetch origin main && git merge origin/main`
+   - `git fetch origin staging && git merge origin/staging`
    - Fix conflicts, commit: `git commit -m "fix: resolve merge conflicts"`
    - Push: `git push`
    - Append to Progress Log: `YYYY-MM-DD HH:MM — Resolved merge conflicts, re-review needed`

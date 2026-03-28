@@ -259,7 +259,7 @@ Make the minimum necessary edit. Do not rewrite sections that are not affected.
 Create a planning commit directly (no implementer agent needed):
 
 ```bash
-git checkout main && git pull origin main
+git checkout staging && git pull origin staging
 git checkout -b chore/plan-update-YYYY-MM-DD
 ```
 
@@ -313,7 +313,7 @@ Dispatch the `pr-reviewer` subagent. Tell it:
 
 **If APPROVED:**
 - Merge: `GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr merge <PR> --squash`
-- Pull main: `git checkout main && git pull origin main`
+- Pull main: `git checkout staging && git pull origin staging`
 
 **If CHANGES REQUESTED:**
 - Fix the issues, re-stage, re-commit, push

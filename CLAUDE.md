@@ -18,12 +18,14 @@ Multi-model cross-check (for critical logic): Claude analysis → Codex verifica
 
 ### Task Completion Gate (before starting the NEXT prefixed task)
 
-> **Every prefixed task (DEV-, INT-, BUG-, OPS-, BUILD-, TD-, DEMO-, etc.) MUST be fully merged to `main` via PR before the next task begins. No exceptions.**
+> **Every prefixed task (DEV-, INT-, BUG-, OPS-, BUILD-, TD-, DEMO-, etc.) MUST be fully merged to `staging` via PR before the next task begins. No exceptions.**
+>
+> `staging` → `main` (production) requires manual approval. Never merge directly to `main`.
 
 - [ ] All code changes committed and lint/build/test PASS
-- [ ] PR created, reviewed, and merged to `main`
+- [ ] PR created, reviewed, and merged to `staging`
 - [ ] Tracker updated (task marked complete with PR number)
-- [ ] Confirm `main` is up to date locally before starting next task
+- [ ] Confirm `staging` is up to date locally before starting next task
 
 This rule exists to prevent work-in-progress loss across sessions and ensure every task is independently recoverable from git history.
 
