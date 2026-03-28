@@ -4,9 +4,10 @@ import logging
 import uuid
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
@@ -15,6 +16,12 @@ from models.database import get_db
 from models.user import User
 from schemas.agent import AgentQuery, ConversationMessage
 from schemas.chat import ChatRequest, ChatResponse
+from schemas.conversation import (
+    ConversationListResponse,
+    ConversationResponse,
+    ConversationWithMessagesResponse,
+    MessageResponse,
+)
 from services.agent_service import AgentService, get_agent_service
 
 logger = logging.getLogger(__name__)
@@ -138,4 +145,149 @@ async def chat(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing your message",
+        )
+
+
+@router.get("/conversations", response_model=ConversationListResponse)
+async def get_conversations(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ConversationListResponse:
+    """
+    Get a paginated list of the current user's conversations.
+
+    - **limit**: Number of conversations to return (default 20, max 100)
+    - **offset**: Number of conversations to skip (default 0)
+
+    Returns conversations ordered by most recently updated first.
+    """
+    # Validate pagination parameters
+    if limit < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit must be at least 1",
+        )
+    if limit > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit cannot exceed 100",
+        )
+    if offset < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="offset must be non-negative",
+        )
+
+    try:
+        # Get total count
+        count_query = select(func.count(Conversation.id)).where(
+            Conversation.user_id == current_user.id
+        )
+        count_result = await db.execute(count_query)
+        total = count_result.scalar() or 0
+
+        # Get conversations with pagination
+        conversations_query = (
+            select(Conversation)
+            .where(Conversation.user_id == current_user.id)
+            .order_by(Conversation.updated_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        conversations_result = await db.execute(conversations_query)
+        conversations = list(conversations_result.scalars().all())
+
+        # Convert to response schemas
+        conversation_responses = [
+            ConversationResponse.model_validate(conv) for conv in conversations
+        ]
+
+        return ConversationListResponse(
+            items=conversation_responses,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Error retrieving conversations for user {current_user.id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving conversations",
+        )
+
+
+@router.get("/conversations/{conversation_id}/messages", response_model=ConversationWithMessagesResponse)
+async def get_conversation_messages(
+    conversation_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ConversationWithMessagesResponse:
+    """
+    Get a specific conversation with all its messages.
+
+    - **conversation_id**: UUID of the conversation to retrieve
+
+    Returns the conversation details and all messages ordered by creation time.
+    """
+    try:
+        # Load conversation
+        conversation_query = select(Conversation).where(
+            Conversation.id == conversation_id
+        )
+        conversation_result = await db.execute(conversation_query)
+        conversation = conversation_result.scalar_one_or_none()
+
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found",
+            )
+
+        if conversation.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to conversation",
+            )
+
+        # Load all messages for the conversation
+        messages_query = (
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.asc())
+        )
+        messages_result = await db.execute(messages_query)
+        messages = list(messages_result.scalars().all())
+
+        # Convert to response schemas
+        message_responses = [MessageResponse.model_validate(msg) for msg in messages]
+
+        # Build the response using conversation data and manually setting messages
+        response_data = {
+            "id": conversation.id,
+            "user_id": conversation.user_id,
+            "title": conversation.title,
+            "created_at": conversation.created_at,
+            "updated_at": conversation.updated_at,
+            "messages": message_responses,
+        }
+
+        return ConversationWithMessagesResponse(**response_data)
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(
+            f"Error retrieving conversation {conversation_id} for user {current_user.id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving the conversation",
         )
