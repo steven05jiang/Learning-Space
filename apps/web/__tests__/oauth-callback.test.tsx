@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import OAuthCallbackPage from "../app/auth/callback/[provider]/page";
+import OAuthCallbackContent from "../app/auth/callback/[provider]/OAuthCallbackContent";
 
 // Mock Next.js navigation
 jest.mock("next/navigation", () => ({
@@ -62,7 +62,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
     };
     (fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     // Should show loading state initially
     expect(screen.getByText("Completing Github login…")).toBeInTheDocument();
@@ -109,7 +109,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
       return null;
     });
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     // Should show error state
     await waitFor(() => {
@@ -139,7 +139,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
       return null;
     });
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     await waitFor(() => {
       expect(screen.getByText("State parameter missing")).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
       return null;
     });
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     await waitFor(() => {
       expect(
@@ -187,7 +187,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
     };
     (fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     await waitFor(() => {
       expect(screen.getByText("Authentication failed")).toBeInTheDocument();
@@ -238,7 +238,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
       .spyOn(Storage.prototype, "clear")
       .mockImplementation(() => {});
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     await waitFor(() => {
       expect(screen.getByText("Login successful!")).toBeInTheDocument();
@@ -277,13 +277,49 @@ describe("OAuthCallbackPage Integration Tests", () => {
       throw new Error("QuotaExceededError");
     });
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     await waitFor(() => {
       expect(
         screen.getByText("Unable to save login session. Please try again."),
       ).toBeInTheDocument();
     });
+  });
+
+  it("redirects to /coming-soon when backend redirects non-allowlisted user", async () => {
+    localStorage.setItem("oauth_state_github", "valid-state-token");
+
+    mockGet.mockImplementation((param: string) => {
+      if (param === "code") return "auth-code-123";
+      if (param === "state") return "valid-state-token";
+      return null;
+    });
+
+    // Simulate backend 302 → /coming-soon: fetch follows redirect,
+    // lands on the HTML page (ok: true, redirected: true).
+    // response.json() must NOT be called — the fix returns early.
+    const mockJsonFn = jest.fn().mockRejectedValue(
+      new SyntaxError("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"),
+    );
+    const mockResponse = {
+      ok: true,
+      redirected: true,
+      url: "http://localhost:3000/coming-soon",
+      json: mockJsonFn,
+    };
+    (fetch as jest.Mock).mockResolvedValue(mockResponse);
+
+    render(<OAuthCallbackContent provider="github" />);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/coming-soon");
+    });
+
+    // Must not attempt JSON parse on the HTML body
+    expect(mockJsonFn).not.toHaveBeenCalled();
+
+    // Must not show any error to the user
+    expect(screen.queryByText("Authentication failed")).not.toBeInTheDocument();
   });
 
   it("shows loading state initially", () => {
@@ -296,7 +332,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
     });
     (fetch as jest.Mock).mockImplementation(() => new Promise(() => {})); // never resolves
 
-    render(<OAuthCallbackPage params={{ provider: "github" }} />);
+    render(<OAuthCallbackContent provider="github" />);
 
     expect(screen.getByText("Completing Github login…")).toBeInTheDocument();
     expect(

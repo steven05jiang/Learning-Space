@@ -53,6 +53,13 @@ export default function OAuthCallbackContent({
 
         const response = await fetch(url.toString());
 
+        // Backend redirects non-allowlisted users to /coming-soon.
+        // Detect this before attempting JSON parse to avoid a confusing error.
+        if (response.redirected && response.url.includes("/coming-soon")) {
+          router.push("/coming-soon");
+          return;
+        }
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.detail ?? "Authentication failed");
