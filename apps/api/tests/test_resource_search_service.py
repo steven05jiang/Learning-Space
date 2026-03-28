@@ -33,7 +33,7 @@ def sample_search_result():
     mock_row = MagicMock()
     mock_row.id = resource_id
     mock_row.title = "Building AI Agents with LangGraph"
-    mock_row.summary = "A guide to building stateful multi-step AI agents using LangGraph."
+    mock_row.summary = "A guide to building stateful multi-step AI agents."
     mock_row.tags = ["LangGraph", "AI Agents", "LLM Tools"]
     mock_row.top_level_categories = ["Science & Technology"]
     mock_row.original_content = "https://example.com/langraph-agents"
@@ -82,7 +82,7 @@ def test_resource_search_item_from_row(sample_search_result):
 
     assert item.id == UUID(str(mock_row.id))
     assert item.title == "Building AI Agents with LangGraph"
-    assert item.summary == "A guide to building stateful multi-step AI agents using LangGraph."
+    assert item.summary == "A guide to building stateful multi-step AI agents."
     assert item.tags == ["LangGraph", "AI Agents", "LLM Tools"]
     assert item.top_level_categories == ["Science & Technology"]
     assert item.original_content == "https://example.com/langraph-agents"
@@ -124,7 +124,7 @@ def test_agent_resource_result_from_item_url_resource(sample_search_result):
 
     assert agent_result.id == str(item.id)
     assert agent_result.title == "Building AI Agents with LangGraph"
-    assert agent_result.summary == "A guide to building stateful multi-step AI agents using LangGraph."
+    assert agent_result.summary == "A guide to building stateful multi-step AI agents."
     assert agent_result.tags == ["LangGraph", "AI Agents", "LLM Tools"]
     assert agent_result.top_level_categories == ["Science & Technology"]
     assert agent_result.url == "https://example.com/langraph-agents"

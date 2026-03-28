@@ -45,7 +45,10 @@ class ResourceSearchItem:
             top_level_categories=row.top_level_categories or [],
             original_content=row.original_content,
             content_type=row.content_type,
-            status=row.status.value if hasattr(row.status, 'value') else str(row.status),
+            status=(
+                row.status.value if hasattr(row.status, 'value')
+                else str(row.status)
+            ),
             created_at=row.created_at,
             updated_at=row.updated_at,
             rank=float(row.rank),
@@ -100,10 +103,10 @@ class ResourceSearchService:
         Search the current user's resources.
 
         Args:
-            owner_id:  The authenticated user's ID. Results are always scoped to this user.
+            owner_id:  The authenticated user's ID. Results are scoped to this user.
             query:     One or more keywords (natural language). Required and non-empty.
-            tag:       Optional tag filter. Narrows results to resources with this exact tag.
-            limit:     Max results to return. HTTP callers use default 20. Agent callers cap at 10.
+            tag:       Optional tag filter. Narrows results to resources with this tag.
+            limit:     Max results to return. HTTP callers use default 20.
             offset:    Pagination offset. Agent callers always use 0.
 
         Returns:
@@ -146,7 +149,8 @@ class ResourceSearchService:
         """
 
         sql = text(f"""
-            SELECT *, ts_rank({search_expr}, plainto_tsquery('english', :query)) AS rank,
+            SELECT *,
+                   ts_rank({search_expr}, plainto_tsquery('english', :query)) AS rank,
                    COUNT(*) OVER() AS total_count
             FROM resources
             WHERE owner_id = :owner_id
