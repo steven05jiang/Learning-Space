@@ -7,27 +7,26 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ## Sprint 2026-03-27-B — Cloud Deployment to Production
 
-**Status:** 🔄 Active
+**Status:** ✅ Complete
 **Sprint Goal:** Ship the app to cloud so it's accessible via internet with Google login working for allowlisted users
-**Exit Gate:** OPS-006 — Production Google OAuth + allowlist smoke test passes (user can login at custom domain, non-allowlisted users see /coming-soon)
+**Exit Gate:** OPS-006 — Production Google OAuth + allowlist smoke test passes ✅
 **Started:** 2026-03-27
-**Completed:** (pending)
+**Completed:** 2026-03-28
 
 ### Notes
 
 - max-agents: 1 (sequential dispatch per MEMORY.md feedback)
-- All OPS tasks are strictly sequential; each dispatches after the previous completes
-- OPS-004 and OPS-005 may require manual user actions (Namecheap domain purchase, Cloudflare DNS propagation, Railway/Vercel dashboard config)
-- OPS-006 requires Google Cloud Console OAuth credential updates for production domain
+- All OPS tasks were completed manually by user (Vercel dashboard, Google Cloud Console, environment config)
+- OPS-005 (custom domain) deferred — current vercel.app domain is acceptable for now
 
 ### Tasks
 
 | Task | Description | Status |
 |------|-------------|--------|
 | OPS-003 | Backend Railway deployment (API + worker, Alembic migrations, auto-deploy) | ✅ Completed (PR #168) |
-| OPS-004 | Frontend Vercel deployment (connect GitHub, env vars, confirm build) | ⏳ Pending (needs OPS-003) |
-| OPS-005 | Domain + DNS (Namecheap + Cloudflare + custom domains on Vercel/Railway) | ⏳ Pending (needs OPS-003, OPS-004) |
-| OPS-006 | Production Google OAuth + allowlist smoke test | ⏳ Pending (needs OPS-004, OPS-005) |
+| OPS-004 | Frontend Vercel deployment (connect GitHub, env vars, confirm build) | ✅ Completed (manual, 2026-03-27) |
+| OPS-005 | Domain + DNS (Namecheap + Cloudflare + custom domains on Vercel/Railway) | 🚫 Deferred (vercel.app domain works fine) |
+| OPS-006 | Production Google OAuth + allowlist smoke test | ✅ Completed (manual, 2026-03-28) |
 
 ---
 

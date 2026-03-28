@@ -5,6 +5,34 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
+## 2026-03-28 — Unified search capability (user-facing + AI agent)
+
+**Type:** Both
+**Trigger:** New requirements + technical thoughts (phased search design session)
+**Docs Affected:** `docs/technical-design.md`, `docs/ux-requirements.md`, `docs/design-search.md` (new), `CLAUDE.md`
+**Summary:** Introduces the unified search design. A new supplement doc `docs/design-search.md` owns the complete specification for `ResourceSearchService` — the single shared backend called by both `GET /resources/search` (HTTP) and `search_resources` (LangGraph tool). Phase 1 uses PostgreSQL full-text search; Phase 2 upgrades to hybrid retrieval with pgvector on Supabase and RRF merge. The supplement doc includes the full retrieval strategy comparison (keyword, vector, hybrid, dedicated engines, file system). Core docs are updated with targeted edits only: new index note (§2.1.3), new endpoint row (§4.2), new event flow (§5.9), agent tool contract (§8.4), repo layout (§8.1). UX requirements gain a search page spec (§7.1).
+
+### Changes
+
+#### Design
+- Added `docs/design-search.md`: `ResourceSearchService` interface, `SearchResult`/`ResourceSearchItem`/`AgentResourceResult` models, Phase 1 full-text (functional GIN, `plainto_tsquery`, `ts_rank`, SQLAlchemy implementation), Phase 2 hybrid (`resource_embeddings` table, pgvector IVFFlat, `text-embedding-3-small`, RRF Python implementation, worker embedding step), HTTP endpoint spec (`ResourceSearchRequest`/`ResourceSearchResponse` Pydantic schemas), agent tool `search_resources` contract + system prompt addition, event flows §8.1–8.3, sequence diagrams §9.1–9.3, retrieval strategy comparison appendix §10
+- Modified `docs/technical-design.md` §2.1.3: Replaced stale "GIN on tags for search" with Phase 1 functional GIN SQL + Phase 2 `resource_embeddings` pointer
+- Modified `docs/technical-design.md` §4.2: Added `GET /resources/search` endpoint row
+- Added `docs/technical-design.md` §5.9: Search event flows (user Phase 1, agent Phase 1, worker Phase 2 embedding)
+- Modified `docs/technical-design.md` §8.1: Added `design-search.md` to repo layout docs listing
+- Modified `docs/technical-design.md` §8.4: Formalized `search_resources` tool contract (code block, return shape, limit cap)
+- Added `docs/ux-requirements.md` §7.1 (Search Page): Layout wireframe, debounced input, loading/empty/blank states, tag filter dropdown, result card fields, `rank` not displayed
+- Modified `CLAUDE.md` On-demand Loading Index: Added `Search capability / agent search tool → docs/design-search.md`
+
+### Conflicts Resolved
+- None
+
+### Open Questions
+- Phase 2 embedding API: if active LLM provider doesn't support embeddings, a separate key (`EMBEDDING_API_KEY`) or self-hosted model is needed. Deferred to Phase 2 sprint planning.
+- `pg_trgm` fuzzy matching explicitly deferred as premature optimization — log as TD- if real user pain arises.
+
+---
+
 ## 2026-03-14 — Initial technical design
 
 **Type:** Design

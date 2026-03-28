@@ -95,7 +95,19 @@ One row per linked social (OAuth) account. A user can have multiple accounts (e.
 | `created_at`             | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
 | `updated_at`             | TIMESTAMPTZ  | NOT NULL, default now()       |                                                                                                                                                                 |
 
-**Indexes**: `owner_id`, `status`, `created_at`, GIN on `tags` for search, GIN on `top_level_categories` for filtering.
+**Indexes**: `owner_id`, `status`, `created_at`, GIN on `top_level_categories` for filtering.
+
+**Search indexes (Phase 1):**
+```sql
+CREATE INDEX CONCURRENTLY resources_search_idx ON resources USING GIN (
+    to_tsvector('english',
+        COALESCE(title, '') || ' ' || COALESCE(summary, '') || ' ' || COALESCE(tags::text, '[]')
+    )
+);
+```
+Covers title, summary, and tag tokens for full-text search via `plainto_tsquery`. See `docs/design-search.md` §4.
+
+**Search indexes (Phase 2 — hybrid):** `resource_embeddings` table with `vector(1536)` column + IVFFlat index. See `docs/design-search.md` §5.
 
 #### 2.1.4 `resource_processing_log` (optional, for observability)
 
@@ -466,13 +478,14 @@ Base path: `/api/v1`. All endpoints except auth and health require authenticatio
 
 ### 4.2 Resources
 
-| Method | Path              | Description                                                                                                                                                                               |
-| ------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/resources`      | Create resource (body: content_type, original_content, optional prefer_provider). **Requires auth**; returns 401 if not logged in. Returns 202 with resource (status PENDING/PROCESSING). |
-| GET    | `/resources`      | List resources for current user. Query: `?status=READY`, `?tag=AI`, `?limit=20`, `?offset=0`.                                                                                             |
-| GET    | `/resources/{id}` | Get single resource.                                                                                                                                                                      |
-| PATCH  | `/resources/{id}` | Update resource (user-editable fields). If original_content changes, trigger re-processing.                                                                                               |
-| DELETE | `/resources/{id}` | Delete resource and update graph asynchronously.                                                                                                                                          |
+| Method | Path                    | Description                                                                                                                                                                               |
+| ------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/resources`            | Create resource (body: content_type, original_content, optional prefer_provider). **Requires auth**; returns 401 if not logged in. Returns 202 with resource (status PENDING/PROCESSING). |
+| GET    | `/resources`            | List resources for current user. Query: `?status=READY`, `?tag=AI`, `?limit=20`, `?offset=0`.                                                                                             |
+| GET    | `/resources/search`     | Full-text search across title, summary, and tags. Query: `?q=<query>&tag=<tag>&limit=20&offset=0`. Returns resources sorted by relevance. See `docs/design-search.md` §6.               |
+| GET    | `/resources/{id}`       | Get single resource.                                                                                                                                                                      |
+| PATCH  | `/resources/{id}`       | Update resource (user-editable fields). If original_content changes, trigger re-processing.                                                                                               |
+| DELETE | `/resources/{id}`       | Delete resource and update graph asynchronously.                                                                                                                                          |
 
 ### 4.3 Categories
 
@@ -627,6 +640,23 @@ For **pasted text** (`content_type = text`), no fetch is needed; use `original_c
 ### 5.8 Unlink account
 
 1. User requests `DELETE /auth/accounts/{account_id}`. API verifies the account belongs to current user and that the user has at least two accounts. If only one account, return 400 with `CANNOT_UNLINK_LAST_ACCOUNT`. Otherwise delete the `user_accounts` row and return 204.
+
+### 5.9 Resource search
+
+Full specification: `docs/design-search.md`.
+
+**Phase 1 (full-text):**
+1. Client calls `GET /resources/search?q=<query>&tag=<tag>&limit=N&offset=N`.
+2. API validates query (non-empty, ≤500 chars), resolves `owner_id` from session.
+3. API calls `ResourceSearchService.search(owner_id, query, tag, limit, offset)`.
+4. Service runs PostgreSQL full-text query: `tsvector @@ plainto_tsquery` + `ts_rank` ORDER BY.
+5. Returns `{ resources: [...], total: N }` sorted by relevance.
+
+**Phase 2 addition (hybrid):**
+- Service runs full-text and vector queries in parallel; merges results with RRF.
+- Worker pipeline gains a step: after LLM processing, embed `title + summary + tags` and upsert into `resource_embeddings`.
+
+**Agent search:** same `ResourceSearchService.search()` called by the `search_resources` LangGraph tool. Limit capped at 10; result shape trimmed to `AgentResourceResult` (id, title, summary, tags, top_level_categories, url). See `docs/design-search.md` §7.
 
 ---
 
@@ -916,6 +946,7 @@ Learning-Space/
 │   ├── technical-design.md                # Core architecture, data models, APIs
 │   ├── design-resource-fetching.md        # Tiered URL fetch strategy (supplement)
 │   ├── design-category-taxonomy.md        # Category taxonomy + graph hierarchy (supplement)
+│   ├── design-search.md                   # Unified search service — full-text + hybrid vector (supplement)
 │   ├── ux-requirements.md
 │   ├── ux-tech-spec.md
 │   └── integration-test-design.md
@@ -944,6 +975,26 @@ Learning-Space/
 - Implement tools as functions that call DB/Neo4j or internal service layer (no direct HTTP from agent to public API if same process).
 - Use LangSmith for tracing (set `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`).
 - System prompt: “You help the user explore their learning resources and knowledge graph. Use the provided tools to search resources, list resources by tag, and suggest related topics.”
+
+**`search_resources` tool — formal contract:**
+
+```python
+@tool
+async def search_resources(query: str, tag: Optional[str] = None) -> List[dict]:
+    “””Search the user's learning resources by keyword or concept.”””
+    results = await resource_search_service.search(
+        owner_id=current_user.id,
+        query=query,
+        tag=tag,
+        limit=10,   # hard cap for agent context efficiency
+        offset=0,
+    )
+    return [AgentResourceResult.from_item(r).dict() for r in results.resources]
+```
+
+Return shape (`AgentResourceResult`): `{ id, title, summary, tags, top_level_categories, url }`.
+`url` is `original_content` for URL resources; `None` for text resources.
+**This tool calls `ResourceSearchService` directly — the same service used by `GET /resources/search`.** Full spec: `docs/design-search.md` §7.
 
 ### 8.5 Environment variables (reference)
 
