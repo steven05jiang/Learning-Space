@@ -8,7 +8,6 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from core.deps import get_current_user
 from models.conversation import Conversation, Message, MessageRole
@@ -34,7 +33,8 @@ async def chat(
     Send a message in a chat conversation.
 
     - **message**: Your message (required, max 2000 characters)
-    - **conversation_id**: Continue existing conversation (optional, creates new if omitted)
+    - **conversation_id**: Continue existing conversation (optional,
+      creates new if omitted)
 
     If conversation_id is provided, the conversation must belong to the current user.
     The endpoint persists both the user message and assistant response to the database.
@@ -92,10 +92,11 @@ async def chat(
         messages_result = await db.execute(messages_query)
         all_messages: List[Message] = list(messages_result.scalars().all())
 
-        # Step 6: Build conversation history for agent (excluding the just-inserted user message)
+        # Step 6: Build conversation history for agent (excluding current user message)
         conversation_history = []
         for msg in all_messages:
-            if msg.id != user_message.id:  # Exclude current user message to avoid duplication
+            # Exclude current user message to avoid duplication
+            if msg.id != user_message.id:
                 conversation_history.append(
                     ConversationMessage(
                         role=msg.role.value,

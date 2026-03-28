@@ -1,8 +1,7 @@
 """Tests for chat endpoints."""
 
 import uuid
-from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import status
@@ -198,7 +197,6 @@ class TestChatEndpoint:
         mock_agent_service
     ):
         """Test chatting with non-existent conversation ID."""
-        user = test_user
         headers = auth_headers
         non_existent_id = str(uuid.uuid4())
 
@@ -232,7 +230,6 @@ class TestChatEndpoint:
         mock_agent_service
     ):
         """Test accessing another user's conversation."""
-        user = test_user
         headers = auth_headers
 
         # Create conversation for another user
@@ -265,9 +262,10 @@ class TestChatEndpoint:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "access denied" in response.json()["detail"].lower()
 
-    async def test_chat_empty_message(self, client: AsyncClient, test_user, auth_headers):
+    async def test_chat_empty_message(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
         """Test validation for empty message."""
-        user = test_user
         headers = auth_headers
 
         response = await client.post(
@@ -280,9 +278,10 @@ class TestChatEndpoint:
         error_detail = response.json()["detail"]
         assert any("message cannot be empty" in str(err) for err in error_detail)
 
-    async def test_chat_message_too_long(self, client: AsyncClient, test_user, auth_headers):
+    async def test_chat_message_too_long(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
         """Test validation for message exceeding character limit."""
-        user = test_user
         headers = auth_headers
         long_message = "x" * 2001  # Over 2000 character limit
 
@@ -313,7 +312,6 @@ class TestChatEndpoint:
         mock_agent_service
     ):
         """Test handling of agent service errors."""
-        user = test_user
         headers = auth_headers
 
         # Mock agent service to raise exception

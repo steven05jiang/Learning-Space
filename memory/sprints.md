@@ -5,6 +5,41 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
+## Sprint 2026-03-28-C — AI Chat Feature Complete
+
+**Status:** 🔄 Active
+**Sprint Goal:** Implement POST /chat + GET /chat/conversations endpoints, wire chat UI to real API, and write unit + INT tests so DEMO-005 (AI Chat) is runnable
+**Exit Gate:** DEMO-005 — AI Chat demo can be executed successfully
+**Started:** 2026-03-28
+**Completed:** (pending)
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- Agent already has search_resources tool (DEV-075) + hybrid retrieval (DEV-080) — search capability is complete
+- DEV-033 dispatches first (only unblocked task); DEV-034 follows after DEV-033 merges
+- DEV-053 must also remove the "coming soon" mode added by DEV-068
+- DEV-036 and DEV-053 both unlock after DEV-034 merges — dispatch sequentially
+- INT-036/037/038 unlock after DEV-033 merges; INT-039/040 after DEV-034; INT-048/049 after DEV-053
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-033 | POST /chat endpoint — create/continue conversation, persist messages, call agent | 🔄 Active |
+| DEV-034 | GET /chat/conversations + GET /chat/conversations/{id}/messages | ⏳ Pending (needs DEV-033) |
+| DEV-053 | Wire chat UI to real API + remove coming-soon mode (DEV-068 reversal) | ⏳ Pending (needs DEV-033, DEV-034) |
+| DEV-036 | Unit tests — Chat / Agent | ⏳ Pending (needs DEV-033, DEV-034) |
+| INT-036 | User sends a chat message — agent returns answer + conversation_id | ⏳ Pending (needs DEV-033) |
+| INT-037 | User continues a conversation with context | ⏳ Pending (needs DEV-033) |
+| INT-038 | Agent uses graph traversal tool | ⏳ Pending (needs DEV-033) |
+| INT-039 | User lists their conversations | ⏳ Pending (needs DEV-034) |
+| INT-040 | User retrieves messages in a conversation | ⏳ Pending (needs DEV-034) |
+| INT-048 | User opens the chat interface — panel slides open | ⏳ Pending (needs DEV-053) |
+| INT-049 | User sends a message and receives a response | ⏳ Pending (needs DEV-053) |
+
+---
+
 ## Sprint 2026-03-28-B — Phase 2 Hybrid Search
 
 **Status:** ✅ Complete
