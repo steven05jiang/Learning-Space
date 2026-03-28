@@ -9,9 +9,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
-from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import String, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -101,7 +100,7 @@ class ResourceSearchService:
     async def search(
         self,
         session: AsyncSession,
-        owner_id: UUID,
+        owner_id: int,
         query: str,
         tag: Optional[str] = None,
         limit: int = 20,
@@ -136,7 +135,7 @@ class ResourceSearchService:
     async def _full_text_search(
         self,
         session: AsyncSession,
-        owner_id: UUID,
+        owner_id: int,
         query: str,
         tag: Optional[str],
         limit: int,
@@ -161,17 +160,17 @@ class ResourceSearchService:
               AND """
             + TSVECTOR_EXPRESSION  # nosec B608
             + """ @@ plainto_tsquery('english', :query)
-              AND (:tag IS NULL OR tags ?? :tag)
+              AND (:tag IS NULL OR jsonb_exists(tags, :tag))
             ORDER BY rank DESC
             LIMIT :limit OFFSET :offset
         """
-        )
+        ).bindparams(bindparam("tag", type_=String()))
 
         result = await session.execute(
             sql,
             {
                 "query": query,
-                "owner_id": str(owner_id),
+                "owner_id": owner_id,
                 "tag": tag,
                 "limit": limit,
                 "offset": offset,
