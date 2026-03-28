@@ -5,6 +5,38 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
+## Sprint 2026-03-28-A — Phase 1 Search
+
+**Status:** 🔄 Active
+**Sprint Goal:** Implement Phase 1 search — GIN index, search service, API endpoint, agent tool, search page UI, unit tests, and INT tests
+**Exit Gate:** DEV-076 merged (search page live + nav re-enabled) AND DEV-077 + INT-056–059 all passing
+**Started:** 2026-03-28
+**Completed:** (pending)
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- DEV-074 and DEV-075 both unlock after DEV-073 merges; dispatch DEV-074 first (user-facing endpoint), then DEV-075
+- INT-056/057/058 can dispatch after DEV-074 merges; INT-059 waits on DEV-075
+- DEV-076 (search UI) re-enables the search nav that DEV-067 disabled with "coming soon"
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-072 | Alembic migration — resources_search_idx GIN functional index | ✅ Completed (PR #196) |
+| DEV-073 | ResourceSearchService — full-text search + SearchResult/ResourceSearchItem/AgentResourceResult models | 🔄 Active |
+| DEV-074 | GET /resources/search endpoint + Pydantic schemas + rank field | ⏳ Pending (needs DEV-073) |
+| DEV-075 | search_resources LangGraph tool + AgentResourceResult + system prompt | ⏳ Pending (needs DEV-073) |
+| DEV-076 | Search page UI (Next.js) + re-enable search nav | ⏳ Pending (needs DEV-074) |
+| DEV-077 | Unit tests — ResourceSearchService + search endpoint | ⏳ Pending (needs DEV-073, DEV-074) |
+| INT-056 | Keyword search returns ranked READY results only | ⏳ Pending (needs DEV-073, DEV-074) |
+| INT-057 | Tag filter narrows search results | ⏳ Pending (needs DEV-073, DEV-074) |
+| INT-058 | Empty/overlong query returns 400 validation error | ⏳ Pending (needs DEV-074) |
+| INT-059 | Agent search_resources returns trimmed AgentResourceResult list | ⏳ Pending (needs DEV-075) |
+
+---
+
 ## Sprint 2026-03-27-B — Cloud Deployment to Production
 
 **Status:** ✅ Complete
