@@ -53,6 +53,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Set Playwright browser path before install so browsers land in the right place
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # Install Playwright and download Chromium browser
 RUN pip install playwright==1.40.0 \
     && playwright install chromium \
@@ -61,13 +64,13 @@ RUN pip install playwright==1.40.0 \
 # Copy application code
 COPY . .
 
-# Set environment variables
+# Set remaining environment variables
 ENV PYTHONPATH=/app
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
+    && chown -R app:app /app \
+    && chown -R app:app /ms-playwright
 USER app
 
 # Run worker with Playwright support enabled

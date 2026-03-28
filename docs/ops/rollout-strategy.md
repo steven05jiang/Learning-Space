@@ -11,7 +11,46 @@ For a private beta with a small allowlist, the recommended approach is:
 
 ---
 
-## Future: Two-Environment Setup
+## Strategy by Growth Stage
+
+| Stage | Strategy |
+|---|---|
+| Private beta (now) | Current approach + Railway one-click rollback |
+| First real users (< 500) | Add feature flags (simple DB table) |
+| Growth stage | Add staging environment (see below) |
+| SLA-sensitive / high traffic | Blue-green or canary via Cloudflare Workers |
+
+**Key diagnostic**: what is your actual failure mode?
+- Bad migrations breaking the DB → staging + migration review helps most
+- Bad deploys crashing the API → Railway rollback is already fast enough (30–60s)
+- Risky features for a subset of users → feature flags, not infra-level routing
+
+---
+
+## Feature Flags (recommended next step)
+
+For a private beta with an allowlisted user base, feature flags are strictly better than traffic splitting:
+
+- Roll out to 2 users → check → expand — no infra changes
+- Instant rollback without a redeploy
+- Works with existing Railway + Supabase setup
+- Target specific users by email or user ID
+
+**Implementation**: a `feature_flags` table in Supabase + a middleware check. ~1 day to build.
+
+```sql
+create table feature_flags (
+  flag    text not null,
+  enabled boolean not null default false,
+  -- optional: per-user override
+  user_id integer references users(id),
+  primary key (flag, coalesce(user_id, -1))
+);
+```
+
+---
+
+## Future: Two-Environment Setup (Staging)
 
 When staging becomes necessary, adopt this structure:
 
@@ -58,6 +97,39 @@ Monitor usage in the Railway dashboard and set a spending limit to avoid surpris
 Vercel automatically creates **preview deployments** for every PR and branch push.
 The `staging` branch gets a stable, shareable preview URL at no extra cost.
 No additional Vercel configuration is needed.
+
+---
+
+## Blue-Green Deployment
+
+Railway does not natively support blue-green. Approximating it requires:
+
+- Two Railway services (`api-blue`, `api-green`) with a load balancer or Cloudflare Worker routing between them
+- Railway has no built-in traffic splitting — an external router (e.g. Cloudflare Workers) is required
+- **Cost**: doubles Railway bill ($5 → $10+) and adds operational overhead
+
+**When it makes sense**: you need zero-downtime cutover and Railway's 30–60s rollback is too slow for your SLA. Not the current bottleneck.
+
+**Verdict**: skip until you have paying users and SLA obligations. The staging environment gets you 80% of the safety at a fraction of the complexity.
+
+---
+
+## Phased Rollout / Traffic Routing
+
+### Frontend (Vercel) — already half there
+
+Vercel gives you this for free:
+- Every branch gets a preview URL — manually test before promoting to production
+- **Vercel Edge Middleware** can split traffic by cookie/header (e.g. X% to new, rest to old) — requires writing middleware, but no extra cost
+
+### Backend (Railway) — requires an external router
+
+Railway has no built-in traffic splitting. Options:
+
+1. **Cloudflare Workers** — intercept API calls, split by user ID or random %, forward to blue/green Railway URL. Low cost, high control.
+2. **Feature flags** (see above) — ship code to all users, gate by flag. Usually better than infra-level routing because rollback is instant and targeting is flexible.
+
+For the current use case (private beta, allowlisted users), feature flags are the right tool. Infra-level traffic routing adds complexity without meaningful benefit until you're at scale.
 
 ---
 
