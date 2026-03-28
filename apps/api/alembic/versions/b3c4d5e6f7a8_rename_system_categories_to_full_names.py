@@ -76,18 +76,30 @@ _NEW_CATEGORIES = [
 def upgrade() -> None:
     conn = op.get_bind()
 
-    # 1. Rename categories that map 1-to-1 (no merge conflict)
+    # 1. For each old→new rename: if the canonical name already exists (e.g. inserted
+    #    by migration 2cc92e7b1ee7), DELETE the stale short-name row. Otherwise RENAME
+    #    it. This makes the step safe to run on both a clean DB and one that already
+    #    has the canonical names.
     for old, new in _RENAME_MAP.items():
         if new is not None:
+            # Rename only when the target does not yet exist
             conn.execute(
                 text(
                     "UPDATE categories SET name = :new "
-                    "WHERE name = :old AND owner_id IS NULL"
+                    "WHERE name = :old AND owner_id IS NULL "
+                    "AND NOT EXISTS ("
+                    "  SELECT 1 FROM categories WHERE name = :new AND owner_id IS NULL"
+                    ")"
                 ),
                 {"old": old, "new": new},
             )
+            # If the target already existed, drop the stale short-name row
+            conn.execute(
+                text("DELETE FROM categories WHERE name = :old AND owner_id IS NULL"),
+                {"old": old},
+            )
 
-    # 2. Delete rows that were merged into a renamed category
+    # 2. Delete rows that were merged/replaced (no canonical rename target)
     for old, new in _RENAME_MAP.items():
         if new is None:
             conn.execute(
