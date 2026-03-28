@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (DEV-034 merged PR #224; DEV-053 dispatched)
+**Last Updated:** 2026-03-28 (DEV-053 merged PR #226; DEV-036 dispatched)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 114
+- ✅ Completed: 115
 - 🔄 Active: 1
-- ⏳ Pending: 29
+- ⏳ Pending: 28
 - ⚠️ Stuck: 0
 
 ---
@@ -68,10 +68,10 @@
 - [x] DEV-045: Implement resource panel on node click — node detail dialog UI shell (PR #40 ✅)
 - [x] DEV-046: Implement chat UI — chat panel UI shell with scroll fixes (PR #40, #41 ✅)
 - [x] DEV-052: Wire graph visualization to real API — connect existing UI to GET /graph, POST /graph/expand, GET /graph/nodes/{id}/resources (PR #105 ✅)
-- [~] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations
+- [x] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations (PR #226 ✅)
 - [x] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline (PR #108 ✅)
 - [x] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints (PR #110 ✅)
-- [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
+- [~] DEV-036: Unit tests — Chat / Agent — Verify chat
 - [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
 - [x] DEV-054: Duplicate URL detection with user-facing notification — 409 on duplicate submit + "already added" toast (PR #64 ✅)
