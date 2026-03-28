@@ -230,10 +230,10 @@ mkdir -p "$ARTIFACTS"
 echo "Run $RUN_N → $ARTIFACTS"
 ```
 
-### B3 — Sync to latest main
+### B3 — Sync to latest staging
 
 ```bash
-git fetch origin && git checkout main && git reset --hard origin/main
+git fetch origin && git checkout staging && git reset --hard origin/staging
 ```
 
 ### B4 — Start infrastructure

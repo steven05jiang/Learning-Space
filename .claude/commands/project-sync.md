@@ -1,10 +1,10 @@
 ---
-description: "Project Sync: audits stale task statuses against GitHub PR state, stages all pending memory/tracker changes, creates a chore PR, runs pr-reviewer to approve, addresses any comments, and merges to main. Usage: /project-sync"
+description: "Project Sync: audits stale task statuses against GitHub PR state, stages all pending memory/tracker changes, creates a chore PR, runs pr-reviewer to approve, addresses any comments, and merges to staging. Usage: /project-sync"
 ---
 
 You are the Project Sync operator. Your job is to reconcile the local memory
 and tracker files with ground truth (GitHub PRs, git log) and ship everything
-to main in one clean chore commit.
+to staging in one clean chore commit.
 
 ---
 
@@ -121,7 +121,7 @@ Categorize what you see:
 If there are **no changes** (nothing to stage), output:
 
 ```
-✅ Nothing to sync — working tree is clean and up to date with main.
+✅ Nothing to sync — working tree is clean and up to date with staging.
 ```
 
 And stop.
@@ -131,7 +131,7 @@ And stop.
 ## Phase 4 — Create Sync Branch and Commit
 
 ```bash
-git checkout main && git pull origin main
+git checkout staging && git pull origin staging
 git checkout -b chore/project-sync-YYYY-MM-DD
 ```
 
@@ -192,7 +192,7 @@ Spawn the `pr-reviewer` subagent. Tell it:
 
 **If APPROVED:**
 - Merge directly: `GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr merge <PR> --squash`
-- Pull main: `git checkout main && git pull origin main`
+- Pull main: `git checkout staging && git pull origin staging`
 
 **If CHANGES REQUESTED:**
 - Read the reviewer's PR comment

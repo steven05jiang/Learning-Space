@@ -207,7 +207,7 @@ From the **open sprint's task list** in `memory/sprints.md`, identify which task
 
 - Status is ⏳ Pending (not yet started, not complete, not stuck)
 - Not already in `memory/active/` with an active file
-- Dependencies are satisfied — all prerequisite tasks are ✅ Complete and merged to `main`
+- Dependencies are satisfied — all prerequisite tasks are ✅ Complete and merged to `staging`
 
 Select up to `max-agents` tasks. Dispatch order: unblocked tasks first, in the priority order listed in the sprint.
 
@@ -401,7 +401,7 @@ N rounds before approval
 5. Persist memory state — **PM does this directly** (no implementer involved):
 
    ```bash
-   git checkout main && git pull origin main
+   git checkout staging && git pull origin staging
    git checkout -b chore/tracker-TASK-XXX-complete
    git add memory/completed/TASK-XXX.md memory/dev-tracker.md memory/sprints.md
    git commit -m "chore: mark TASK-XXX complete (PR #N merged)"
@@ -431,7 +431,7 @@ N rounds before approval
 4. Persist memory state — **PM does this directly**:
 
    ```bash
-   git checkout main && git pull origin main
+   git checkout staging && git pull origin staging
    git checkout -b chore/tracker-TASK-XXX-stuck
    git add memory/active/TASK-XXX.md memory/dev-tracker.md memory/sprints.md
    git commit -m "chore: mark TASK-XXX stuck — <brief reason>"
