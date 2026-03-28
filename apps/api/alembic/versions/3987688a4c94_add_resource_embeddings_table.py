@@ -5,7 +5,10 @@ Revises: c88b95c7269d
 Create Date: 2026-03-28 16:27:46.099758
 
 Creates resource_embeddings table for vector similarity search with pgvector.
-Includes IVFFlat index for approximate nearest-neighbor search with 2048-dim vectors.
+Uses vector(2048) for Qwen/Qwen3-Embedding-4B. No approximate NN index — exact
+cosine scan is fast enough for personal library scale (<10K rows). An IVFFlat or
+HNSW index can be added later if needed, but both require ≤2000 dimensions which
+this model exceeds.
 """
 
 from typing import Sequence, Union
@@ -26,7 +29,8 @@ def upgrade() -> None:
     # Enable pgvector extension
     op.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
-    # Create resource_embeddings table with vector(2048) column directly
+    # Create resource_embeddings table with vector(2048) column directly.
+    # Note: pgvector IVFFlat/HNSW indexes cap at 2000 dims; exact scan used instead.
     op.execute(
         text("""
         CREATE TABLE resource_embeddings (
@@ -39,25 +43,7 @@ def upgrade() -> None:
     """)
     )
 
-    # Create IVFFlat index using autocommit_block (non-transactional DDL)
-    with op.get_context().autocommit_block():
-        op.execute(
-            text(
-                "CREATE INDEX CONCURRENTLY resource_embeddings_vec_idx "
-                "ON resource_embeddings "
-                "USING ivfflat (embedding vector_cosine_ops) "
-                "WITH (lists = 100)"
-            )
-        )
-
 
 def downgrade() -> None:
     """Downgrade schema."""
-    # Drop the IVFFlat index
-    with op.get_context().autocommit_block():
-        op.execute(
-            text("DROP INDEX CONCURRENTLY IF EXISTS resource_embeddings_vec_idx")
-        )
-
-    # Drop the table (CASCADE will be handled by the FK constraint)
     op.drop_table("resource_embeddings")

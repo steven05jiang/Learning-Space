@@ -1,7 +1,9 @@
 """Test resource_embeddings migration (3987688a4c94) schema validation.
 
 Validates pgvector extension enablement, table creation with vector(2048) column,
-FK constraints, and IVFFlat index creation without requiring alembic to run.
+and FK constraints. No approximate NN index — pgvector IVFFlat/HNSW both cap at
+2000 dimensions; Qwen3-Embedding-4B uses 2048. Exact cosine scan is used instead,
+which is fast enough for personal library scale (<10K rows).
 """
 
 import pytest
@@ -168,27 +170,18 @@ async def test_primary_key_constraint(db_session: AsyncSession):
 
 
 @pytest.mark.integration
-async def test_ivfflat_index_exists(db_session: AsyncSession):
-    """Test that IVFFlat index exists for vector similarity search."""
+async def test_no_approximate_nn_index(db_session: AsyncSession):
+    """Confirm no IVFFlat/HNSW index exists — exact scan is used (2048 dims > 2000 limit)."""
     result = await db_session.execute(
         text("""
-            SELECT
-                indexname,
-                indexdef
+            SELECT COUNT(*)
             FROM pg_indexes
             WHERE tablename = 'resource_embeddings'
             AND indexname = 'resource_embeddings_vec_idx'
         """)
     )
-    index_info = result.fetchone()
-
-    assert index_info is not None, "IVFFlat index should exist"
-    index_name, index_def = index_info
-
-    assert "ivfflat" in index_def.lower(), "Index should use IVFFlat method"
-    assert "embedding" in index_def, "Index should be on embedding column"
-    assert "vector_cosine_ops" in index_def, "Index should use vector_cosine_ops"
-    assert "lists = 100" in index_def, "Index should have lists = 100 parameter"
+    count = result.scalar()
+    assert count == 0, "No approximate NN index should exist (2048 dims exceeds pgvector limit)"
 
 
 @pytest.mark.integration
