@@ -7,11 +7,11 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ## Sprint 2026-03-28-A — Phase 1 Search
 
-**Status:** 🔄 Active
+**Status:** ✅ Complete
 **Sprint Goal:** Implement Phase 1 search — GIN index, search service, API endpoint, agent tool, search page UI, unit tests, and INT tests
 **Exit Gate:** DEV-076 merged (search page live + nav re-enabled) AND DEV-077 + INT-056–059 all passing
 **Started:** 2026-03-28
-**Completed:** (pending)
+**Completed:** 2026-03-28
 
 ### Notes
 
@@ -32,8 +32,8 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-077 | Unit tests — ResourceSearchService + search endpoint | ✅ Completed (PR #206) |
 | INT-056 | Keyword search returns ranked READY results only | ✅ Completed (PR #208) |
 | INT-057 | Tag filter narrows search results | ✅ Completed (PR #210) |
-| INT-058 | Empty/overlong query returns 400 validation error | 🔄 Active |
-| INT-059 | Agent search_resources returns trimmed AgentResourceResult list | 🔄 Active |
+| INT-058 | Empty/overlong query returns 400 validation error | ✅ Completed (PR #212) |
+| INT-059 | Agent search_resources returns trimmed AgentResourceResult list | ✅ Completed (PR #213) |
 
 ---
 

@@ -4,15 +4,15 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — DEV-072–077, INT-056–057 complete; INT-058+059 active)
+**Last Updated:** 2026-03-28 (sprint 2026-03-28-A — COMPLETE: DEV-072–077 + INT-056–059 all merged)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 106
-- 🔄 Active: 2
+- ✅ Completed: 108
+- 🔄 Active: 0
 - ⏳ Pending: 43
 - ⚠️ Stuck: 0
 
@@ -183,8 +183,8 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 **Group: search** — CI: every PR (Layer 1 — API integration)
 - [x] INT-056: User searches by keyword — returns ranked READY resources; non-READY excluded (BDD: Resource Search) (PR #208 ✅)
 - [x] INT-057: User filters search by tag — results narrowed to matching tag only (BDD: Resource Search) (PR #210 ✅)
-- [~] INT-058: Empty or overlong query returns 400 validation error (BDD: Resource Search)
-- [~] INT-059: Agent search_resources tool returns trimmed AgentResourceResult list; limit=10 enforced (BDD: Agent Search)
+- [x] INT-058: Empty or overlong query returns 400 validation error (BDD: Resource Search) (PR #212 ✅)
+- [x] INT-059: Agent search_resources tool returns trimmed AgentResourceResult list; limit=10 enforced (BDD: Agent Search) (PR #213 ✅)
 
 ### Layer 3 — E2E Deployment (k8s smoke tests)
 
