@@ -26,7 +26,7 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | Task | Description | Status |
 |------|-------------|--------|
 | DEV-078 | Alembic migration — resource_embeddings table + pgvector IVFFlat index (vector 2048) | ✅ Completed (PR #215) |
-| DEV-079 | Worker embedding step — build_embedding_text() + SiliconFlow embed call + upsert resource_embeddings | ⏳ Pending (needs DEV-078) |
+| DEV-079 | Worker embedding step — build_embedding_text() + SiliconFlow embed call + upsert resource_embeddings | ✅ Completed (PR #217) |
 | DEV-080 | ResourceSearchService _vector_search() + _hybrid_search() RRF k=60; SEARCH_MODE env var toggle | ⏳ Pending (needs DEV-079) |
 
 ---

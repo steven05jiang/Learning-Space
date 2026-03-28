@@ -11,8 +11,8 @@
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 109
-- 🔄 Active: 2
+- ✅ Completed: 110
+- 🔄 Active: 1
 - ⏳ Pending: 40
 - ⚠️ Stuck: 0
 
@@ -220,7 +220,7 @@ _Design spec: `docs/design-search.md`_
 _Design spec: `docs/design-search.md` §5_
 
 - [x] DEV-078: Add Alembic migration: resource_embeddings table + pgvector IVFFlat index (vector(2048), ON DELETE CASCADE) (PR #215 ✅)
-- [~] DEV-079: Worker embedding step — build_embedding_text() + SiliconFlow Qwen3-Embedding-4B + upsert resource_embeddings after LLM
+- [x] DEV-079: Worker embedding step — build_embedding_text() + SiliconFlow Qwen3-Embedding-4B + upsert resource_embeddings after LLM (PR #217 ✅)
 - [~] DEV-080: Extend ResourceSearchService with _vector_search() + _hybrid_search() (RRF k=60); SEARCH_MODE env var toggle
 
 ## 🎬 Demos
