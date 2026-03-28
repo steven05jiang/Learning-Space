@@ -279,3 +279,93 @@ async def test_search_unauthenticated_returns_401(client, db_session):
     )
 
     assert response.status_code == 401
+
+
+@pytest.mark.integration
+@pytest.mark.search
+async def test_search_empty_query_returns_400(client, auth_headers, db_session):
+    """
+    INT-058: Empty query returns 400 validation error.
+
+    Validates that empty queries are rejected with SEARCH_QUERY_EMPTY error.
+    """
+    # Test with empty string
+    response = await client.get(
+        "/resources/search",
+        params={"q": ""},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"]["code"] == "SEARCH_QUERY_EMPTY"
+    assert "empty" in data["detail"]["message"].lower()
+
+    # Test with whitespace-only string
+    response = await client.get(
+        "/resources/search",
+        params={"q": "   "},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"]["code"] == "SEARCH_QUERY_EMPTY"
+    assert "empty" in data["detail"]["message"].lower()
+
+
+@pytest.mark.integration
+@pytest.mark.search
+async def test_search_overlong_query_returns_400(client, auth_headers, db_session):
+    """
+    INT-058: Overlong query returns 400 validation error.
+
+    Validates that queries exceeding 500 characters are rejected with
+    SEARCH_QUERY_TOO_LONG error.
+    """
+    # Create a query that's exactly 501 characters
+    long_query = "a" * 501
+
+    response = await client.get(
+        "/resources/search",
+        params={"q": long_query},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"]["code"] == "SEARCH_QUERY_TOO_LONG"
+    assert "exceeds" in data["detail"]["message"].lower()
+    assert "500" in data["detail"]["message"]
+
+
+@pytest.mark.integration
+@pytest.mark.search
+async def test_search_missing_query_param_returns_422(client, auth_headers, db_session):
+    """
+    INT-058: Missing q parameter returns 422 validation error.
+
+    Validates that FastAPI's required field validation works correctly
+    when the q parameter is completely omitted.
+    """
+    response = await client.get(
+        "/resources/search",
+        # No params at all - missing required q parameter
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+    data = response.json()
+    assert "detail" in data
+
+    # FastAPI validation error format
+    errors = data["detail"]
+    assert isinstance(errors, list)
+    assert len(errors) >= 1
+
+    # Find the error for the 'q' field
+    q_error = next(
+        (err for err in errors if err.get("loc") and "q" in err["loc"]), None
+    )
+    assert q_error is not None
+    assert q_error["type"] == "missing"
