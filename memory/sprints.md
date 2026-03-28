@@ -31,9 +31,9 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-076 | Search page UI (Next.js) + re-enable search nav | ✅ Completed (PR #204) |
 | DEV-077 | Unit tests — ResourceSearchService + search endpoint | ✅ Completed (PR #206) |
 | INT-056 | Keyword search returns ranked READY results only | ✅ Completed (PR #208) |
-| INT-057 | Tag filter narrows search results | 🔄 Active |
-| INT-058 | Empty/overlong query returns 400 validation error | ⏳ Pending (needs DEV-074) |
-| INT-059 | Agent search_resources returns trimmed AgentResourceResult list | ⏳ Pending (needs DEV-075) |
+| INT-057 | Tag filter narrows search results | ✅ Completed (PR #210) |
+| INT-058 | Empty/overlong query returns 400 validation error | 🔄 Active |
+| INT-059 | Agent search_resources returns trimmed AgentResourceResult list | 🔄 Active |
 
 ---
 
