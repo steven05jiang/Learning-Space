@@ -122,20 +122,22 @@ def upgrade() -> None:
     #    Replace each old string value with the canonical new name.
     #    Uses jsonb_agg + jsonb_array_elements_text to rebuild the array.
     for old, new in _RESOURCE_OLD_TO_NEW.items():
+        # Use CAST() instead of :: to avoid SQLAlchemy text() param parser
+        # misinterpreting ::text / ::jsonb as named parameters.
         conn.execute(
             text("""
                 UPDATE resources
                 SET top_level_categories = (
                     SELECT jsonb_agg(
                         CASE
-                            WHEN elem = :old THEN :new::text
+                            WHEN elem = :old THEN CAST(:new AS text)
                             ELSE elem
                         END
                     )
                     FROM jsonb_array_elements_text(top_level_categories) AS elem
                 )
                 WHERE top_level_categories IS NOT NULL
-                  AND top_level_categories @> :old_json::jsonb
+                  AND top_level_categories @> CAST(:old_json AS jsonb)
             """),
             {"old": old, "new": new, "old_json": f'["{old}"]'},
         )
