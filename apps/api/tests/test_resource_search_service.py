@@ -308,7 +308,7 @@ async def test_search_mode_keyword_uses_full_text_search(search_service):
     mock_result.fetchall.return_value = []
     mock_session.execute.return_value = mock_result
 
-    with patch('core.config.settings.search_mode', 'keyword'):
+    with patch("core.config.settings.search_mode", "keyword"):
         result = await search_service.search(
             session=mock_session,
             owner_id=123,
@@ -378,13 +378,17 @@ async def test_search_mode_hybrid_calls_embedding_service():
     mock_session.execute.side_effect = mock_execute
 
     # Mock embedding service
-    with patch('core.config.settings.search_mode', 'hybrid'), \
-         patch('services.resource_search_service.embedding_service') as mock_embedding:
+    with (
+        patch("core.config.settings.search_mode", "hybrid"),
+        patch("services.resource_search_service.embedding_service") as mock_embedding,
+    ):
 
         async def mock_generate_embedding(text):
             return [0.1] * 2048
 
-        mock_embedding.generate_embedding = AsyncMock(side_effect=mock_generate_embedding)
+        mock_embedding.generate_embedding = AsyncMock(
+            side_effect=mock_generate_embedding
+        )
 
         result = await search_service.search(
             session=mock_session,
@@ -429,8 +433,10 @@ async def test_hybrid_search_fallback_on_embedding_failure():
     mock_session.execute.return_value = mock_result
 
     # Mock embedding service to fail
-    with patch('core.config.settings.search_mode', 'hybrid'), \
-         patch('services.resource_search_service.embedding_service') as mock_embedding:
+    with (
+        patch("core.config.settings.search_mode", "hybrid"),
+        patch("services.resource_search_service.embedding_service") as mock_embedding,
+    ):
         mock_embedding.generate_embedding.return_value = None  # Simulate failure
 
         result = await search_service.search(
@@ -474,8 +480,10 @@ async def test_hybrid_search_fallback_on_exception():
     mock_session.execute.return_value = mock_result
 
     # Mock embedding service to raise exception
-    with patch('core.config.settings.search_mode', 'hybrid'), \
-         patch('services.resource_search_service.embedding_service') as mock_embedding:
+    with (
+        patch("core.config.settings.search_mode", "hybrid"),
+        patch("services.resource_search_service.embedding_service") as mock_embedding,
+    ):
         mock_embedding.generate_embedding.side_effect = Exception("API timeout")
 
         result = await search_service.search(
@@ -536,11 +544,14 @@ async def test_embed_helper_calls_embedding_service():
     """Test that _embed() helper correctly calls the embedding service."""
     search_service = ResourceSearchService()
 
-    with patch('services.resource_search_service.embedding_service') as mock_embedding:
+    with patch("services.resource_search_service.embedding_service") as mock_embedding:
+
         async def mock_generate_embedding(text):
             return [0.1] * 2048
 
-        mock_embedding.generate_embedding = AsyncMock(side_effect=mock_generate_embedding)
+        mock_embedding.generate_embedding = AsyncMock(
+            side_effect=mock_generate_embedding
+        )
 
         result = await search_service._embed("test query")
 
@@ -613,10 +624,11 @@ async def test_rrf_merge_algorithm():
     )
 
     # Mock the two search methods
-    with patch.object(search_service, '_full_text_search') as mock_ft, \
-         patch.object(search_service, '_embed') as mock_embed, \
-         patch.object(search_service, '_vector_search') as mock_vec:
-
+    with (
+        patch.object(search_service, "_full_text_search") as mock_ft,
+        patch.object(search_service, "_embed") as mock_embed,
+        patch.object(search_service, "_vector_search") as mock_vec,
+    ):
         mock_ft.return_value = ([ft_item1, ft_item2], 2)
         mock_embed.return_value = [0.1] * 2048
         mock_vec.return_value = [vec_item2, vec_item3]
@@ -656,25 +668,28 @@ async def test_hybrid_search_respects_pagination():
     # Create 5 mock items
     items = []
     for i in range(5):
-        items.append(ResourceSearchItem(
-            id=f"resource-{i}",
-            title=f"Result {i}",
-            summary=f"summary {i}",
-            tags=[],
-            top_level_categories=[],
-            original_content=f"content {i}",
-            content_type="text",
-            status="READY",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-            rank=0.9 - i * 0.1,  # Decreasing scores
-        ))
+        items.append(
+            ResourceSearchItem(
+                id=f"resource-{i}",
+                title=f"Result {i}",
+                summary=f"summary {i}",
+                tags=[],
+                top_level_categories=[],
+                original_content=f"content {i}",
+                content_type="text",
+                status="READY",
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+                rank=0.9 - i * 0.1,  # Decreasing scores
+            )
+        )
 
     # Mock the search methods
-    with patch.object(search_service, '_full_text_search') as mock_ft, \
-         patch.object(search_service, '_embed') as mock_embed, \
-         patch.object(search_service, '_vector_search') as mock_vec:
-
+    with (
+        patch.object(search_service, "_full_text_search") as mock_ft,
+        patch.object(search_service, "_embed") as mock_embed,
+        patch.object(search_service, "_vector_search") as mock_vec,
+    ):
         mock_ft.return_value = (items[:3], 3)  # First 3 items
         mock_embed.return_value = [0.1] * 2048
         mock_vec.return_value = items[2:]  # Last 3 items

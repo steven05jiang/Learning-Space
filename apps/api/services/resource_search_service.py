@@ -319,7 +319,8 @@ class ResourceSearchService:
             query_embedding = await self._embed(query)
             if query_embedding is None:
                 logger.warning(
-                    f"Failed to generate embedding for query '{query}', falling back to full-text search"
+                    f"Failed to generate embedding for query '{query}', "
+                    "falling back to full-text search"
                 )
                 # Fallback to full-text search
                 return await self._full_text_search(
@@ -359,7 +360,7 @@ class ResourceSearchService:
             total = len(sorted_ids)
 
             # Apply pagination
-            page = sorted_ids[offset:offset + limit]
+            page = sorted_ids[offset : offset + limit]
             result = []
             for id_ in page:
                 item = all_items[id_]
@@ -368,15 +369,16 @@ class ResourceSearchService:
 
             logger.info(
                 f"Hybrid search for owner_id={owner_id}, query='{query}', tag={tag}: "
-                f"merged {len(full_text_items)} full-text + {len(vector_items)} vector results, "
-                f"returning {len(result)} items from {total} total"
+                f"merged {len(full_text_items)} full-text + {len(vector_items)} vector "
+                f"results, returning {len(result)} items from {total} total"
             )
 
             return result, total
 
         except Exception as e:
             logger.warning(
-                f"Hybrid search failed for query '{query}': {e}, falling back to full-text search"
+                f"Hybrid search failed for query '{query}': {e}, "
+                "falling back to full-text search"
             )
             # Fallback to full-text search
             return await self._full_text_search(
