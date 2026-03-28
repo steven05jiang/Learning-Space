@@ -181,7 +181,8 @@ async def test_no_approximate_nn_index(db_session: AsyncSession):
         """)
     )
     count = result.scalar()
-    assert count == 0, "No approximate NN index should exist (2048 dims > pgvector limit)"
+    # pgvector IVFFlat/HNSW cap at 2000 dims; Qwen3-4B uses 2048
+    assert count == 0, "No approximate NN index should exist"
 
 
 @pytest.mark.integration
