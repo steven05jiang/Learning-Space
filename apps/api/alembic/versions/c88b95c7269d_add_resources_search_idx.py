@@ -10,6 +10,8 @@ The index covers title, summary, and tags fields via to_tsvector expression.
 
 from typing import Sequence, Union
 
+from sqlalchemy import text
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -23,19 +25,22 @@ def upgrade() -> None:
     """Upgrade schema."""
     # Create GIN functional index for full-text search
     # Using CONCURRENTLY to avoid table lock in production
-    op.execute("""
-        CREATE INDEX CONCURRENTLY resources_search_idx
-        ON resources
-        USING GIN (to_tsvector('english',
-            COALESCE(title,'') || ' ' ||
-            COALESCE(summary,'') || ' ' ||
-            COALESCE(tags::text,'[]')
-        ))
-    """)
+    with op.get_context().autocommit_block():
+        op.execute(
+            text(
+                "CREATE INDEX CONCURRENTLY resources_search_idx "
+                "ON resources USING GIN ("
+                "to_tsvector('english', "
+                "COALESCE(title,'') || ' ' || "
+                "COALESCE(summary,'') || ' ' || "
+                "COALESCE(tags::text,'[]')))"
+            )
+        )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # Drop the GIN index
     # Using CONCURRENTLY to avoid table lock in production
-    op.execute("DROP INDEX CONCURRENTLY resources_search_idx")
+    with op.get_context().autocommit_block():
+        op.execute(text("DROP INDEX CONCURRENTLY IF EXISTS resources_search_idx"))
