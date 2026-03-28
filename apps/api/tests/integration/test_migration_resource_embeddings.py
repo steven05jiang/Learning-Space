@@ -104,11 +104,8 @@ async def test_embedding_column_is_vector_2048(db_session: AsyncSession):
     type_name, type_mod = row
 
     assert type_name == "vector", "embedding column should be vector type"
-    # For vector(n), typmod is n+4, so vector(2048) has typmod 2052
-    expected_typmod = 2052
-    assert type_mod == expected_typmod, (
-        f"embedding column should be vector(2048), got typmod {type_mod}"
-    )
+    # For pgvector vector(n), typmod equals n directly (not n+4 like standard PG types)
+    assert type_mod == 2048, f"embedding should be vector(2048), got typmod {type_mod}"
 
 
 @pytest.mark.integration
