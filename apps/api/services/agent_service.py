@@ -1,15 +1,14 @@
 """LangGraph-based conversational agent service for resource queries."""
 
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.tools import Tool
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.tools import Tool, tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
-from sqlalchemy import func, or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -19,6 +18,10 @@ from models.user import User
 from schemas.agent import AgentQuery, AgentResponse, ToolCallResult
 from services.graph_service import graph_service
 from services.llm_client import get_llm_client
+from services.resource_search_service import (
+    AgentResourceResult,
+    resource_search_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -100,17 +103,10 @@ class AgentService:
         # Compile the graph
         self.graph = workflow.compile(checkpointer=self.checkpointer)
 
-    async def _create_tools(self) -> List[Tool]:
+    async def _create_tools(self) -> List:
         """Create the tools available to the agent."""
         return [
-            Tool(
-                name="search_resources",
-                description=(
-                    "Search user's resources by text content, title, summary, or tags. "
-                    "Use this to find relevant resources based on a query."
-                ),
-                func=self._search_resources_wrapper,
-            ),
+            self._search_resources_tool,
             Tool(
                 name="get_graph_context",
                 description=(
@@ -128,6 +124,54 @@ class AgentService:
                 func=self._get_resource_detail_wrapper,
             ),
         ]
+
+    @property
+    def _search_resources_tool(self):
+        """Create the search_resources tool with current user context."""
+        @tool
+        async def search_resources(
+            query: str,
+            tag: Optional[str] = None,
+        ) -> List[dict]:
+            """
+            Search the user's learning resources by keyword or concept.
+
+            Use this tool when the user asks about specific topics, technologies, or
+            concepts in their library. Supports natural language queries — you do not
+            need to use exact tag names.
+
+            Args:
+                query: A keyword or natural language description of what to find.
+                       Examples: "LangGraph", "async Python", "machine learning basics"
+                tag:   Optional. An exact tag to filter by in addition to the query.
+                       Use only when the user explicitly references a tag.
+
+            Returns:
+                List of matching resources (up to 10), each with id, title, summary,
+                tags, top_level_categories, and url (null for text resources).
+            """
+            if self._current_user_id is None:
+                raise RuntimeError("Agent not initialized with user context")
+
+            # Get database session
+            async for db in get_db():
+                # Call ResourceSearchService with hard limits
+                search_result = await resource_search_service.search(
+                    session=db,
+                    owner_id=self._current_user_id,  # Pass integer ID directly
+                    query=query,
+                    tag=tag,
+                    limit=10,   # hard cap for agent context efficiency
+                    offset=0,   # no pagination in agent context
+                )
+
+                # Convert to AgentResourceResult and return as dictionaries
+                return [
+                    AgentResourceResult.from_item(r).__dict__
+                    for r in search_result.resources
+                ]
+
+        return search_resources
 
     async def _call_model(self, state: AgentState) -> Dict[str, Any]:
         """Call the model with the current state."""
@@ -158,61 +202,6 @@ class AgentService:
         # Otherwise, end the conversation
         return "end"
 
-    async def _search_resources_wrapper(self, query: str) -> str:
-        """Wrapper for search_resources tool that handles database session."""
-        try:
-            if self._current_user_id is None:
-                raise RuntimeError("Agent not initialized with user context")
-            user_id = self._current_user_id
-            async for db in get_db():
-                result = await self._search_resources(db, user_id, query)
-                return f"Found {len(result)} resources: {result}"
-        except Exception as e:
-            logger.error(f"Error searching resources: {e}")
-            return f"Error searching resources: {str(e)}"
-
-    async def _search_resources(
-        self, db: AsyncSession, user_id: int, query: str
-    ) -> List[Dict[str, Any]]:
-        """Search user's resources by content, title, summary, or tags."""
-        search_term = f"%{query.lower()}%"
-
-        # Search across title, summary, original_content, and tags
-        search_query = (
-            select(Resource)
-            .where(
-                Resource.owner_id == user_id,
-                Resource.status == "READY",  # Only search ready resources
-                or_(
-                    func.lower(Resource.title).contains(search_term),
-                    func.lower(Resource.summary).contains(search_term),
-                    func.lower(Resource.original_content).contains(search_term),
-                    Resource.tags.op("@>")(
-                        json.dumps([query.lower()])
-                    ),  # PostgreSQL contains
-                ),
-            )
-            .limit(5)
-        )  # Limit to 5 most relevant results
-
-        result = await db.execute(search_query)
-        resources = result.scalars().all()
-
-        return [
-            {
-                "id": str(resource.id),
-                "title": resource.title,
-                "summary": resource.summary,
-                "tags": resource.tags or [],
-                "content_type": resource.content_type,
-                "url": (
-                    resource.original_content
-                    if resource.content_type == "url"
-                    else None
-                ),
-            }
-            for resource in resources
-        ]
 
     async def _get_graph_context_wrapper(self, tag: str) -> str:
         """Wrapper for get_graph_context tool."""
@@ -310,8 +299,21 @@ class AgentService:
             # Set the current user ID for tool calls
             self._current_user_id = user.id
 
+            # Add system message with search guidance
+            messages = [
+                SystemMessage(
+                    content=(
+                        "You are a helpful AI assistant for exploring and finding "
+                        "learning resources. When searching for resources, prefer "
+                        "broader queries over narrow ones — you can always filter "
+                        "results by asking follow-up questions. If search_resources "
+                        "returns an empty list, try a single-keyword version of the "
+                        "query before reporting no results."
+                    )
+                )
+            ]
+
             # Convert conversation history to LangChain messages
-            messages = []
             for msg in agent_query.conversation_history:
                 if msg.role == "user":
                     messages.append(HumanMessage(content=msg.content))
