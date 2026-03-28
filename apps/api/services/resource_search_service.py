@@ -8,10 +8,13 @@ AI agent tools, using PostgreSQL full-text search with tsvector and ts_rank.
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from sqlalchemy import String, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.config import settings
+from services.embedding_service import embedding_service
 
 logger = logging.getLogger(__name__)
 
@@ -123,14 +126,28 @@ class ResourceSearchService:
         if not query or not query.strip():
             return SearchResult(resources=[], total=0)
 
-        return await self._full_text_search(
-            session=session,
-            owner_id=owner_id,
-            query=query.strip(),
-            tag=tag,
-            limit=limit,
-            offset=offset,
-        )
+        query = query.strip()
+
+        if settings.search_mode == "hybrid":
+            items, total = await self._hybrid_search(
+                session=session,
+                owner_id=owner_id,
+                query=query,
+                tag=tag,
+                limit=limit,
+                offset=offset,
+            )
+        else:
+            items, total = await self._full_text_search(
+                session=session,
+                owner_id=owner_id,
+                query=query,
+                tag=tag,
+                limit=limit,
+                offset=offset,
+            )
+
+        return SearchResult(resources=items, total=total)
 
     async def _full_text_search(
         self,
@@ -140,7 +157,7 @@ class ResourceSearchService:
         tag: Optional[str],
         limit: int,
         offset: int,
-    ) -> SearchResult:
+    ) -> Tuple[List[ResourceSearchItem], int]:
         """
         Execute PostgreSQL full-text search using tsvector and ts_rank.
 
@@ -186,7 +203,192 @@ class ResourceSearchService:
             f"found {total} total, returning {len(items)} items"
         )
 
-        return SearchResult(resources=items, total=total)
+        return items, total
+
+    async def _embed(self, query: str) -> list[float]:
+        """
+        Generate embedding for the query using SiliconFlow.
+
+        Args:
+            query: Text to embed
+
+        Returns:
+            List of embedding values
+
+        Raises:
+            Exception: If embedding generation fails
+        """
+        return await embedding_service.generate_embedding(query)
+
+    async def _vector_search(
+        self,
+        session: AsyncSession,
+        owner_id: int,
+        query_embedding: list[float],
+        tag: Optional[str],
+        limit: int,
+    ) -> List[ResourceSearchItem]:
+        """
+        Execute vector search using pgvector cosine similarity.
+
+        Args:
+            session: AsyncSession for database operations
+            owner_id: The authenticated user's ID
+            query_embedding: Vector embedding for the query
+            tag: Optional tag filter
+            limit: Max results to return
+
+        Returns:
+            List of ResourceSearchItem with similarity as rank
+        """
+        sql = text("""
+            SELECT r.*,
+                   1 - (re.embedding <=> :query_embedding::vector) AS similarity
+            FROM resources r
+            JOIN resource_embeddings re ON re.resource_id = r.id
+            WHERE r.owner_id = :owner_id
+              AND r.status = 'READY'
+              AND (:tag IS NULL OR jsonb_exists(r.tags, :tag))
+            ORDER BY re.embedding <=> :query_embedding::vector
+            LIMIT :limit
+        """).bindparams(bindparam("tag", type_=String()))
+
+        result = await session.execute(
+            sql,
+            {
+                "query_embedding": query_embedding,
+                "owner_id": owner_id,
+                "tag": tag,
+                "limit": limit,
+            },
+        )
+
+        rows = result.fetchall()
+        items = []
+        for row in rows:
+            item = ResourceSearchItem.from_row(row)
+            # Use similarity as rank for vector search
+            item.rank = float(row.similarity)
+            items.append(item)
+
+        logger.info(
+            f"Vector search for owner_id={owner_id}, tag={tag}: "
+            f"found {len(items)} items"
+        )
+
+        return items
+
+    async def _hybrid_search(
+        self,
+        session: AsyncSession,
+        owner_id: int,
+        query: str,
+        tag: Optional[str],
+        limit: int,
+        offset: int,
+    ) -> Tuple[List[ResourceSearchItem], int]:
+        """
+        Execute hybrid search using RRF merge of full-text and vector results.
+
+        Args:
+            session: AsyncSession for database operations
+            owner_id: The authenticated user's ID
+            query: Search query string
+            tag: Optional tag filter
+            limit: Max results to return
+            offset: Pagination offset
+
+        Returns:
+            Tuple of (items, total_count)
+        """
+        k = 60
+        candidates = limit * 2
+
+        try:
+            # Get full-text search results
+            full_text_items, _ = await self._full_text_search(
+                session=session,
+                owner_id=owner_id,
+                query=query,
+                tag=tag,
+                limit=candidates,
+                offset=0,
+            )
+
+            # Get embedding for the query
+            query_embedding = await self._embed(query)
+            if query_embedding is None:
+                logger.warning(
+                    f"Failed to generate embedding for query '{query}', "
+                    "falling back to full-text search"
+                )
+                # Fallback to full-text search
+                return await self._full_text_search(
+                    session=session,
+                    owner_id=owner_id,
+                    query=query,
+                    tag=tag,
+                    limit=limit,
+                    offset=offset,
+                )
+
+            # Get vector search results
+            vector_items = await self._vector_search(
+                session=session,
+                owner_id=owner_id,
+                query_embedding=query_embedding,
+                tag=tag,
+                limit=candidates,
+            )
+
+            # RRF merge
+            scores: dict = {}
+            all_items: dict = {}
+
+            # Add full-text scores
+            for rank, item in enumerate(full_text_items):
+                scores[item.id] = scores.get(item.id, 0.0) + 1.0 / (k + rank + 1)
+                all_items[item.id] = item
+
+            # Add vector scores
+            for rank, item in enumerate(vector_items):
+                scores[item.id] = scores.get(item.id, 0.0) + 1.0 / (k + rank + 1)
+                all_items[item.id] = item
+
+            # Sort by combined RRF score
+            sorted_ids = sorted(scores, key=lambda i: scores[i], reverse=True)
+            total = len(sorted_ids)
+
+            # Apply pagination
+            page = sorted_ids[offset : offset + limit]
+            result = []
+            for id_ in page:
+                item = all_items[id_]
+                item.rank = scores[id_]
+                result.append(item)
+
+            logger.info(
+                f"Hybrid search for owner_id={owner_id}, query='{query}', tag={tag}: "
+                f"merged {len(full_text_items)} full-text + {len(vector_items)} vector "
+                f"results, returning {len(result)} items from {total} total"
+            )
+
+            return result, total
+
+        except Exception as e:
+            logger.warning(
+                f"Hybrid search failed for query '{query}': {e}, "
+                "falling back to full-text search"
+            )
+            # Fallback to full-text search
+            return await self._full_text_search(
+                session=session,
+                owner_id=owner_id,
+                query=query,
+                tag=tag,
+                limit=limit,
+                offset=offset,
+            )
 
 
 # Global instance

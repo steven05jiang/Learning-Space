@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     embedding_model: str = "Qwen/Qwen3-Embedding-4B"
     embedding_dimensions: int = 2048
 
+    # Search Settings
+    search_mode: str = "keyword"  # "keyword" (default) | "hybrid"
+
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"
 
