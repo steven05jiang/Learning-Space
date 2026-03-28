@@ -171,7 +171,7 @@ async def test_primary_key_constraint(db_session: AsyncSession):
 
 @pytest.mark.integration
 async def test_no_approximate_nn_index(db_session: AsyncSession):
-    """Confirm no IVFFlat/HNSW index exists — exact scan is used (2048 dims > 2000 limit)."""
+    """Confirm no IVFFlat/HNSW index — exact scan used (2048 dims > 2000 limit)."""
     result = await db_session.execute(
         text("""
             SELECT COUNT(*)
@@ -181,7 +181,7 @@ async def test_no_approximate_nn_index(db_session: AsyncSession):
         """)
     )
     count = result.scalar()
-    assert count == 0, "No approximate NN index should exist (2048 dims exceeds pgvector limit)"
+    assert count == 0, "No approximate NN index should exist (2048 dims > pgvector limit)"
 
 
 @pytest.mark.integration
