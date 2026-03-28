@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.category import Category
 from models.database import AsyncSessionLocal
 from models.resource import ProcessingStatus, Resource, ResourceStatus
+from services.embedding_service import embedding_service
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
 from services.tiered_url_fetcher import tiered_url_fetcher_service
@@ -31,8 +32,9 @@ async def process_resource(
     2. Fetch content (URL resources) or use original_content (text resources)
     3. LLM processing (extract title, summary, tags)
     4. Update resource in DB (status -> READY, write title/summary/tags)
-    5. Trigger graph update (placeholder hook for now)
-    6. Handle errors at each step -> status -> FAILED with status_message
+    5. Generate embedding and store in resource_embeddings table
+    6. Trigger graph update (placeholder hook for now)
+    7. Handle errors at each step -> status -> FAILED with status_message
 
     Args:
         resource_id: The ID of the resource to process
@@ -199,7 +201,28 @@ async def process_resource(
             resource.updated_at = datetime.utcnow()
             await session.commit()
 
-            # Step 5: Graph update using actual tags (preserves user edits)
+            # Step 5: Generate and store embedding (graceful degradation on failure)
+            try:
+                embedding_text = embedding_service.build_embedding_text(resource)
+                if embedding_text.strip():
+                    embedding_vector = await embedding_service.generate_embedding(embedding_text)
+                    if embedding_vector:
+                        await embedding_service.upsert_resource_embedding(
+                            session, resource.id, embedding_vector
+                        )
+                        logger.info(f"Embedding generated for resource {resource_id}")
+                    else:
+                        logger.warning(f"Empty embedding returned for resource {resource_id}")
+                else:
+                    logger.info(f"No content to embed for resource {resource_id}")
+            except Exception as e:
+                # Log warning but do NOT fail the job
+                logger.warning(
+                    f"Embedding generation failed for resource {resource_id}: {e}. "
+                    f"Resource processing continues."
+                )
+
+            # Step 6: Graph update using actual tags (preserves user edits)
             effective_tags = resource.tags or []
             effective_categories = resource.top_level_categories or []
             try:
@@ -251,6 +274,7 @@ async def process_resource(
                     ),
                     "llm_processing",
                     "db_update",
+                    "embedding_generation",
                     "graph_update",
                 ],
             }

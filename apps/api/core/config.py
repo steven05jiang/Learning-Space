@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = "https://api.siliconflow.com/v1"
     fireworks_base_url: str = "https://api.fireworks.ai/inference/v1"
 
+    # Embedding Settings
+    embedding_model: str = "Qwen/Qwen3-Embedding-4B"
+    embedding_dimensions: int = 2048
+
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"
 
