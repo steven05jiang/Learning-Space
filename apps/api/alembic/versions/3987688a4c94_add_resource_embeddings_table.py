@@ -10,7 +10,6 @@ Includes IVFFlat index for approximate nearest-neighbor search with 2048-dim vec
 
 from typing import Sequence, Union
 
-import sqlalchemy as sa
 from sqlalchemy import text
 
 from alembic import op
@@ -27,37 +26,17 @@ def upgrade() -> None:
     # Enable pgvector extension
     op.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
-    # Create resource_embeddings table
-    op.create_table(
-        "resource_embeddings",
-        sa.Column(
-            "resource_id",
-            sa.Integer(),
-            sa.ForeignKey("resources.id", ondelete="CASCADE"),
-            primary_key=True,
-            nullable=False,
-        ),
-        sa.Column(
-            "embedding", sa.String(), nullable=False
-        ),  # vector(2048) - using String as placeholder
-        sa.Column("model", sa.String(length=100), nullable=False),
-        sa.Column(
-            "created_at",
-            sa.TIMESTAMP(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-        sa.Column(
-            "updated_at",
-            sa.TIMESTAMP(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-    )
-
-    # Convert embedding column to vector(2048) type
+    # Create resource_embeddings table with vector(2048) column directly
     op.execute(
-        text("ALTER TABLE resource_embeddings ALTER COLUMN embedding TYPE vector(2048)")
+        text("""
+        CREATE TABLE resource_embeddings (
+            resource_id INTEGER PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+            embedding   vector(2048) NOT NULL,
+            model       VARCHAR(100) NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    """)
     )
 
     # Create IVFFlat index using autocommit_block (non-transactional DDL)
