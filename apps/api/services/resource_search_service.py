@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import String, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -165,7 +165,7 @@ class ResourceSearchService:
             ORDER BY rank DESC
             LIMIT :limit OFFSET :offset
         """
-        )
+        ).bindparams(bindparam("tag", type_=String()))
 
         result = await session.execute(
             sql,
