@@ -13,7 +13,7 @@
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
 - ✅ Completed: 105
 - 🔄 Active: 1
-- ⏳ Pending: 46
+- ⏳ Pending: 45
 - ⚠️ Stuck: 0
 
 ---
