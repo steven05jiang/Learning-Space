@@ -55,7 +55,17 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed emails. Empty = allow all (open access).
     allowed_emails: str = ""
 
+    # Comma-separated list of allowed CORS origins. Always includes localhost:3000.
+    cors_origins: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        origins = ["http://localhost:3000"]
+        if self.cors_origins:
+            origins += [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        return origins
 
     @property
     def allowed_emails_set(self) -> set[str]:
