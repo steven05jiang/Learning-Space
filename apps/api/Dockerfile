@@ -22,8 +22,8 @@ RUN uv sync --frozen --no-dev
 
 # Install Playwright + deps for worker service (let install-deps resolve packages for the OS)
 RUN if [ "$SERVICE_TYPE" = "worker" ]; then \
-        playwright install-deps chromium \
-        && playwright install chromium; \
+        /app/.venv/bin/playwright install-deps chromium \
+        && /app/.venv/bin/playwright install chromium; \
     fi
 
 ENV PYTHONPATH=/app
