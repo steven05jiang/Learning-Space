@@ -4,8 +4,6 @@ Validates the rename/merge map, JSON update logic, and deduplication without
 requiring alembic to run — mirrors the pattern in test_migration_processing_status.py.
 """
 
-
-
 # Import the migration module directly so constants stay in sync
 import importlib.util
 import pathlib

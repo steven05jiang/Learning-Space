@@ -43,11 +43,11 @@ _RENAME_MAP = {
     "Arts": "Arts & Entertainment",
     "Business": "Business & Economics",
     "Education": "Education & Knowledge",
-    "Entertainment": None,          # merged into Arts & Entertainment
+    "Entertainment": None,  # merged into Arts & Entertainment
     "Health": "Health & Medicine",
-    "Philosophy": None,             # replaced by Society & Culture
+    "Philosophy": None,  # replaced by Society & Culture
     "Politics": "Politics & Government",
-    "Science": None,                # merged into Science & Technology
+    "Science": None,  # merged into Science & Technology
     "Sports": "Sports & Recreation",
     "Technology": "Science & Technology",
 }
@@ -91,9 +91,7 @@ def upgrade() -> None:
     for old, new in _RENAME_MAP.items():
         if new is None:
             conn.execute(
-                text(
-                    "DELETE FROM categories WHERE name = :old AND owner_id IS NULL"
-                ),
+                text("DELETE FROM categories WHERE name = :old AND owner_id IS NULL"),
                 {"old": old},
             )
 
@@ -133,7 +131,8 @@ def upgrade() -> None:
     # 5. Deduplicate any resources that now have duplicate categories
     #    (e.g. a resource that had both "Arts" and "Entertainment" now has
     #     "Arts & Entertainment" twice — collapse to distinct values).
-    conn.execute(text("""
+    conn.execute(
+        text("""
         UPDATE resources
         SET top_level_categories = (
             SELECT jsonb_agg(DISTINCT elem ORDER BY elem)
@@ -144,7 +143,8 @@ def upgrade() -> None:
               SELECT count(DISTINCT elem)
               FROM jsonb_array_elements_text(top_level_categories) AS elem
           )
-    """))
+    """)
+    )
 
 
 def downgrade() -> None:
