@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.category import Category
 from models.database import AsyncSessionLocal
-from models.resource import ProcessingStatus, Resource, ResourceStatus
+from models.resource import EmbeddingStatus, ProcessingStatus, Resource, ResourceStatus
 from services.embedding_service import embedding_service
 from services.graph_service import graph_service
 from services.llm_processor import llm_processor_service
@@ -202,6 +202,8 @@ async def process_resource(
             await session.commit()
 
             # Step 5: Generate and store embedding (graceful degradation on failure)
+            resource.embedding_status = EmbeddingStatus.PROCESSING
+            await session.commit()
             try:
                 embedding_text = embedding_service.build_embedding_text(resource)
                 if embedding_text.strip():
@@ -212,15 +214,23 @@ async def process_resource(
                         await embedding_service.upsert_resource_embedding(
                             session, resource.id, embedding_vector
                         )
+                        resource.embedding_status = EmbeddingStatus.READY
+                        await session.commit()
                         logger.info(f"Embedding generated for resource {resource_id}")
                     else:
+                        resource.embedding_status = EmbeddingStatus.NONE
+                        await session.commit()
                         logger.warning(
                             f"Empty embedding returned for resource {resource_id}"
                         )
                 else:
+                    resource.embedding_status = EmbeddingStatus.NONE
+                    await session.commit()
                     logger.info(f"No content to embed for resource {resource_id}")
             except Exception as e:
                 # Log warning but do NOT fail the job
+                resource.embedding_status = EmbeddingStatus.NONE
+                await session.commit()
                 logger.warning(
                     f"Embedding generation failed for resource {resource_id}: {e}. "
                     f"Resource processing continues."

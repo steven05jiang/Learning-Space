@@ -229,8 +229,8 @@ class TestProcessResource:
         )
 
         # Verify database commits
-        # Once for PROCESSING, once for READY
-        assert mock_session.commit.call_count == 2
+        # PROCESSING, READY, embedding PROCESSING, embedding READY
+        assert mock_session.commit.call_count == 4
 
     @pytest.mark.asyncio
     async def test_process_resource_text_success_end_to_end(
