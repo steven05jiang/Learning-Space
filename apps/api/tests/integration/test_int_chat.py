@@ -44,7 +44,9 @@ async def test_user_sends_chat_message_creates_conversation(
         response="You have 3 Python resources.", sources=None
     )
 
-    with patch("routers.chat.agent_service.query", return_value=mock_agent_response):
+    with patch(
+        "services.agent_service.agent_service.query", return_value=mock_agent_response
+    ):
         payload = {"message": "What resources do I have on Python?"}
         response = await client.post("/chat", json=payload, headers=auth_headers)
 
@@ -123,7 +125,7 @@ async def test_user_continues_conversation_with_context(
 
     # First message - create conversation
     with patch(
-        "routers.chat.agent_service.query", return_value=first_response
+        "services.agent_service.agent_service.query", return_value=first_response
     ) as mock_agent:
         payload1 = {"message": "What Python resources do I have?"}
         response1 = await client.post("/chat", json=payload1, headers=auth_headers)
@@ -140,7 +142,7 @@ async def test_user_continues_conversation_with_context(
 
     # Second message - continue conversation
     with patch(
-        "routers.chat.agent_service.query", return_value=second_response
+        "services.agent_service.agent_service.query", return_value=second_response
     ) as mock_agent:
         payload2 = {
             "message": "Tell me more about the FastAPI tutorial",
@@ -216,7 +218,9 @@ async def test_agent_uses_graph_traversal_tool(client, auth_headers, db_session)
         sources=None,
     )
 
-    with patch("routers.chat.agent_service.query", return_value=mock_agent_response):
+    with patch(
+        "services.agent_service.agent_service.query", return_value=mock_agent_response
+    ):
         payload = {"message": "Show me related topics to Python"}
         response = await client.post("/chat", json=payload, headers=auth_headers)
 
@@ -323,7 +327,7 @@ async def test_user_lists_conversations_paginated_own_only(
     for conv_data in data["items"]:
         assert "id" in conv_data
         assert "user_id" in conv_data
-        assert conv_data["user_id"] == str(test_user.id)
+        assert conv_data["user_id"] == test_user.id
         assert "title" in conv_data
         assert "created_at" in conv_data
         assert "updated_at" in conv_data
@@ -386,7 +390,7 @@ async def test_user_retrieves_conversation_messages(
 
     # Verify conversation data
     assert data["id"] == str(conversation.id)
-    assert data["user_id"] == str(test_user.id)
+    assert data["user_id"] == test_user.id
     assert data["title"] == "Test Conversation"
     assert "created_at" in data
     assert "updated_at" in data
