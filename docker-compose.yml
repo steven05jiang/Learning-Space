@@ -37,6 +37,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    profiles: ["observability"]
     ports:
       - "9090:9090"
     command:
@@ -48,6 +49,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    profiles: ["observability"]
     ports:
       - "3001:3000"
     environment:

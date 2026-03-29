@@ -21,10 +21,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # USING NULL resets any existing rows to NULL, allowing the type change
+    # regardless of the old dimension. Safe even on empty tables.
     op.execute(
         text(
             "ALTER TABLE resource_embeddings "
-            "ALTER COLUMN embedding TYPE vector(2560)"
+            "ALTER COLUMN embedding TYPE vector(2560) USING NULL"
         )
     )
 
@@ -33,6 +35,6 @@ def downgrade() -> None:
     op.execute(
         text(
             "ALTER TABLE resource_embeddings "
-            "ALTER COLUMN embedding TYPE vector(2048)"
+            "ALTER COLUMN embedding TYPE vector(2048) USING NULL"
         )
     )

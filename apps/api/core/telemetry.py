@@ -29,10 +29,6 @@ def setup_tracing(service_name: str, endpoint: str, app=None) -> bool:
         provider.add_span_processor(BatchSpanProcessor(exporter))
         trace.set_tracer_provider(provider)
 
-        # Auto-instrument SQLAlchemy
-        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-        SQLAlchemyInstrumentor().instrument(tracer_provider=provider)
-
         # Auto-instrument FastAPI — pass app instance so existing app gets patched
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
         if app is not None:

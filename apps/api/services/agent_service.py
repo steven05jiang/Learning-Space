@@ -50,8 +50,14 @@ SYSTEM_PROMPT = (
     "- If nothing was found after searching, clearly say so and suggest what the user "
     "could add to their library.\n"
     "- Do not keep searching in a loop — one retry maximum, then respond.\n\n"
-    "Overview questions (e.g. 'What topics am I learning about?', 'What's in my library?', 'What areas am I covering?'):\n"
+    "Overview questions (e.g. 'What topics am I learning about?', 'What is in my library?', 'What areas am I covering?'):\n"
     "- Use list_tags to get all user-defined tags and categories — do NOT use search_resources with '*' or broad queries.\n\n"
+    "Tool calling:\n"
+    "- Before calling any tool, always write a brief sentence describing what you are looking up.\n"
+    "- After receiving tool results, verify: do you have enough relevant information to answer the user?\n"
+    "  - If yes, respond immediately.\n"
+    "  - If a DIFFERENT tool would genuinely add value, call it once.\n"
+    "  - Never call the same tool with the same arguments twice.\n\n"
     "Formatting:\n"
     "- Always format your entire response in Markdown.\n"
     "- Use headers, bullet lists, bold text, and code blocks where appropriate.\n"
@@ -325,20 +331,24 @@ class AgentService:
 
         logger.debug("[agent node] invoking LLM, messages=%d", len(state["messages"]))
 
-        # Sanitize messages: SiliconCloud (and some other OpenAI-compat APIs) reject
-        # AIMessage with content="" — they require null, not empty string.
-        sanitized = []
-        for m in state["messages"]:
-            if isinstance(m, AIMessage) and m.tool_calls and m.content == "":
-                m = AIMessage(content=" ", tool_calls=m.tool_calls, id=m.id)
-            sanitized.append(m)
-
         # Bind tools to the model
         tools = await self._create_tools()
         model_with_tools = self.llm.bind_tools(tools)
 
+        # DeepSeek-V3 (and similar models via SiliconCloud) return content=""
+        # when making tool calls. SiliconCloud rejects the next request if the
+        # message history contains an AIMessage with empty string content.
+        # Replace "" with " " so the payload is accepted. content=None is not
+        # valid per LangChain's Pydantic schema.
+        messages = [
+            AIMessage(content=" ", tool_calls=m.tool_calls, id=m.id)
+            if isinstance(m, AIMessage) and m.tool_calls and m.content == ""
+            else m
+            for m in state["messages"]
+        ]
+
         # Call the model
-        response = await model_with_tools.ainvoke(sanitized)
+        response = await model_with_tools.ainvoke(messages)
 
         if hasattr(response, "tool_calls") and response.tool_calls:
             for tc in response.tool_calls:

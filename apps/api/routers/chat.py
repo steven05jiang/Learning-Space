@@ -193,6 +193,20 @@ async def chat_stream(
         db.add(user_message)
         await db.flush()
 
+        # Load history only for existing sessions — new sessions start fresh
+        history = []
+        if request.conversation_id:
+            msgs_result = await db.execute(
+                select(Message)
+                .where(Message.conversation_id == conversation.id)
+                .order_by(Message.created_at.asc())
+            )
+            history = [
+                ConversationMessage(role=m.role.value, content=m.content)
+                for m in msgs_result.scalars().all()
+                if m.id != user_message.id and m.content
+            ]
+
         await db.commit()
 
     except HTTPException:
@@ -203,7 +217,7 @@ async def chat_stream(
         logger.error("Error setting up stream for user %s: %s", user_id, e, exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to start stream")
 
-    agent_query = AgentQuery(query=request.message, conversation_history=[])
+    agent_query = AgentQuery(query=request.message, conversation_history=history)
     conversation_id = conversation.id
     final_response: dict = {"content": ""}
 
