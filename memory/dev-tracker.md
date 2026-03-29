@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (DEV-036 merged PR #228; INT-036–040 dispatched)
+**Last Updated:** 2026-03-28 (INT-036–040 merged PR #230; INT-048–049 dispatched)
 
 ---
 
 ## Progress Summary
 
 - Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 116
-- 🔄 Active: 5
-- ⏳ Pending: 23
+- ✅ Completed: 121
+- 🔄 Active: 2
+- ⏳ Pending: 21
 - ⚠️ Stuck: 0
 
 ---
@@ -158,11 +158,11 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [x] INT-035: User views resources for a graph node (BDD: Graph Exploration) (PR #113 ✅)
 
 **Group: chat** — CI: nightly (blocked: DEV-032–035)
-- [~] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent)
-- [~] INT-037: User continues a conversation with context (BDD: Chat Agent)
-- [~] INT-038: Agent uses graph traversal tool (BDD: Chat Agent)
-- [~] INT-039: User lists their conversations (BDD: Chat Agent)
-- [~] INT-040: User retrieves messages in a conversation (BDD: Chat Agent)
+- [x] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-037: User continues a conversation with context (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-038: Agent uses graph traversal tool (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-039: User lists their conversations (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-040: User retrieves messages in a conversation (BDD: Chat Agent) (PR #230 ✅)
 
 ### Layer 2 — Frontend Integration (Jest + MSW, no backend)
 
@@ -174,8 +174,8 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [ ] INT-045: User views the knowledge graph — force-directed render (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
 - [ ] INT-046: User clicks a node to expand — graph expands (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
 - [ ] INT-047: User clicks a node to see resources — panel shown (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
-- [ ] INT-048: User opens the chat interface — panel slides open (BDD: Frontend Chat) (blocked: DEV-053)
-- [ ] INT-049: User sends a message and receives a response (BDD: Frontend Chat) (blocked: DEV-053)
+- [~] INT-048: User opens the chat interface — panel slides open (BDD: Frontend Chat)
+- [~] INT-049: User sends a message and receives a response (BDD: Frontend Chat)
 - [ ] INT-050: User views linked accounts in settings (BDD: Frontend Settings) (ready ✅)
 - [ ] INT-051: User adds a new linked account from settings (BDD: Frontend Settings) (ready ✅)
 - [ ] INT-052: User sees error when unlinking last account (BDD: Frontend Settings) (ready ✅)
