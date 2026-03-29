@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    log_level: str = "INFO"
+
     database_url: str = (
         "postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace"
     )
@@ -66,6 +68,11 @@ class Settings(BaseSettings):
 
     # Comma-separated list of allowed CORS origins. Always includes localhost:3000.
     cors_origins: str = ""
+
+    # Observability
+    otlp_traces_endpoint: str = ""  # e.g. http://localhost:6006/v1/traces
+    prometheus_metrics: bool = False  # expose /metrics for Prometheus scraping
+    otel_service_name: str = "learning-space-api"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

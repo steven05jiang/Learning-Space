@@ -5,7 +5,7 @@ Revises: c88b95c7269d
 Create Date: 2026-03-28 16:27:46.099758
 
 Creates resource_embeddings table for vector similarity search with pgvector.
-Uses vector(2048) for Qwen/Qwen3-Embedding-4B. No approximate NN index — exact
+Uses vector(2560) for Qwen/Qwen3-Embedding-4B. No approximate NN index — exact
 cosine scan is fast enough for personal library scale (<10K rows). An IVFFlat or
 HNSW index can be added later if needed, but both require ≤2000 dimensions which
 this model exceeds.
@@ -35,7 +35,7 @@ def upgrade() -> None:
         text("""
         CREATE TABLE resource_embeddings (
             resource_id INTEGER PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-            embedding   vector(2048) NOT NULL,
+            embedding   vector(2560) NOT NULL,
             model       VARCHAR(100) NOT NULL,
             created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
             updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()

@@ -110,7 +110,7 @@ class EmbeddingService:
             """),
             {
                 "resource_id": resource_id,
-                "embedding": embedding,
+                "embedding": str(embedding),
                 "model": model,
             },
         )
