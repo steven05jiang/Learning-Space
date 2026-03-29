@@ -25,7 +25,7 @@ from services.resource_search_service import (
     resource_search_service,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 
 class _NoArgs(BaseModel):
@@ -346,17 +346,43 @@ class AgentService:
         tools = await self._create_tools()
         model_with_tools = self.llm.bind_tools(tools)
 
-        # DeepSeek-V3 (and similar models via SiliconCloud) return content=""
-        # when making tool calls. SiliconCloud rejects the next request if the
-        # message history contains an AIMessage with empty string content.
-        # Replace "" with " " so the payload is accepted. content=None is not
-        # valid per LangChain's Pydantic schema.
-        messages = [
-            AIMessage(content=" ", tool_calls=m.tool_calls, id=m.id)
-            if isinstance(m, AIMessage) and m.tool_calls and m.content == ""
-            else m
-            for m in state["messages"]
-        ]
+        # SiliconFlow (and similar OpenAI-compat providers) reject requests that
+        # contain any message with empty or None content (error code 20015).
+        # AIMessages from reasoning models (e.g. DeepSeek) often arrive with
+        # content="" when they contain tool calls. Replace any empty/None content
+        # with a single space so the payload is accepted by the API.
+        messages = []
+        for m in state["messages"]:
+            content = m.content if hasattr(m, "content") else None
+            is_empty = not content or (isinstance(content, str) and not content.strip())
+            if is_empty:
+                logger.warning(
+                    "[_call_model] empty content detected: type=%s id=%s "
+                    "content=%r tool_calls=%s",
+                    type(m).__name__,
+                    getattr(m, "id", None),
+                    content,
+                    getattr(m, "tool_calls", None),
+                )
+            if is_empty and isinstance(m, AIMessage):
+                logger.warning(
+                    "[_call_model] empty AIMessage detected "
+                    "(tool_calls=%d, id=%s) — replacing content with '...'",
+                    len(m.tool_calls) if m.tool_calls else 0,
+                    m.id,
+                )
+                messages.append(
+                    AIMessage(content="...", tool_calls=m.tool_calls, id=m.id)
+                )
+            elif is_empty and isinstance(m, HumanMessage):
+                logger.warning(
+                    "[_call_model] empty HumanMessage detected (id=%s) "
+                    "— replacing content with '...'",
+                    m.id,
+                )
+                messages.append(HumanMessage(content="..."))
+            else:
+                messages.append(m)
 
         # Call the model
         response = await model_with_tools.ainvoke(messages)
@@ -480,8 +506,15 @@ class AgentService:
 
             messages = [SystemMessage(content=SYSTEM_PROMPT)]
 
-            # Convert conversation history to LangChain messages
+            # Convert conversation history to LangChain messages.
+            # Skip messages with empty content — SiliconFlow rejects them (code 20015).
             for msg in agent_query.conversation_history:
+                if not msg.content or not msg.content.strip():
+                    logger.warning(
+                        "[query] skipping history message with empty content: role=%s",
+                        msg.role,
+                    )
+                    continue
                 if msg.role == "user":
                     messages.append(HumanMessage(content=msg.content))
                 elif msg.role == "assistant":
@@ -656,6 +689,12 @@ class AgentService:
 
         messages = [SystemMessage(content=SYSTEM_PROMPT)]
         for msg in agent_query.conversation_history:
+            if not msg.content or not msg.content.strip():
+                logger.warning(
+                    "[stream_query] skipping empty history message: role=%s",
+                    msg.role,
+                )
+                continue
             if msg.role == "user":
                 messages.append(HumanMessage(content=msg.content))
             elif msg.role == "assistant":

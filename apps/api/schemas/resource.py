@@ -33,6 +33,14 @@ class ProcessingStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class EmbeddingStatus(str, enum.Enum):
+    """Embedding generation status for a resource."""
+
+    NONE = "none"
+    PROCESSING = "processing"
+    READY = "ready"
+
+
 class ResourceCreate(BaseModel):
     """Request schema for creating a new resource."""
 
@@ -81,6 +89,7 @@ class ResourceResponse(BaseModel):
     top_level_categories: list[str] = []
     status: ResourceStatus
     processing_status: ProcessingStatus
+    embedding_status: EmbeddingStatus
     created_at: datetime
     updated_at: datetime
 
@@ -97,6 +106,7 @@ class ResourceListItem(BaseModel):
     tags: list[str] = []
     status: ResourceStatus
     processing_status: ProcessingStatus
+    embedding_status: EmbeddingStatus
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -52,6 +52,8 @@ interface Category {
   created_at: string;
 }
 
+type EmbeddingStatus = "none" | "processing" | "ready";
+
 interface Resource {
   id: string;
   url?: string;
@@ -61,6 +63,7 @@ interface Resource {
   top_level_categories: string[];
   status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   processing_status: "pending" | "processing" | "success" | "failed";
+  embedding_status: EmbeddingStatus;
   content_type: string;
   original_content: string;
   created_at: string;
@@ -119,6 +122,7 @@ function toApiResource(r: (typeof mockResources)[0]): Resource {
         : r.status === "pending"
           ? "pending"
           : "failed",
+    embedding_status: r.status === "processed" ? "ready" : "none",
     content_type: "url",
     original_content: r.url,
     created_at: r.createdAt,
@@ -1160,6 +1164,22 @@ export default function ResourceDetailPage() {
                 {resource.processing_status === "processing" && "Processing"}
                 {resource.processing_status === "success" && "Completed"}
                 {resource.processing_status === "failed" && "Failed"}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Embedding Status</Label>
+              <div className="text-sm">
+                {resource.embedding_status === "ready" && (
+                  <span className="text-muted-foreground">Ready</span>
+                )}
+                {resource.embedding_status === "none" && (
+                  <span className="text-muted-foreground">Not embedded</span>
+                )}
+                {resource.embedding_status === "processing" && (
+                  <span className="text-blue-600 dark:text-blue-400">Indexing…</span>
+                )}
+
               </div>
             </div>
 

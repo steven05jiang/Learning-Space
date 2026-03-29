@@ -15,6 +15,7 @@ from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
 from schemas.resource import (
     ContentType,
+    EmbeddingStatus,
     ProcessingStatus,
     ResourceCreate,
     ResourceListItem,
@@ -98,6 +99,7 @@ async def search_resources(
             top_level_categories=item.top_level_categories,
             status=ResourceStatus(item.status),
             processing_status=ProcessingStatus.SUCCESS,  # Only READY resources
+            embedding_status=EmbeddingStatus.READY,  # Only indexed resources
             created_at=item.created_at,
             updated_at=item.updated_at,
             rank=item.rank,
@@ -192,6 +194,7 @@ async def create_resource(
         top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
+        embedding_status=EmbeddingStatus(resource.embedding_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
@@ -264,6 +267,7 @@ async def list_resources(
             tags=resource.tags or [],
             status=ResourceStatus(resource.status.value),
             processing_status=ProcessingStatus(resource.processing_status.value),
+            embedding_status=EmbeddingStatus(resource.embedding_status.value),
             created_at=resource.created_at,
         )
         items.append(item)
@@ -323,6 +327,7 @@ async def get_resource(
         top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
+        embedding_status=EmbeddingStatus(resource.embedding_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
@@ -421,6 +426,7 @@ async def update_resource(
         top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
+        embedding_status=EmbeddingStatus(resource.embedding_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )

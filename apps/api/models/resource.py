@@ -47,6 +47,14 @@ class ProcessingStatus(enum.Enum):
     FAILED = "failed"
 
 
+class EmbeddingStatus(enum.Enum):
+    """Embedding generation status for a resource."""
+
+    NONE = "none"
+    PROCESSING = "processing"
+    READY = "ready"
+
+
 class Resource(Base):
     __tablename__ = "resources"
 
@@ -68,6 +76,11 @@ class Resource(Base):
     processing_status = Column(
         Enum(ProcessingStatus, values_callable=lambda x: [e.value for e in x]),
         default=ProcessingStatus.PENDING,
+        nullable=False,
+    )
+    embedding_status = Column(
+        Enum(EmbeddingStatus, values_callable=lambda x: [e.value for e in x]),
+        default=EmbeddingStatus.NONE,
         nullable=False,
     )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
