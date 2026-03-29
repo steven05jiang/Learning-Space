@@ -35,10 +35,10 @@ const WELCOME_MESSAGE: Message = {
 };
 
 const EXAMPLE_PROMPTS = [
-  "What have I saved about machine learning?",
-  "Find resources related to system design",
-  "What topics am I learning about?",
-  "Show me resources tagged with Python",
+  "What are the key ideas across my saved resources?",
+  "What should I read next based on what I've saved?",
+  "Summarize what I've been learning recently",
+  "What gaps exist in my current knowledge collection?",
 ];
 
 export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
