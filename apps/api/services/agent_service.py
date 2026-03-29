@@ -74,7 +74,7 @@ TOOL_PROGRESS: Dict[str, str] = {
     "get_resource_detail": "Fetching resource details...",
 }
 
-AGENT_MAX_SECONDS = 120
+AGENT_MAX_SECONDS = 300
 AGENT_RECURSION_LIMIT = 30
 
 
@@ -164,7 +164,7 @@ TOOL_PROGRESS: Dict[str, str] = {
     "get_resource_detail": "Fetching resource details...",
 }
 
-AGENT_MAX_SECONDS = 120
+AGENT_MAX_SECONDS = 300
 AGENT_RECURSION_LIMIT = 30
 
 
