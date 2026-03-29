@@ -36,6 +36,8 @@ if __name__ == "__main__":
         handlers=[logging.StreamHandler(sys.stdout)],
     )
 
+    log_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
+    logging.info("Worker starting up | log_level=%s", log_level)
     print("Starting Learning Space task worker...")
     print("Press Ctrl+C to stop")
 

@@ -28,7 +28,7 @@ def upgrade() -> None:
     with op.get_context().autocommit_block():
         op.execute(
             text(
-                "CREATE INDEX CONCURRENTLY resources_search_idx "
+                "CREATE INDEX CONCURRENTLY IF NOT EXISTS resources_search_idx "
                 "ON resources USING GIN ("
                 "to_tsvector('english', "
                 "COALESCE(title,'') || ' ' || "

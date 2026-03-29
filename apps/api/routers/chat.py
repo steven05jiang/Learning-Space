@@ -1,18 +1,20 @@
 """Chat endpoints for stateful conversational queries."""
 
+import json
 import logging
 import uuid
 from datetime import datetime
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.deps import get_current_user
 from models.conversation import Conversation, Message, MessageRole
-from models.database import get_db
+from models.database import AsyncSessionLocal, get_db
 from models.user import User
 from schemas.agent import AgentQuery, ConversationMessage
 from schemas.chat import ChatRequest, ChatResponse
@@ -146,6 +148,135 @@ async def chat(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing your message",
         )
+
+
+@router.post("/stream")
+async def chat_stream(
+    request: ChatRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    agent_service: AgentService = Depends(get_agent_service),
+) -> StreamingResponse:
+    """SSE endpoint — streams agent progress then final response.
+
+    Event format (text/event-stream):
+      data: {"type": "progress", "content": "...", "conversation_id": "..."}
+      data: {"type": "response", "content": "...", "conversation_id": "..."}
+      data: [DONE]
+    """
+    user_id = current_user.id
+
+    try:
+        # Load or create conversation (same as /chat)
+        if request.conversation_id:
+            result = await db.execute(
+                select(Conversation).where(Conversation.id == request.conversation_id)
+            )
+            conversation = result.scalar_one_or_none()
+            if not conversation:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Conversation not found",
+                )
+            if conversation.user_id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+                )
+        else:
+            conversation = Conversation(id=uuid.uuid4(), user_id=user_id, title=None)
+            db.add(conversation)
+            await db.flush()
+
+        # Persist user message
+        user_message = Message(
+            id=uuid.uuid4(),
+            conversation_id=conversation.id,
+            role=MessageRole.USER,
+            content=request.message,
+        )
+        db.add(user_message)
+        await db.flush()
+
+        # Load history only for existing sessions — new sessions start fresh
+        history = []
+        if request.conversation_id:
+            msgs_result = await db.execute(
+                select(Message)
+                .where(Message.conversation_id == conversation.id)
+                .order_by(Message.created_at.asc())
+            )
+            history = [
+                ConversationMessage(role=m.role.value, content=m.content)
+                for m in msgs_result.scalars().all()
+                if m.id != user_message.id and m.content
+            ]
+
+        await db.commit()
+
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            "Error setting up stream for user %s: %s", user_id, e, exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to start stream",
+        )
+
+    agent_query = AgentQuery(query=request.message, conversation_history=history)
+    conversation_id = conversation.id
+    final_response: dict = {"content": ""}
+
+    async def generate():
+        try:
+            async for event in agent_service.stream_query(current_user, agent_query):
+                if event["type"] == "response":
+                    final_response["content"] = event["content"]
+                payload = json.dumps({**event, "conversation_id": str(conversation_id)})
+                yield f"data: {payload}\n\n"
+        except Exception as e:
+            logger.error("Error during stream generation: %s", e, exc_info=True)
+            payload = json.dumps(
+                {
+                    "type": "error",
+                    "content": "Stream error",
+                    "conversation_id": str(conversation_id),
+                }
+            )
+            yield f"data: {payload}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
+
+    async def persist_response():
+        """Save assistant message after streaming completes."""
+        try:
+            async with AsyncSessionLocal() as session:
+                assistant_msg = Message(
+                    id=uuid.uuid4(),
+                    conversation_id=conversation_id,
+                    role=MessageRole.ASSISTANT,
+                    content=final_response["content"],
+                )
+                session.add(assistant_msg)
+                conv = await session.get(Conversation, conversation_id)
+                if conv:
+                    conv.updated_at = datetime.utcnow()
+                await session.commit()
+        except Exception as e:
+            logger.error("Failed to persist assistant message: %s", e, exc_info=True)
+
+    background_tasks.add_task(persist_response)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        background=background_tasks,
+    )
 
 
 @router.get("/conversations", response_model=ConversationListResponse)

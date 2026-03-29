@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -18,11 +19,31 @@ from models.database import get_db
 from routers import agent, auth, categories, chat, graph, health, jobs, resources
 from services.neo4j_driver import neo4j_driver
 
+logging.getLogger().setLevel(settings.log_level.upper())
+logging.getLogger("uvicorn").setLevel(settings.log_level.upper())
+logging.getLogger("uvicorn.access").setLevel(settings.log_level.upper())
+
+logger = logging.getLogger("uvicorn")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan events."""
     # Startup
+    root_level = logging.getLevelName(logging.getLogger("uvicorn").getEffectiveLevel())
+    logger.info("API starting up | log_level=%s", root_level)
+
+    from core.telemetry import setup_telemetry
+
+    metrics_app = setup_telemetry(
+        service_name=settings.otel_service_name,
+        traces_endpoint=settings.otlp_traces_endpoint,
+        metrics_enabled=settings.prometheus_metrics,
+        app=app,
+    )
+    if metrics_app:
+        app.mount("/metrics", metrics_app)
+
     await neo4j_driver.connect()
     yield
     # Shutdown
