@@ -126,6 +126,7 @@ dev = [
 dev = [
     { name = "aiosqlite" },
     { name = "respx" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -173,6 +174,7 @@ provides-extras = ["dev"]
 dev = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = ">=0.15.6" },
 ]
 
 [[package]]

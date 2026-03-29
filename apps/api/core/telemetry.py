@@ -31,6 +31,7 @@ def setup_tracing(service_name: str, endpoint: str, app=None) -> bool:
 
         # Auto-instrument FastAPI — pass app instance so existing app gets patched
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
         if app is not None:
             FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
         else:
@@ -38,6 +39,7 @@ def setup_tracing(service_name: str, endpoint: str, app=None) -> bool:
 
         # Auto-instrument LangChain/LangGraph (OpenInference)
         from openinference.instrumentation.langchain import LangChainInstrumentor
+
         LangChainInstrumentor().instrument(tracer_provider=provider)
 
         logger.info("Tracing enabled → %s (service=%s)", endpoint, service_name)
@@ -70,7 +72,9 @@ def setup_metrics(service_name: str) -> bool:
         return None
 
 
-def setup_telemetry(service_name: str, traces_endpoint: str, metrics_enabled: bool, app=None):
+def setup_telemetry(
+    service_name: str, traces_endpoint: str, metrics_enabled: bool, app=None
+):
     """Initialize telemetry. Each backend fails independently.
 
     Returns the Prometheus ASGI app to mount at /metrics, or None.

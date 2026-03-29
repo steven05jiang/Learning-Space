@@ -175,9 +175,14 @@ async def chat_stream(
             )
             conversation = result.scalar_one_or_none()
             if not conversation:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Conversation not found",
+                )
             if conversation.user_id != user_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+                )
         else:
             conversation = Conversation(id=uuid.uuid4(), user_id=user_id, title=None)
             db.add(conversation)
@@ -214,8 +219,13 @@ async def chat_stream(
         raise
     except Exception as e:
         await db.rollback()
-        logger.error("Error setting up stream for user %s: %s", user_id, e, exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to start stream")
+        logger.error(
+            "Error setting up stream for user %s: %s", user_id, e, exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to start stream",
+        )
 
     agent_query = AgentQuery(query=request.message, conversation_history=history)
     conversation_id = conversation.id
@@ -230,7 +240,13 @@ async def chat_stream(
                 yield f"data: {payload}\n\n"
         except Exception as e:
             logger.error("Error during stream generation: %s", e, exc_info=True)
-            payload = json.dumps({"type": "error", "content": "Stream error", "conversation_id": str(conversation_id)})
+            payload = json.dumps(
+                {
+                    "type": "error",
+                    "content": "Stream error",
+                    "conversation_id": str(conversation_id),
+                }
+            )
             yield f"data: {payload}\n\n"
         finally:
             yield "data: [DONE]\n\n"

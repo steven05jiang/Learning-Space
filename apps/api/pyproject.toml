@@ -91,4 +91,5 @@ skips = ["B105"]
 dev = [
     "aiosqlite>=0.22.1",
     "respx>=0.22.0",
+    "ruff>=0.15.6",
 ]

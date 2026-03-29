@@ -1,6 +1,5 @@
 """LangGraph-based conversational agent service for resource queries."""
 
-import asyncio
 import json
 import logging
 import time
@@ -8,9 +7,9 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import StructuredTool, Tool, tool
-from pydantic import BaseModel
 from langgraph.graph import MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,16 +44,20 @@ SYSTEM_PROMPT = (
     "results (e.g. a tag like 'python' or 'machine-learning'), not a generic topic.\n"
     "- If get_graph_context returns nothing, that is fine — skip it and move on.\n\n"
     "Responding:\n"
-    "- If search_resources returned ANY results, you MUST include them in your response. "
-    "Never discard found resources.\n"
+    "- If search_resources returned ANY results, you MUST include them in your "
+    "response. Never discard found resources.\n"
     "- If nothing was found after searching, clearly say so and suggest what the user "
     "could add to their library.\n"
     "- Do not keep searching in a loop — one retry maximum, then respond.\n\n"
-    "Overview questions (e.g. 'What topics am I learning about?', 'What is in my library?', 'What areas am I covering?'):\n"
-    "- Use list_tags to get all user-defined tags and categories — do NOT use search_resources with '*' or broad queries.\n\n"
+    "Overview questions (e.g. 'What topics am I learning about?', "
+    "'What is in my library?', 'What areas am I covering?'):\n"
+    "- Use list_tags to get all user-defined tags and categories — "
+    "do NOT use search_resources with '*' or broad queries.\n\n"
     "Tool calling:\n"
-    "- Before calling any tool, always write a brief sentence describing what you are looking up.\n"
-    "- After receiving tool results, verify: do you have enough relevant information to answer the user?\n"
+    "- Before calling any tool, always write a brief sentence describing "
+    "what you are looking up.\n"
+    "- After receiving tool results, verify: do you have enough relevant "
+    "information to answer the user?\n"
     "  - If yes, respond immediately.\n"
     "  - If a DIFFERENT tool would genuinely add value, call it once.\n"
     "  - Never call the same tool with the same arguments twice.\n\n"
@@ -91,7 +94,8 @@ def _build_fallback(tokens: List[str], tool_results: List[dict], reason: str) ->
             if isinstance(r, dict):
                 title = r.get("title", "Untitled")
                 summary = (r.get("summary") or "")[:120]
-                items.append(f"- **{title}**: {summary}" if summary else f"- **{title}**")
+                entry = f"- **{title}**: {summary}" if summary else f"- **{title}**"
+                items.append(entry)
         prefix = {
             "timeout": "I ran out of time, but here's what I found:\n\n",
             "max_rounds": "I reached my search limit, but here's what I found:\n\n",
@@ -189,7 +193,8 @@ class AgentService:
 
         # Compile without checkpointer — conversation history is managed by the DB.
         # MemorySaver + DB-loaded history caused double-accumulation of messages,
-        # growing context to 400K+ tokens per request and starving the model of output budget.
+        # growing context to 400K+ tokens per request and starving the model
+        # of output budget.
         self.graph = workflow.compile()
 
     async def _create_tools(self) -> List:
@@ -198,12 +203,14 @@ class AgentService:
             StructuredTool(
                 name="list_tags",
                 description=(
-                    "Return all tags and categories the user has applied to their resources. "
-                    "Use for any broad overview question about what the user is learning, "
-                    "exploring, or has saved — topics, areas, domains, subjects, themes, interests. "
-                    "Examples: 'What topics am I learning about?', 'What areas do I have resources in?', "
+                    "Return all tags and categories the user has applied to their "
+                    "resources. Use for any broad overview question about what the "
+                    "user is learning, exploring, or has saved — topics, areas, "
+                    "domains, subjects, themes. "
+                    "Examples: 'What topics am I learning about?', "
+                    "'What areas do I have resources in?', "
                     "'What domains am I covering?', 'What is in my library?'. "
-                    "Do NOT use search_resources with '*' or broad queries for these questions."
+                    "Do NOT use search_resources with '*' or broad queries."
                 ),
                 args_schema=_NoArgs,
                 func=lambda: None,
@@ -214,8 +221,8 @@ class AgentService:
                 name="get_graph_context",
                 description=(
                     "Get related tags and concepts from the user's knowledge graph. "
-                    "IMPORTANT: the 'tag' argument must be an EXACT tag string returned "
-                    "by search_resources (e.g. 'python', 'machine-learning'). "
+                    "IMPORTANT: the 'tag' argument must be an EXACT tag string "
+                    "returned by search_resources (e.g. 'python', 'machine-learning'). "
                     "Do not pass generic topic names. "
                     "Use this to find related tags after a successful search."
                 ),
@@ -267,7 +274,9 @@ class AgentService:
                 # Call ResourceSearchService with hard limits
                 logger.debug(
                     "[search_resources] query=%r tag=%r user_id=%s",
-                    query, tag, self._current_user_id,
+                    query,
+                    tag,
+                    self._current_user_id,
                 )
                 search_result = await resource_search_service.search(
                     session=db,
@@ -315,7 +324,9 @@ class AgentService:
         sorted_tags = sorted(tag_counts, key=lambda t: -tag_counts[t])
         logger.debug(
             "[list_tags] user_id=%s tags=%d categories=%d",
-            self._current_user_id, len(sorted_tags), len(category_set),
+            self._current_user_id,
+            len(sorted_tags),
+            len(category_set),
         )
         return json.dumps({"tags": sorted_tags, "categories": sorted(category_set)})
 
@@ -486,6 +497,7 @@ class AgentService:
             # the user query as input and assistant response as output.
             from opentelemetry import context as otel_context
             from opentelemetry import trace as otel_trace
+
             tracer = otel_trace.get_tracer(__name__)
             # Start as a new root span (detached from the HTTP request span) so
             # Phoenix shows it as a standalone AGENT trace, not nested under POST /chat.
@@ -527,7 +539,8 @@ class AgentService:
                 # If model returned empty content, synthesize from tool messages
                 if not response_content:
                     tool_messages = [
-                        m for m in final_state.get("messages", [])
+                        m
+                        for m in final_state.get("messages", [])
                         if hasattr(m, "tool_call_id") and m.content
                     ]
                     tool_results: List[dict] = []
@@ -535,11 +548,16 @@ class AgentService:
                         try:
                             parsed = json.loads(tm.content)
                             if isinstance(parsed, list):
-                                tool_results.extend(r for r in parsed if isinstance(r, dict))
+                                tool_results.extend(
+                                    r for r in parsed if isinstance(r, dict)
+                                )
                         except (json.JSONDecodeError, ValueError):
                             pass
                     if tool_results:
-                        logger.info("[query] empty LLM content — using synthesis fallback with %d tool results", len(tool_results))
+                        logger.info(
+                            "[query] empty LLM content — synthesis fallback %d",
+                            len(tool_results),
+                        )
                         response_content = await self._synthesize_from_results(
                             agent_query.query, tool_results
                         )
@@ -594,8 +612,8 @@ class AgentService:
             f'The user asked: "{query}"\n\n'
             f"I searched their learning library and found these resources:\n\n"
             f"{resources_text}\n\n"
-            f"Write a concise, helpful response that directly answers the user's question "
-            f"using these resources. Mention each resource briefly."
+            f"Write a concise, helpful response that directly answers the user's "
+            f"question using these resources. Mention each resource briefly."
         )
 
         try:
@@ -626,12 +644,14 @@ class AgentService:
         if not self._initialized or not self.graph:
             yield {
                 "type": "response",
-                "content": "Sorry, the AI agent is not available. Please check the configuration.",
+                "content": (
+                    "Sorry, the AI agent is not available. "
+                    "Please check the configuration."
+                ),
             }
             return
 
         self._current_user_id = user.id
-        thread_id = f"user_{user.id}_conversation"
         config = {"recursion_limit": AGENT_RECURSION_LIMIT}
 
         messages = [SystemMessage(content=SYSTEM_PROMPT)]
@@ -654,10 +674,14 @@ class AgentService:
             ):
                 # Hard timeout check
                 if time.monotonic() - start_time > AGENT_MAX_SECONDS:
-                    logger.warning("[stream_query] timeout after %ds", AGENT_MAX_SECONDS)
+                    logger.warning(
+                        "[stream_query] timeout after %ds", AGENT_MAX_SECONDS
+                    )
                     yield {
                         "type": "response",
-                        "content": _build_fallback(current_tokens, collected_tool_results, "timeout"),
+                        "content": _build_fallback(
+                            current_tokens, collected_tool_results, "timeout"
+                        ),
                     }
                     return
 
@@ -686,7 +710,9 @@ class AgentService:
                     collected_tool_results.extend(results)
                     logger.debug(
                         "[stream_query] tool_end name=%s results=%d total=%d",
-                        tool_name, len(results), len(collected_tool_results),
+                        tool_name,
+                        len(results),
+                        len(collected_tool_results),
                     )
 
                 elif event_name == "on_chat_model_stream":
@@ -697,15 +723,22 @@ class AgentService:
                             current_tokens.append(content)
                         elif isinstance(content, list):
                             for block in content:
-                                if isinstance(block, dict) and block.get("type") == "text":
+                                if isinstance(block, dict) and (
+                                    block.get("type") == "text"
+                                ):
                                     current_tokens.append(block.get("text", ""))
 
             # Graph completed normally
             response = "".join(current_tokens).strip()
             if not response and collected_tool_results:
-                logger.info("[stream_query] empty LLM content with %d tool results — using synthesis fallback", len(collected_tool_results))
+                logger.info(
+                    "[stream_query] empty LLM content, %d results — synthesis fallback",
+                    len(collected_tool_results),
+                )
                 yield {"type": "progress", "content": "Summarizing results..."}
-                response = await self._synthesize_from_results(agent_query.query, collected_tool_results)
+                response = await self._synthesize_from_results(
+                    agent_query.query, collected_tool_results
+                )
             if not response:
                 response = _build_fallback([], collected_tool_results, "no_response")
             yield {"type": "response", "content": response}
@@ -716,11 +749,16 @@ class AgentService:
                 logger.warning("[stream_query] recursion limit hit")
                 yield {
                     "type": "response",
-                    "content": _build_fallback(current_tokens, collected_tool_results, "max_rounds"),
+                    "content": _build_fallback(
+                        current_tokens, collected_tool_results, "max_rounds"
+                    ),
                 }
             else:
                 logger.error("[stream_query] unexpected error: %s", e, exc_info=True)
-                yield {"type": "error", "content": "Sorry, I encountered an error. Please try again."}
+                yield {
+                    "type": "error",
+                    "content": "Sorry, I encountered an error. Please try again.",
+                }
         finally:
             self._current_user_id = None
 
