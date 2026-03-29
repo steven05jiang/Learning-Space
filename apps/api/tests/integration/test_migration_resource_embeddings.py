@@ -1,9 +1,13 @@
-"""Test resource_embeddings migration (3987688a4c94) schema validation.
+"""Test resource_embeddings migration schema validation.
 
-Validates pgvector extension enablement, table creation with vector(2048) column,
+Validates pgvector extension enablement, table creation with vector(2560) column,
 and FK constraints. No approximate NN index — pgvector IVFFlat/HNSW both cap at
-2000 dimensions; Qwen3-Embedding-4B uses 2048. Exact cosine scan is used instead,
+2000 dimensions; Qwen3-Embedding-8B uses 2560. Exact cosine scan is used instead,
 which is fast enough for personal library scale (<10K rows).
+
+Migration history:
+  3987688a4c94 — initial table with vector(2048) for Qwen3-4B
+  9a9a6bde9933 — changed to vector(2560) for Qwen3-8B
 """
 
 import pytest
@@ -82,8 +86,8 @@ async def test_resource_embeddings_columns(db_session: AsyncSession):
 
 
 @pytest.mark.integration
-async def test_embedding_column_is_vector_2048(db_session: AsyncSession):
-    """Test that embedding column is vector(2048) type."""
+async def test_embedding_column_is_vector_2560(db_session: AsyncSession):
+    """Test that embedding column is vector(2560) type."""
     # Check the embedding column type using pg_attribute and pg_type
     result = await db_session.execute(
         text("""
@@ -105,7 +109,7 @@ async def test_embedding_column_is_vector_2048(db_session: AsyncSession):
 
     assert type_name == "vector", "embedding column should be vector type"
     # For pgvector vector(n), typmod equals n directly (not n+4 like standard PG types)
-    assert type_mod == 2048, f"embedding should be vector(2048), got typmod {type_mod}"
+    assert type_mod == 2560, f"embedding should be vector(2560), got typmod {type_mod}"
 
 
 @pytest.mark.integration
@@ -178,7 +182,7 @@ async def test_no_approximate_nn_index(db_session: AsyncSession):
         """)
     )
     count = result.scalar()
-    # pgvector IVFFlat/HNSW cap at 2000 dims; Qwen3-4B uses 2048
+    # pgvector IVFFlat/HNSW cap at 2000 dims; Qwen3-8B uses 2560
     assert count == 0, "No approximate NN index should exist"
 
 
