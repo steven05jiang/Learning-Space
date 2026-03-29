@@ -118,6 +118,96 @@ def _build_fallback(tokens: List[str], tool_results: List[dict], reason: str) ->
     }.get(reason, "I'm sorry, I couldn't complete your request. Please try again.")
 
 
+class _NoArgs(BaseModel):
+    """Empty args schema for no-argument tools."""
+
+
+SYSTEM_PROMPT = (
+    "You are a helpful AI assistant for exploring and finding "
+    "learning resources in the user's personal library.\n\n"
+    "Search strategy:\n"
+    "- Prefer broader, single-keyword queries over narrow ones.\n"
+    "- If the first search returns no results, try ONE alternative "
+    "keyword before giving up. Do not retry more than twice.\n\n"
+    "Using the knowledge graph:\n"
+    "- When calling get_graph_context, use an EXACT tag name from the search_resources "
+    "results (e.g. a tag like 'python' or 'machine-learning'), not a generic topic.\n"
+    "- If get_graph_context returns nothing, that is fine — skip it and move on.\n\n"
+    "Responding:\n"
+    "- If search_resources returned ANY results, you MUST include them in your "
+    "response. Never discard found resources.\n"
+    "- If nothing was found after searching, clearly say so and suggest what the user "
+    "could add to their library.\n"
+    "- Do not keep searching in a loop — one retry maximum, then respond.\n\n"
+    "Overview questions (e.g. 'What topics am I learning about?', "
+    "'What is in my library?', 'What areas am I covering?'):\n"
+    "- Use list_tags to get all user-defined tags and categories — "
+    "do NOT use search_resources with '*' or broad queries.\n\n"
+    "Tool calling:\n"
+    "- Before calling any tool, always write a brief sentence describing "
+    "what you are looking up.\n"
+    "- After receiving tool results, verify: do you have enough relevant "
+    "information to answer the user?\n"
+    "  - If yes, respond immediately.\n"
+    "  - If a DIFFERENT tool would genuinely add value, call it once.\n"
+    "  - Never call the same tool with the same arguments twice.\n\n"
+    "Formatting:\n"
+    "- Always format your entire response in Markdown.\n"
+    "- Use headers, bullet lists, bold text, and code blocks where appropriate.\n"
+    "- Present resource lists as Markdown bullet points with the title in bold."
+)
+
+TOOL_PROGRESS: Dict[str, str] = {
+    "list_tags": "Looking up your tags and categories...",
+    "search_resources": "Searching your resource library...",
+    "get_graph_context": "Exploring your knowledge graph...",
+    "get_resource_detail": "Fetching resource details...",
+}
+
+AGENT_MAX_SECONDS = 60
+AGENT_RECURSION_LIMIT = 10
+
+
+def _build_fallback(tokens: List[str], tool_results: List[dict], reason: str) -> str:
+    """Build a best-effort response when the agent is interrupted."""
+    partial = "".join(tokens).strip()
+    if partial:
+        suffix = {
+            "timeout": "\n\n_(Response may be incomplete — search took too long)_",
+            "max_rounds": "\n\n_(Response may be incomplete — reached search limit)_",
+        }.get(reason, "")
+        return partial + suffix
+
+    if tool_results:
+        items = []
+        for r in tool_results[:5]:
+            if isinstance(r, dict):
+                title = r.get("title", "Untitled")
+                summary = (r.get("summary") or "")[:120]
+                entry = f"- **{title}**: {summary}" if summary else f"- **{title}**"
+                items.append(entry)
+        prefix = {
+            "timeout": "I ran out of time, but here's what I found:\n\n",
+            "max_rounds": "I reached my search limit, but here's what I found:\n\n",
+        }.get(reason, "Here's what I found:\n\n")
+        return prefix + "\n".join(items)
+
+    return {
+        "timeout": (
+            "I'm sorry, the search took too long. "
+            "Try a more specific question or check back in a moment."
+        ),
+        "max_rounds": (
+            "I'm sorry, I couldn't complete the search within the allowed steps. "
+            "Try rephrasing with a simpler, more specific question."
+        ),
+        "no_response": (
+            "I couldn't find a relevant answer. "
+            "Try rephrasing your question or adding more resources to your library."
+        ),
+    }.get(reason, "I'm sorry, I couldn't complete your request. Please try again.")
+
+
 class AgentState(MessagesState):
     """State for the agent graph, extending the basic MessagesState."""
 
