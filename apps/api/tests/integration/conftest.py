@@ -15,7 +15,7 @@ from models.database import get_db
 from models.user import User
 
 # Tables to truncate between tests (dependency order: children first)
-_TRUNCATE_TABLES = "accounts, resources, users"
+_TRUNCATE_TABLES = "accounts, messages, conversations, resources, users"
 
 
 @pytest.fixture
