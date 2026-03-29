@@ -74,8 +74,8 @@ TOOL_PROGRESS: Dict[str, str] = {
     "get_resource_detail": "Fetching resource details...",
 }
 
-AGENT_MAX_SECONDS = 60
-AGENT_RECURSION_LIMIT = 10
+AGENT_MAX_SECONDS = 300
+AGENT_RECURSION_LIMIT = 30
 
 
 def _build_fallback(tokens: List[str], tool_results: List[dict], reason: str) -> str:
@@ -164,8 +164,8 @@ TOOL_PROGRESS: Dict[str, str] = {
     "get_resource_detail": "Fetching resource details...",
 }
 
-AGENT_MAX_SECONDS = 60
-AGENT_RECURSION_LIMIT = 10
+AGENT_MAX_SECONDS = 300
+AGENT_RECURSION_LIMIT = 30
 
 
 def _build_fallback(tokens: List[str], tool_results: List[dict], reason: str) -> str:
