@@ -121,6 +121,7 @@ class TestResourceResponse:
             "tags": ["example", "article"],
             "status": "READY",
             "processing_status": "success",
+            "embedding_status": "ready",
             "created_at": datetime.now(),
             "updated_at": datetime.now(),
         }
@@ -139,6 +140,7 @@ class TestResourceResponse:
             "original_content": "Some text content",
             "status": "PENDING",
             "processing_status": "pending",
+            "embedding_status": "none",
             "created_at": datetime.now(),
             "updated_at": datetime.now(),
         }

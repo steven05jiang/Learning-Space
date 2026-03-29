@@ -159,6 +159,7 @@ Example summaries:
 ```bash
 GH_TOKEN=$GH_TOKEN_IMPLEMENTER git push -u origin chore/project-sync-YYYY-MM-DD
 GH_TOKEN=$GH_TOKEN_IMPLEMENTER gh pr create \
+  --base staging \
   --title "chore: project sync YYYY-MM-DD" \
   --body "$(cat <<'EOF'
 ## Project Sync

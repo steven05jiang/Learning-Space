@@ -5,7 +5,7 @@
         infra-up infra-down \
         dev-stack-up dev-stack-down \
         dev-restart-api dev-restart-worker dev-restart-web dev-restart-all \
-        infra-restart
+        infra-restart obs-up obs-down
 
 # ── Full CI (requires `make infra-up` first for integration tests) ────────
 
@@ -101,9 +101,25 @@ int-test-full: int-test int-test-web int-test-e2e
 
 # ── Infrastructure ─────────────────────────────────────────────────────────
 
+obs-up:
+	@echo "── Starting observability stack ───────────────────────"
+	docker compose up -d phoenix prometheus grafana
+	@echo "   Waiting for Phoenix..."
+	@ok=0; for s in $$(seq 1 30); do if curl -sf http://localhost:6006 > /dev/null 2>&1; then ok=1; break; fi; sleep 1; done; \
+	if [ $$ok -eq 0 ]; then echo "   WARNING: Phoenix not ready (check: docker compose logs phoenix)"; else echo "   Phoenix ready  → http://localhost:6006"; fi
+	@echo "   Waiting for Prometheus..."
+	@ok=0; for s in $$(seq 1 30); do if curl -sf http://localhost:9090/-/ready > /dev/null 2>&1; then ok=1; break; fi; sleep 1; done; \
+	if [ $$ok -eq 0 ]; then echo "   WARNING: Prometheus not ready (check: docker compose logs prometheus)"; else echo "   Prometheus ready → http://localhost:9090"; fi
+	@echo "   Waiting for Grafana..."
+	@ok=0; for s in $$(seq 1 30); do if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then ok=1; break; fi; sleep 1; done; \
+	if [ $$ok -eq 0 ]; then echo "   WARNING: Grafana not ready (check: docker compose logs grafana)"; else echo "   Grafana ready  → http://localhost:3001"; fi
+
+obs-down:
+	docker compose stop phoenix prometheus grafana
+
 infra-up:
 	@echo "── Starting infrastructure ────────────────────────────"
-	docker compose up -d
+	docker compose up -d postgres redis neo4j
 	@echo "   Waiting for PostgreSQL..."
 	@until docker compose exec -T postgres pg_isready -q; do sleep 1; done
 	@echo "   PostgreSQL ready."
@@ -154,15 +170,17 @@ dev-stack-up:
 	@echo "── Starting full development stack ───────────────────"
 	@echo "   1. Starting infrastructure (Docker)..."
 	$(MAKE) infra-up
-	@echo "   2. Running database migrations..."
+	@echo "   2. Starting observability stack..."
+	$(MAKE) obs-up
+	@echo "   3. Running database migrations..."
 	cd apps/api && uv run alembic upgrade head
-	@echo "   3. Starting API (uvicorn)..."
+	@echo "   4. Starting API (uvicorn)..."
 	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
-	@echo "   4. Starting worker (arq)..."
+	@echo "   5. Starting worker (arq)..."
 	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
-	@echo "   5. Starting web (Next.js)..."
+	@echo "   6. Starting web (Next.js)..."
 	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
-	@echo "   6. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
+	@echo "   7. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
 	@ok=0; \
 	for attempt in 1 2 3 4 5; do \
 	  for s in $$(seq 1 30); do \
@@ -176,7 +194,7 @@ dev-stack-up:
 	  (cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1) & \
 	done; \
 	if [ $$ok -eq 0 ]; then echo "   ERROR: API failed to start after 5 attempts. Check /tmp/api.log"; exit 1; fi
-	@echo "   6. Waiting for web to be healthy (up to 5 attempts, 30s each)..."
+	@echo "   8. Waiting for web to be healthy (up to 5 attempts, 30s each)..."
 	@ok=0; \
 	for attempt in 1 2 3 4 5; do \
 	  for s in $$(seq 1 30); do \
@@ -192,9 +210,12 @@ dev-stack-up:
 	if [ $$ok -eq 0 ]; then echo "   ERROR: Web failed to start after 5 attempts. Check /tmp/web.log"; exit 1; fi
 	@echo ""
 	@echo "Development stack started:"
-	@echo "   API:    http://localhost:8000"
-	@echo "   Web:    http://localhost:3000"
-	@echo "   Logs:   /tmp/api.log, /tmp/worker.log, /tmp/web.log"
+	@echo "   API:        http://localhost:8000"
+	@echo "   Web:        http://localhost:3000"
+	@echo "   Phoenix:    http://localhost:6006  (agent traces)"
+	@echo "   Prometheus: http://localhost:9090  (metrics)"
+	@echo "   Grafana:    http://localhost:3001  (dashboards)"
+	@echo "   Logs:       /tmp/api.log, /tmp/worker.log, /tmp/web.log"
 
 dev-restart-api:
 	@echo "── Restarting API ─────────────────────────────────────"
@@ -228,10 +249,12 @@ dev-stack-down:
 	@echo "── Stopping full development stack ───────────────────"
 	@echo "   1. Stopping infrastructure (Docker)..."
 	docker compose down
-	@echo "   2. Killing API process on port 8000..."
+	@echo "   2. Stopping observability stack..."
+	$(MAKE) obs-down
+	@echo "   3. Killing API process on port 8000..."
 	lsof -ti :8000 | xargs kill -9 || true
-	@echo "   3. Killing worker (arq)..."
+	@echo "   4. Killing worker (arq)..."
 	pkill -f "workers/run_worker.py" || true
-	@echo "   4. Killing web process on port 3000..."
+	@echo "   5. Killing web process on port 3000..."
 	lsof -ti :3000 | xargs kill -9 || true
 	@echo "   Development stack stopped."

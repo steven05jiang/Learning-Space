@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    log_level: str = "INFO"
+
     database_url: str = (
         "postgresql+asyncpg://learningspace:changeme@localhost:5432/learningspace"
     )
@@ -46,6 +48,13 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = "https://api.siliconflow.com/v1"
     fireworks_base_url: str = "https://api.fireworks.ai/inference/v1"
 
+    # Embedding Settings
+    embedding_model: str = "Qwen/Qwen3-Embedding-4B"
+    embedding_dimensions: int = 2048
+
+    # Search Settings
+    search_mode: str = "keyword"  # "keyword" (default) | "hybrid"
+
     # URL fetcher: "httpx" (default) or "playwright" (opt-in, bypasses bot blocks)
     url_fetcher_backend: str = "httpx"
 
@@ -59,6 +68,11 @@ class Settings(BaseSettings):
 
     # Comma-separated list of allowed CORS origins. Always includes localhost:3000.
     cors_origins: str = ""
+
+    # Observability
+    otlp_traces_endpoint: str = ""  # e.g. http://localhost:6006/v1/traces
+    prometheus_metrics: bool = False  # expose /metrics for Prometheus scraping
+    otel_service_name: str = "learning-space-api"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

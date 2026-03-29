@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-27 (sprint 2026-03-27-A — DEV-066–071 + DEV-047 all complete)
+**Last Updated:** 2026-03-28 (INT-036–040 merged PR #230; INT-048–049 dispatched)
 
 ---
 
 ## Progress Summary
 
-- Total: 138 tasks (71 DEV + 6 DEMO + 1 INT-framework + 55 INT-BDD + 5 OPS [tracked separately])
-- ✅ Completed: 98
-- 🔄 Active: 0
-- ⏳ Pending: 40
+- Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
+- ✅ Completed: 121
+- 🔄 Active: 2
+- ⏳ Pending: 21
 - ⚠️ Stuck: 0
 
 ---
@@ -60,18 +60,18 @@
 - [x] DEV-030: Implement GET /graph/nodes/{node_id}/resources — Resources by tag from graph (PR #94 ✅)
 - [x] DEV-035: Implement conversation storage (DB schema) — Chat persistence (PR #117 ✅)
 - [x] DEV-032: Implement LangGraph agent with tools — Core chat intelligence (PR #119 ✅)
-- [ ] DEV-033: Implement POST /chat endpoint — Chat API
-- [ ] DEV-034: Implement GET /chat/conversations and messages — Chat history
+- [x] DEV-033: Implement POST /chat endpoint — Chat API (PR #222 ✅)
+- [x] DEV-034: Implement GET /chat/conversations and messages — Chat history (PR #224 ✅)
 - [x] DEV-040: Implement Settings — Account Management UI — Manage linked accounts UI (PR #59 ✅)
 - [x] DEV-043: Implement resource detail / edit / delete — Full resource management UI (PR #58 ✅)
 - [x] DEV-044: Implement graph visualization component — react-force-graph-2d UI shell (PR #40, #41 ✅)
 - [x] DEV-045: Implement resource panel on node click — node detail dialog UI shell (PR #40 ✅)
 - [x] DEV-046: Implement chat UI — chat panel UI shell with scroll fixes (PR #40, #41 ✅)
 - [x] DEV-052: Wire graph visualization to real API — connect existing UI to GET /graph, POST /graph/expand, GET /graph/nodes/{id}/resources (PR #105 ✅)
-- [ ] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations
+- [x] DEV-053: Wire chat UI to real API — connect existing chat panel to POST /chat, GET /chat/conversations (PR #226 ✅)
 - [x] DEV-024: Unit tests — Worker / Resource Processing — Verify worker pipeline (PR #108 ✅)
 - [x] DEV-031: Unit tests — Knowledge Graph API — Verify graph endpoints (PR #110 ✅)
-- [ ] DEV-036: Unit tests — Chat / Agent — Verify chat
+- [x] DEV-036: Unit tests — Chat / Agent — Verify chat (PR #228 ✅)
 - [ ] DEV-011: Unit tests — Authentication — Verify full auth (blocked by DEV-007, DEV-008)
 - [ ] DEV-018: Unit tests — Resource API — Verify resource CRUD (blocked by DEV-015, DEV-016, DEV-017)
 - [x] DEV-054: Duplicate URL detection with user-facing notification — 409 on duplicate submit + "already added" toast (PR #64 ✅)
@@ -158,11 +158,11 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [x] INT-035: User views resources for a graph node (BDD: Graph Exploration) (PR #113 ✅)
 
 **Group: chat** — CI: nightly (blocked: DEV-032–035)
-- [ ] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
-- [ ] INT-037: User continues a conversation with context (BDD: Chat Agent) (blocked: DEV-032, DEV-033, DEV-035)
-- [ ] INT-038: Agent uses graph traversal tool (BDD: Chat Agent) (blocked: DEV-032)
-- [ ] INT-039: User lists their conversations (BDD: Chat Agent) (blocked: DEV-034)
-- [ ] INT-040: User retrieves messages in a conversation (BDD: Chat Agent) (blocked: DEV-034)
+- [x] INT-036: User sends a chat message — agent returns answer + conversation_id (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-037: User continues a conversation with context (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-038: Agent uses graph traversal tool (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-039: User lists their conversations (BDD: Chat Agent) (PR #230 ✅)
+- [x] INT-040: User retrieves messages in a conversation (BDD: Chat Agent) (PR #230 ✅)
 
 ### Layer 2 — Frontend Integration (Jest + MSW, no backend)
 
@@ -171,14 +171,20 @@ _One test per BDD scenario. Design: `docs/integration-test-design.md`. Framework
 - [ ] INT-042: Resource shows processing status indicator (BDD: Frontend Resource UI) (ready ✅)
 - [ ] INT-043: Resource shows FAILED status with actionable message (BDD: Frontend Resource UI) (ready ✅)
 - [ ] INT-044: User browses resource list (BDD: Frontend Resource UI) (ready ✅)
-- [ ] INT-045: User views the knowledge graph — force-directed render (BDD: Frontend Graph) (blocked: DEV-052)
-- [ ] INT-046: User clicks a node to expand — graph expands (BDD: Frontend Graph) (blocked: DEV-052)
-- [ ] INT-047: User clicks a node to see resources — panel shown (BDD: Frontend Graph) (blocked: DEV-052)
-- [ ] INT-048: User opens the chat interface — panel slides open (BDD: Frontend Chat) (blocked: DEV-053)
-- [ ] INT-049: User sends a message and receives a response (BDD: Frontend Chat) (blocked: DEV-053)
+- [ ] INT-045: User views the knowledge graph — force-directed render (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
+- [ ] INT-046: User clicks a node to expand — graph expands (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
+- [ ] INT-047: User clicks a node to see resources — panel shown (BDD: Frontend Graph) (ready ✅ — DEV-052 merged)
+- [~] INT-048: User opens the chat interface — panel slides open (BDD: Frontend Chat)
+- [~] INT-049: User sends a message and receives a response (BDD: Frontend Chat)
 - [ ] INT-050: User views linked accounts in settings (BDD: Frontend Settings) (ready ✅)
 - [ ] INT-051: User adds a new linked account from settings (BDD: Frontend Settings) (ready ✅)
 - [ ] INT-052: User sees error when unlinking last account (BDD: Frontend Settings) (ready ✅)
+
+**Group: search** — CI: every PR (Layer 1 — API integration)
+- [x] INT-056: User searches by keyword — returns ranked READY resources; non-READY excluded (BDD: Resource Search) (PR #208 ✅)
+- [x] INT-057: User filters search by tag — results narrowed to matching tag only (BDD: Resource Search) (PR #210 ✅)
+- [x] INT-058: Empty or overlong query returns 400 validation error (BDD: Resource Search) (PR #212 ✅)
+- [x] INT-059: Agent search_resources tool returns trimmed AgentResourceResult list; limit=10 enforced (BDD: Agent Search) (PR #213 ✅)
 
 ### Layer 3 — E2E Deployment (k8s smoke tests)
 
@@ -198,11 +204,30 @@ _Goal: ship to production for feedback. Auth hardening + feature gates + multi-L
 - [x] DEV-070: Coming-soon page — static /coming-soon page for non-allowlisted users (PR #163 ✅)
 - [x] DEV-071: Multi-LLM provider abstraction — LLM_PROVIDER env var; support Groq/SiliconFlow/Fireworks + Anthropic (PR #164 ✅)
 
+## 🔍 Search — Phase 1: PostgreSQL Full-Text (v2.3 — 2026-03-28)
+
+_Design spec: `docs/design-search.md`_
+
+- [x] DEV-072: Add Alembic migration: resources_search_idx (functional GIN index on title+summary+tags tsvector) — no new column (PR #196 ✅)
+- [x] DEV-073: Implement ResourceSearchService — _full_text_search(), SearchResult, ResourceSearchItem, AgentResourceResult models (PR #198 ✅)
+- [x] DEV-074: Implement GET /resources/search endpoint — ResourceSearchRequest/ResourceSearchResponse Pydantic schemas, auth gate, rank field (PR #200 ✅)
+- [x] DEV-075: Add search_resources tool to LangGraph agent — AgentResourceResult shape, limit=10 cap, system prompt update (PR #202 ✅)
+- [x] DEV-076: Implement Search page UI (Next.js) — debounced input, result cards, loading/empty/blank states, tag filter; re-enable search nav (PR #204 ✅)
+- [x] DEV-077: Unit tests for ResourceSearchService and GET /resources/search (PR #206 ✅)
+
+## 🔍 Search — Phase 2: Hybrid Retrieval (follow-up sprint)
+
+_Design spec: `docs/design-search.md` §5_
+
+- [x] DEV-078: Add Alembic migration: resource_embeddings table + pgvector IVFFlat index (vector(2048), ON DELETE CASCADE) (PR #215 ✅)
+- [x] DEV-079: Worker embedding step — build_embedding_text() + SiliconFlow Qwen3-Embedding-4B + upsert resource_embeddings after LLM (PR #217 ✅)
+- [x] DEV-080: Extend ResourceSearchService with _vector_search() + _hybrid_search() (RRF k=60); SEARCH_MODE env var toggle (PR #219 ✅)
+
 ## 🎬 Demos
 
 - [x] DEMO-001: First User Journey — login → submit resource → see list (run-2 ✅)
 - [x] DEMO-002: Account Management & Resource CRUD — settings, detail, edit, delete (run-1 ✅)
 - [x] DEMO-003: Resource Processing Pipeline — submit URL → LLM summary + tags (run-1 ✅)
 - [x] DEMO-004: Knowledge Graph Exploration — live graph, expand nodes, resource panel (run-1 ✅)
-- [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: DEV-032, DEV-033, DEV-034, DEV-035, DEV-053 pending)
+- [ ] DEMO-005: AI Chat — LangGraph agent answers questions about saved resources (blocked: INT-036–040, INT-048–049 pending)
 - [ ] DEMO-006: Feedback Verification — verify FB-001 to FB-005: tiered fetch, processing_status, category taxonomy, tag editor, node popup fix (blocked: DEV-056–DEV-065)

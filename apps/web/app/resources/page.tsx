@@ -17,6 +17,8 @@ interface User {
   avatar_url?: string;
 }
 
+type EmbeddingStatus = "none" | "processing" | "ready";
+
 interface Resource {
   id: string;
   url?: string;
@@ -24,6 +26,7 @@ interface Resource {
   summary?: string;
   tags: string[];
   status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  embedding_status: EmbeddingStatus;
   created_at: string;
 }
 
@@ -64,6 +67,21 @@ function formatDate(dateString: string) {
   });
 }
 
+const EMBEDDING_STATUS_CONFIG: Record<
+  EmbeddingStatus,
+  { label: string; className: string } | null
+> = {
+  ready: null,
+  none: {
+    label: "No embedding",
+    className: "text-muted-foreground bg-muted border-transparent",
+  },
+  processing: {
+    label: "Indexing",
+    className: "text-blue-600 bg-blue-50 border-transparent dark:bg-blue-950 dark:text-blue-400",
+  },
+};
+
 // Convert mock Resource to API Resource shape
 function toApiResource(r: (typeof mockResources)[0]): Resource {
   return {
@@ -78,6 +96,7 @@ function toApiResource(r: (typeof mockResources)[0]): Resource {
         : r.status === "pending"
           ? "PENDING"
           : "FAILED",
+    embedding_status: r.status === "processed" ? "ready" : "none",
     created_at: r.createdAt,
   };
 }
@@ -290,6 +309,7 @@ export default function ResourcesPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {resources.map((resource) => {
               const statusConfig = STATUS_BADGE[resource.status];
+              const embeddingConfig = EMBEDDING_STATUS_CONFIG[resource.embedding_status];
               const safeUrl = resource.url
                 ? getSafeUrl(resource.url)
                 : undefined;
@@ -342,9 +362,16 @@ export default function ResourcesPage() {
                       </div>
                     )}
                     <div className="mt-auto flex items-center justify-between pt-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(resource.created_at)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(resource.created_at)}
+                        </span>
+                        {embeddingConfig && (
+                          <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-medium ${embeddingConfig.className}`}>
+                            {embeddingConfig.label}
+                          </span>
+                        )}
+                      </div>
                       {safeUrl && (
                         <a
                           href={safeUrl}

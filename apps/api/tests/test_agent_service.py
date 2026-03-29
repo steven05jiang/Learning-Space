@@ -184,7 +184,7 @@ class TestAgentService:
 
     @pytest.mark.asyncio
     async def test_search_resources_tool(self, agent_service):
-        """Test the search_resources tool wrapper."""
+        """Test the search_resources tool functionality."""
         # Set user context for security fix
         agent_service._current_user_id = 1
 
@@ -195,21 +195,44 @@ class TestAgentService:
 
             mock_get_db.return_value = mock_generator()
 
-            # Mock the search results
-            with patch.object(agent_service, "_search_resources") as mock_search:
-                mock_search.return_value = [
-                    {
-                        "id": "1",
-                        "title": "Python Guide",
-                        "tags": ["python", "programming"],
-                    }
-                ]
+            # Mock the ResourceSearchService
+            with patch(
+                "services.agent_service.resource_search_service"
+            ) as mock_service:
+                # Create mock search result using the actual classes
+                from datetime import UTC, datetime
 
-                result = await agent_service._search_resources_wrapper("Python")
+                from services.resource_search_service import (
+                    ResourceSearchItem,
+                    SearchResult,
+                )
 
-                assert result is not None
-                assert "Found 1 resources" in result
-                assert "Python Guide" in result
+                mock_item = ResourceSearchItem(
+                    id="1",
+                    title="Python Guide",
+                    summary="A comprehensive Python guide",
+                    tags=["python", "programming"],
+                    top_level_categories=["Technology"],
+                    original_content="https://example.com/python-guide",
+                    content_type="url",
+                    status="READY",
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                    rank=0.9,
+                )
+
+                mock_service.search = AsyncMock(
+                    return_value=SearchResult(resources=[mock_item], total=1)
+                )
+
+                tool = agent_service._search_resources_tool
+                result = await tool.coroutine("Python")
+
+                assert isinstance(result, list)
+                assert len(result) == 1
+                assert result[0]["id"] == "1"
+                assert result[0]["title"] == "Python Guide"
+                assert result[0]["url"] == "https://example.com/python-guide"
 
     @pytest.mark.asyncio
     async def test_search_resources_tool_exception(self, agent_service):
@@ -220,10 +243,12 @@ class TestAgentService:
         with patch("services.agent_service.get_db") as mock_get_db:
             mock_get_db.side_effect = Exception("Database connection failed")
 
-            result = await agent_service._search_resources_wrapper("Python")
+            tool = agent_service._search_resources_tool
 
-            assert "Error searching resources" in result
-            assert "Database connection failed" in result
+            with pytest.raises(Exception) as exc_info:
+                await tool.coroutine("Python")
+
+            assert "Database connection failed" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_get_graph_context_tool(self, agent_service):
@@ -318,42 +343,84 @@ class TestAgentService:
             assert "Error getting resource detail" in result
             assert "Database error" in result
 
-    async def test_search_resources_implementation(self, agent_service):
-        """Test the _search_resources implementation."""
-        # Create mock database session
-        mock_db = AsyncMock()
+    async def test_search_resources_tool_integration(self, agent_service):
+        """Test the search_resources tool calls ResourceSearchService correctly."""
+        # Set user context
+        agent_service._current_user_id = 1
 
-        # Create mock resource objects
-        mock_resource1 = Mock()
-        mock_resource1.id = 1
-        mock_resource1.title = "Python Guide"
-        mock_resource1.summary = "Learn Python programming"
-        mock_resource1.tags = ["python", "programming"]
-        mock_resource1.content_type = "text"
-        mock_resource1.original_content = "Python tutorial content"
+        with patch("services.agent_service.get_db") as mock_get_db:
+            # Mock database session
+            mock_db = AsyncMock()
 
-        mock_resource2 = Mock()
-        mock_resource2.id = 2
-        mock_resource2.title = "Python Web Framework"
-        mock_resource2.summary = "Django tutorial"
-        mock_resource2.tags = ["python", "django", "web"]
-        mock_resource2.content_type = "url"
-        mock_resource2.original_content = "https://example.com/django"
+            async def mock_generator():
+                yield mock_db
 
-        # Mock database query result
-        mock_result = Mock()
-        mock_result.scalars.return_value.all.return_value = [
-            mock_resource1,
-            mock_resource2,
-        ]
-        mock_db.execute.return_value = mock_result
+            mock_get_db.return_value = mock_generator()
 
-        resources = await agent_service._search_resources(mock_db, 1, "Python")
+            with patch(
+                "services.agent_service.resource_search_service"
+            ) as mock_service:
+                # Create mock search result
+                from datetime import UTC, datetime
 
-        assert len(resources) == 2
-        assert resources[0]["title"] == "Python Guide"
-        assert resources[0]["tags"] == ["python", "programming"]
-        assert resources[1]["url"] == "https://example.com/django"
+                from services.resource_search_service import (
+                    ResourceSearchItem,
+                    SearchResult,
+                )
+
+                mock_items = [
+                    ResourceSearchItem(
+                        id="1",
+                        title="Python Guide",
+                        summary="Learn Python programming",
+                        tags=["python", "programming"],
+                        top_level_categories=["Technology"],
+                        original_content="Python tutorial content",
+                        content_type="text",
+                        status="READY",
+                        created_at=datetime.now(UTC),
+                        updated_at=datetime.now(UTC),
+                        rank=0.9,
+                    ),
+                    ResourceSearchItem(
+                        id="2",
+                        title="Python Web Framework",
+                        summary="Django tutorial",
+                        tags=["python", "django", "web"],
+                        top_level_categories=["Technology"],
+                        original_content="https://example.com/django",
+                        content_type="url",
+                        status="READY",
+                        created_at=datetime.now(UTC),
+                        updated_at=datetime.now(UTC),
+                        rank=0.8,
+                    ),
+                ]
+
+                # Mock the async search method with call tracking
+                mock_service.search = AsyncMock(
+                    return_value=SearchResult(resources=mock_items, total=2)
+                )
+
+                tool = agent_service._search_resources_tool
+                result = await tool.coroutine("Python", tag="programming")
+
+                # Verify the service was called correctly
+                mock_service.search.assert_called_once_with(
+                    session=mock_db,
+                    owner_id=1,
+                    query="Python",
+                    tag="programming",
+                    limit=10,
+                    offset=0,
+                )
+
+                # Check the results
+                assert len(result) == 2
+                assert result[0]["title"] == "Python Guide"
+                assert result[0]["tags"] == ["python", "programming"]
+                assert result[0]["url"] is None  # text content
+                assert result[1]["url"] == "https://example.com/django"  # url content
 
     async def test_get_graph_context_implementation(self, agent_service):
         """Test the _get_graph_context implementation."""

@@ -15,19 +15,106 @@ from models.resource import ResourceStatus as ModelResourceStatus
 from models.user import User
 from schemas.resource import (
     ContentType,
+    EmbeddingStatus,
     ProcessingStatus,
     ResourceCreate,
     ResourceListItem,
     ResourceListResponse,
     ResourceResponse,
+    ResourceSearchResponse,
     ResourceStatus,
     ResourceUpdate,
+    ResourceWithRank,
 )
 from services.queue_service import queue_service
+from services.resource_search_service import get_resource_search_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/resources", tags=["resources"])
+
+
+@router.get("/search", response_model=ResourceSearchResponse)
+async def search_resources(
+    q: str = Query(..., strip_whitespace=True),
+    tag: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    search_service=Depends(get_resource_search_service),
+) -> ResourceSearchResponse:
+    """
+    Search resources owned by the authenticated user.
+
+    - **q**: Search query (1-500 characters, required)
+    - **tag**: Optional exact tag filter
+    - **limit**: Maximum number of results (1-100, default 20)
+    - **offset**: Pagination offset (default 0)
+
+    Returns resources matching the search query, ordered by relevance.
+    Only returns resources with status 'READY'.
+    """
+    # Validate query parameters (custom error codes as per spec)
+    if not q or not q.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "SEARCH_QUERY_EMPTY",
+                "message": "Search query cannot be empty",
+            },
+        )
+
+    if len(q) > 500:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "SEARCH_QUERY_TOO_LONG",
+                "message": "Search query exceeds 500 characters",
+            },
+        )
+
+    # Call the search service
+    result = await search_service.search(
+        session=db,
+        owner_id=current_user.id,
+        query=q,
+        tag=tag,
+        limit=limit,
+        offset=offset,
+    )
+
+    # Convert ResourceSearchItem objects to ResourceWithRank objects
+    resources = []
+    for item in result.resources:
+        resource_with_rank = ResourceWithRank(
+            id=item.id,
+            owner_id=str(current_user.id),
+            content_type=ContentType(item.content_type),
+            original_content=item.original_content,
+            prefer_provider=None,  # Not stored in search result
+            title=item.title,
+            summary=item.summary,
+            tags=item.tags,
+            top_level_categories=item.top_level_categories,
+            status=ResourceStatus(item.status),
+            processing_status=ProcessingStatus.SUCCESS,  # Only READY resources
+            embedding_status=EmbeddingStatus.READY,  # Only indexed resources
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+            rank=item.rank,
+        )
+        resources.append(resource_with_rank)
+
+    logger.info(
+        f"Search completed for user {current_user.id}: query='{q}', tag={tag}, "
+        f"found {result.total} total, returning {len(resources)} items"
+    )
+
+    return ResourceSearchResponse(
+        resources=resources,
+        total=result.total,
+    )
 
 
 async def process_resource_background_job(resource_id: int) -> None:
@@ -107,6 +194,7 @@ async def create_resource(
         top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
+        embedding_status=EmbeddingStatus(resource.embedding_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
@@ -179,6 +267,7 @@ async def list_resources(
             tags=resource.tags or [],
             status=ResourceStatus(resource.status.value),
             processing_status=ProcessingStatus(resource.processing_status.value),
+            embedding_status=EmbeddingStatus(resource.embedding_status.value),
             created_at=resource.created_at,
         )
         items.append(item)
@@ -238,6 +327,7 @@ async def get_resource(
         top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
+        embedding_status=EmbeddingStatus(resource.embedding_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )
@@ -336,6 +426,7 @@ async def update_resource(
         top_level_categories=resource.top_level_categories or [],
         status=ResourceStatus(resource.status.value),
         processing_status=ProcessingStatus(resource.processing_status.value),
+        embedding_status=EmbeddingStatus(resource.embedding_status.value),
         created_at=resource.created_at,
         updated_at=resource.updated_at,
     )

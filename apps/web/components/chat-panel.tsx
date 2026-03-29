@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, X, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 import { useMock } from "@/lib/mock/hooks";
 import { mockMessages } from "@/lib/mock";
 
@@ -27,35 +27,56 @@ const MOCK_RESPONSES = [
   "I've analyzed your learning collection. You seem to be focused on AI/ML topics. Would you like recommendations?",
 ];
 
+const WELCOME_MESSAGE: Message = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "Hi! I'm your learning assistant. I can help you explore and find resources in your library.\n\nTry asking me:",
+};
+
+const EXAMPLE_PROMPTS = [
+  "What have I saved about machine learning?",
+  "Find resources related to system design",
+  "What topics am I learning about?",
+  "Show me resources tagged with Python",
+];
+
 export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   const isMock = useMock();
 
   const initialMessages: Message[] = isMock
     ? mockMessages.map((m) => ({ id: m.id, role: m.role, content: m.content }))
-    : [
-        {
-          id: "1",
-          role: "assistant",
-          content: "AI Chat is coming soon! Check back later.",
-        },
-      ];
+    : [WELCOME_MESSAGE];
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const showExamples = messages.length === 1 && messages[0].id === "welcome";
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const mockResponseIndex = useRef(0);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+    if (isOpen) {
+      inputRef.current?.focus();
+    } else {
+      setMessages(isMock ? initialMessages : [WELCOME_MESSAGE]);
+      setConversationId(null);
+      setInput("");
     }
   }, [isOpen]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const resizeTextarea = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +90,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setIsLoading(true);
 
     if (isMock) {
@@ -86,51 +108,100 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
         },
       ]);
     } else {
-      // API mode: call the AI agent endpoint
+      // API mode: streaming SSE from /chat/stream
+      const progressId = (Date.now() + 1).toString();
+      setMessages((prev) => [
+        ...prev,
+        { id: progressId, role: "assistant", content: "Thinking..." },
+      ]);
+
       try {
         const token = localStorage.getItem("auth_token");
         const apiBase =
           process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-        const res = await fetch(`${apiBase}/chat`, {
+
+        const requestBody: { message: string; conversation_id?: string } = {
+          message: userMessage.content,
+        };
+        if (conversationId) {
+          requestBody.conversation_id = conversationId;
+        }
+
+        const res = await fetch(`${apiBase}/chat/stream`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ message: userMessage.content }),
+          body: JSON.stringify(requestBody),
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: (Date.now() + 1).toString(),
-              role: "assistant",
-              content: data.response ?? data.message ?? "No response.",
-            },
-          ]);
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: (Date.now() + 1).toString(),
-              role: "assistant",
-              content:
-                "AI chat integration coming soon. Run with `npm run dev:mock` to try mock mode.",
-            },
-          ]);
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        if (!res.ok || !res.body) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (raw === "[DONE]") break;
+
+            try {
+              const event = JSON.parse(raw);
+
+              if (event.conversation_id) {
+                setConversationId(event.conversation_id);
+              }
+
+              if (event.type === "progress") {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === progressId
+                      ? { ...m, content: event.content }
+                      : m,
+                  ),
+                );
+              } else if (event.type === "response" || event.type === "error") {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === progressId
+                      ? { ...m, content: event.content ?? "No response." }
+                      : m,
+                  ),
+                );
+              }
+            } catch {
+              // skip malformed event lines
+            }
+          }
         }
       } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            content:
-              "Could not reach the AI service. Run with `npm run dev:mock` to try mock mode.",
-          },
-        ]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === progressId
+              ? {
+                  ...m,
+                  content:
+                    "Sorry, I couldn't reach the AI service. Please try again.",
+                }
+              : m,
+          ),
+        );
       }
     }
 
@@ -201,7 +272,13 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
                     : "bg-primary text-primary-foreground",
                 )}
               >
-                {message.content}
+                {message.role === "assistant" ? (
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  message.content
+                )}
               </div>
             </div>
           ))}
@@ -217,25 +294,45 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
               </div>
             </div>
           )}
+          {showExamples && (
+            <div className="flex flex-col gap-2 pl-11">
+              {EXAMPLE_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => setInput(prompt)}
+                  className="rounded-xl border border-border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
       {/* Input */}
       <div className="border-t border-border p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
+        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+          <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            rows={1}
+            onChange={(e) => { setInput(e.target.value); resizeTextarea(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
             placeholder="Ask about your resources..."
-            disabled={isLoading || !isMock}
-            className="flex-1 rounded-full bg-muted/50"
+            disabled={isLoading}
+            className="flex-1 resize-none overflow-hidden rounded-2xl bg-muted/50 px-4 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50 max-h-40 overflow-y-auto"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={!input.trim() || isLoading || !isMock}
+            disabled={!input.trim() || isLoading}
             className="h-9 w-9 shrink-0 rounded-full"
           >
             <Send className="h-4 w-4" />

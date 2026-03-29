@@ -2,8 +2,9 @@
 
 import enum
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
+from fastapi import Query
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
@@ -30,6 +31,14 @@ class ProcessingStatus(str, enum.Enum):
     PROCESSING = "processing"
     SUCCESS = "success"
     FAILED = "failed"
+
+
+class EmbeddingStatus(str, enum.Enum):
+    """Embedding generation status for a resource."""
+
+    NONE = "none"
+    PROCESSING = "processing"
+    READY = "ready"
 
 
 class ResourceCreate(BaseModel):
@@ -80,6 +89,7 @@ class ResourceResponse(BaseModel):
     top_level_categories: list[str] = []
     status: ResourceStatus
     processing_status: ProcessingStatus
+    embedding_status: EmbeddingStatus
     created_at: datetime
     updated_at: datetime
 
@@ -96,6 +106,7 @@ class ResourceListItem(BaseModel):
     tags: list[str] = []
     status: ResourceStatus
     processing_status: ProcessingStatus
+    embedding_status: EmbeddingStatus
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -133,3 +144,25 @@ class ResourceNodeResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ResourceSearchRequest(BaseModel):
+    """Request schema for resource search."""
+
+    q: str = Query(..., min_length=1, max_length=500, strip_whitespace=True)
+    tag: Optional[str] = Query(default=None)
+    limit: int = Query(default=20, ge=1, le=100)
+    offset: int = Query(default=0, ge=0)
+
+
+class ResourceWithRank(ResourceResponse):
+    """ResourceResponse with additional rank field for search results."""
+
+    rank: float
+
+
+class ResourceSearchResponse(BaseModel):
+    """Response schema for resource search results."""
+
+    resources: List[ResourceWithRank]
+    total: int

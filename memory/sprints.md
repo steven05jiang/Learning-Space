@@ -5,6 +5,99 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 
 ---
 
+## Sprint 2026-03-28-C — AI Chat Feature Complete
+
+**Status:** 🔄 Active
+**Sprint Goal:** Implement POST /chat + GET /chat/conversations endpoints, wire chat UI to real API, and write unit + INT tests so DEMO-005 (AI Chat) is runnable
+**Exit Gate:** DEMO-005 — AI Chat demo can be executed successfully
+**Started:** 2026-03-28
+**Completed:** (pending)
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- Agent already has search_resources tool (DEV-075) + hybrid retrieval (DEV-080) — search capability is complete
+- DEV-033 dispatches first (only unblocked task); DEV-034 follows after DEV-033 merges
+- DEV-053 must also remove the "coming soon" mode added by DEV-068
+- DEV-036 and DEV-053 both unlock after DEV-034 merges — dispatch sequentially
+- INT-036/037/038 unlock after DEV-033 merges; INT-039/040 after DEV-034; INT-048/049 after DEV-053
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-033 | POST /chat endpoint — create/continue conversation, persist messages, call agent | ✅ Completed (PR #222) |
+| DEV-034 | GET /chat/conversations + GET /chat/conversations/{id}/messages | ✅ Completed (PR #224) |
+| DEV-053 | Wire chat UI to real API + remove coming-soon mode (DEV-068 reversal) | ✅ Completed (PR #226) |
+| DEV-036 | Unit tests — Chat / Agent | ✅ Completed (PR #228) |
+| INT-036 | User sends a chat message — agent returns answer + conversation_id | ✅ Completed (PR #230) |
+| INT-037 | User continues a conversation with context | ✅ Completed (PR #230) |
+| INT-038 | Agent uses graph traversal tool | ✅ Completed (PR #230) |
+| INT-039 | User lists their conversations | ✅ Completed (PR #230) |
+| INT-040 | User retrieves messages in a conversation | ✅ Completed (PR #230) |
+| INT-048 | User opens the chat interface — panel slides open | 🔄 Active |
+| INT-049 | User sends a message and receives a response | 🔄 Active |
+
+---
+
+## Sprint 2026-03-28-B — Phase 2 Hybrid Search
+
+**Status:** ✅ Complete
+**Sprint Goal:** Add pgvector + hybrid RRF retrieval so search_resources uses semantic retrieval when SEARCH_MODE=hybrid
+**Exit Gate:** SEARCH_MODE=hybrid returns semantically relevant results that full-text search misses (conceptual query smoke test)
+**Started:** 2026-03-28
+**Completed:** 2026-03-28
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- Embedding provider: SiliconFlow `Qwen/Qwen3-Embedding-4B` (2048 dims) — same SILICONFLOW_API_KEY as LLM
+- DEV-079 dispatches after DEV-078 merges; DEV-080 dispatches after DEV-079 merges
+- No backfill needed — user will manually trigger reprocess via UI for existing resources
+- DEV-078 uses vector(2048) not vector(1536) (design default)
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-078 | Alembic migration — resource_embeddings table + pgvector IVFFlat index (vector 2048) | ✅ Completed (PR #215) |
+| DEV-079 | Worker embedding step — build_embedding_text() + SiliconFlow embed call + upsert resource_embeddings | ✅ Completed (PR #217) |
+| DEV-080 | ResourceSearchService _vector_search() + _hybrid_search() RRF k=60; SEARCH_MODE env var toggle | ✅ Completed (PR #219) |
+
+---
+
+## Sprint 2026-03-28-A — Phase 1 Search
+
+**Status:** ✅ Complete
+**Sprint Goal:** Implement Phase 1 search — GIN index, search service, API endpoint, agent tool, search page UI, unit tests, and INT tests
+**Exit Gate:** DEV-076 merged (search page live + nav re-enabled) AND DEV-077 + INT-056–059 all passing
+**Started:** 2026-03-28
+**Completed:** 2026-03-28
+
+### Notes
+
+- max-agents: 1 (sequential dispatch per MEMORY.md feedback)
+- DEV-074 and DEV-075 both unlock after DEV-073 merges; dispatch DEV-074 first (user-facing endpoint), then DEV-075
+- INT-056/057/058 can dispatch after DEV-074 merges; INT-059 waits on DEV-075
+- DEV-076 (search UI) re-enables the search nav that DEV-067 disabled with "coming soon"
+
+### Tasks
+
+| Task | Description | Status |
+|------|-------------|--------|
+| DEV-072 | Alembic migration — resources_search_idx GIN functional index | ✅ Completed (PR #196) |
+| DEV-073 | ResourceSearchService — full-text search + SearchResult/ResourceSearchItem/AgentResourceResult models | ✅ Completed (PR #198) |
+| DEV-074 | GET /resources/search endpoint + Pydantic schemas + rank field | ✅ Completed (PR #200) |
+| DEV-075 | search_resources LangGraph tool + AgentResourceResult + system prompt | ✅ Completed (PR #202) |
+| DEV-076 | Search page UI (Next.js) + re-enable search nav | ✅ Completed (PR #204) |
+| DEV-077 | Unit tests — ResourceSearchService + search endpoint | ✅ Completed (PR #206) |
+| INT-056 | Keyword search returns ranked READY results only | ✅ Completed (PR #208) |
+| INT-057 | Tag filter narrows search results | ✅ Completed (PR #210) |
+| INT-058 | Empty/overlong query returns 400 validation error | ✅ Completed (PR #212) |
+| INT-059 | Agent search_resources returns trimmed AgentResourceResult list | ✅ Completed (PR #213) |
+
+---
+
 ## Sprint 2026-03-27-B — Cloud Deployment to Production
 
 **Status:** ✅ Complete
