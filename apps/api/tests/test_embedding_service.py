@@ -139,7 +139,8 @@ class TestEmbeddingService:
         # Check parameters
         params = call_args[0][1]
         assert params["resource_id"] == 123
-        assert params["embedding"] == embedding
+        # embedding is serialized to str() for PostgreSQL vector type compatibility
+        assert params["embedding"] == str(embedding)
         assert params["model"] == "test-model"
 
         mock_session.commit.assert_called_once()
