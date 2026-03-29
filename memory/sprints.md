@@ -30,13 +30,13 @@ One entry per `/project-dispatch` invocation that reaches Phase 4.
 | DEV-034 | GET /chat/conversations + GET /chat/conversations/{id}/messages | ✅ Completed (PR #224) |
 | DEV-053 | Wire chat UI to real API + remove coming-soon mode (DEV-068 reversal) | ✅ Completed (PR #226) |
 | DEV-036 | Unit tests — Chat / Agent | ✅ Completed (PR #228) |
-| INT-036 | User sends a chat message — agent returns answer + conversation_id | 🔄 Active |
-| INT-037 | User continues a conversation with context | 🔄 Active |
-| INT-038 | Agent uses graph traversal tool | 🔄 Active |
-| INT-039 | User lists their conversations | 🔄 Active |
-| INT-040 | User retrieves messages in a conversation | 🔄 Active |
-| INT-048 | User opens the chat interface — panel slides open | ⏳ Pending (needs DEV-053 ✅) |
-| INT-049 | User sends a message and receives a response | ⏳ Pending (needs DEV-053 ✅) |
+| INT-036 | User sends a chat message — agent returns answer + conversation_id | ✅ Completed (PR #230) |
+| INT-037 | User continues a conversation with context | ✅ Completed (PR #230) |
+| INT-038 | Agent uses graph traversal tool | ✅ Completed (PR #230) |
+| INT-039 | User lists their conversations | ✅ Completed (PR #230) |
+| INT-040 | User retrieves messages in a conversation | ✅ Completed (PR #230) |
+| INT-048 | User opens the chat interface — panel slides open | 🔄 Active |
+| INT-049 | User sends a message and receives a response | 🔄 Active |
 
 ---
 
