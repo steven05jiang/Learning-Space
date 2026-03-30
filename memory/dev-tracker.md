@@ -4,16 +4,16 @@
 **Sprint:** Tier 3 — Feature Complete
 **Goal:** Complete remaining backend APIs (resource CRUD, worker pipeline, graph, chat), wire graph/chat UI to live APIs
 **Initialized:** 2026-03-14
-**Last Updated:** 2026-03-28 (INT-036–040 merged PR #230; INT-048–049 dispatched)
+**Last Updated:** 2026-03-30 (DEV-081–087, INT-060–066 added from Twitter integration planning v2.4)
 
 ---
 
 ## Progress Summary
 
-- Total: 151 tasks (80 DEV + 6 DEMO + 1 INT-framework + 59 INT-BDD + 5 OPS [tracked separately])
+- Total: 165 tasks (87 DEV + 6 DEMO + 1 INT-framework + 66 INT-BDD + 5 OPS [tracked separately])
 - ✅ Completed: 121
 - 🔄 Active: 2
-- ⏳ Pending: 21
+- ⏳ Pending: 35
 - ⚠️ Stuck: 0
 
 ---
@@ -50,7 +50,7 @@
 - [x] DEV-022: Implement LLM processing (title, summary, tags) — Core value: auto-summarize and tag (PR #56 ✅)
 - [x] DEV-016: Implement PATCH /resources/{id} (update) — Users edit resources (PR #50 ✅)
 - [x] DEV-017: Implement DELETE /resources/{id} — Users delete resources (PR #50 ✅)
-- [ ] DEV-021: Implement authenticated URL fetcher (provider API) — Fetch from login-required sites
+- [ ] ~~DEV-021~~: ~~Implement authenticated URL fetcher (provider API)~~ — SUPERSEDED by DEV-083 (full Twitter API fetcher with design spec)
 - [x] DEV-023: Implement process_resource job (full pipeline) — Ties fetch + LLM + DB update (PR #92 ✅)
 - [x] DEV-025: Implement graph service (Neo4j operations) — Foundation for all graph features (PR #90 ✅)
 - [x] DEV-026: Integrate graph update into worker pipeline — Resources update graph on processing (PR #97 ✅)
@@ -222,6 +222,30 @@ _Design spec: `docs/design-search.md` §5_
 - [x] DEV-078: Add Alembic migration: resource_embeddings table + pgvector IVFFlat index (vector(2048), ON DELETE CASCADE) (PR #215 ✅)
 - [x] DEV-079: Worker embedding step — build_embedding_text() + SiliconFlow Qwen3-Embedding-4B + upsert resource_embeddings after LLM (PR #217 ✅)
 - [x] DEV-080: Extend ResourceSearchService with _vector_search() + _hybrid_search() (RRF k=60); SEARCH_MODE env var toggle (PR #219 ✅)
+
+## 🐦 X.com (Twitter) Integration (v2.4 — 2026-03-30)
+
+_Design spec: `docs/design-twitter-integration.md`_
+
+- [ ] DEV-081: DB migration — token_scopes column (user_accounts) + twitter_posts + twitter_bookmarks tables
+- [ ] DEV-082: Twitter integration endpoints (GET /integrations/twitter/status, POST /integrations/twitter/authorize, DELETE /integrations/twitter/disconnect) + has_scope() helper
+- [ ] DEV-083: Twitter API content fetcher (Tier 1) — fetch tweet/Article via access_token; token refresh; supersedes DEV-021
+- [ ] DEV-084: twitter_bookmark_sync cron task — startup + hourly; 7-day window; global post cache; TTL cleanup; rate limit backoff
+- [ ] DEV-085: Discover endpoints — GET /discover/bookmarks (paginated, is_added=false) + POST /discover/bookmarks/{tweet_id}/add
+- [ ] DEV-086: Settings — X.com Integration Panel UI — three connection states, connect/re-auth/disconnect flows
+- [ ] DEV-087: Discover page UI — bookmark cards, pagination, [+ Add] button states, empty/loading/no-scope states
+
+**Group: twitter** — CI: nightly
+
+- [ ] INT-060: Twitter integration status reflects all connection variants (HIGH)
+- [ ] INT-061: Authorize returns redirect_url; callback updates token_scopes (MEDIUM)
+- [ ] INT-062: Disconnect clears token_scopes and deletes bookmarks (MEDIUM)
+- [ ] INT-063: Bookmark sync creates twitter_posts + twitter_bookmarks for user (HIGH)
+- [ ] INT-064: Sync skips already-cached posts — no duplicate twitter_posts rows (MEDIUM)
+- [ ] INT-065: Discover list returns unprocessed bookmarks sorted by bookmarked_at DESC (HIGH)
+- [ ] INT-066: Quick-add creates resource, sets is_added=true; post cleaned up if fully added (HIGH)
+
+---
 
 ## 🎬 Demos
 
