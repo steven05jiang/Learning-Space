@@ -135,10 +135,6 @@ export function KnowledgeGraph() {
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-  const hasCenteredRef = useRef(false);
-  // Stable ref to graphData so dimension-change effect always reads current node positions
-  const graphDataRef = useRef(graphData);
-  useEffect(() => { graphDataRef.current = graphData; }, [graphData]);
 
   // Derive category nodes from graph data
   const categoryNodes = useMemo(
@@ -167,15 +163,6 @@ export function KnowledgeGraph() {
     graphRef.current.d3Force('charge')?.strength(-250);
     graphRef.current.d3Force('link')?.distance(80);
   }, [graphData]);
-
-  // After a dimension change ForceGraph2D may shift its viewport. Re-pin to root instantly.
-  useEffect(() => {
-    if (!hasCenteredRef.current) return;
-    const rootNode = graphDataRef.current.nodes.find((n) => n.node_type === "root");
-    if (rootNode?.x != null && rootNode?.y != null) {
-      graphRef.current?.centerAt(rootNode.x, rootNode.y, 0);
-    }
-  }, [dimensions]);
 
   // Handle container resize
   useEffect(() => {
@@ -233,7 +220,6 @@ export function KnowledgeGraph() {
       });
       if (graphRes.ok) {
         const data: ApiGraphResponse = await graphRes.json();
-        hasCenteredRef.current = false;
         setGraphData(mapApiToGraphData(data));
       }
     } catch {
@@ -538,17 +524,6 @@ export function KnowledgeGraph() {
         cooldownTicks={150}
         d3AlphaDecay={0.02}
         d3VelocityDecay={0.4}
-        onEngineStop={() => {
-          if (hasCenteredRef.current) return;
-          const rootNode = graphData.nodes.find((n) => n.node_type === "root");
-          if (rootNode?.x != null && rootNode?.y != null) {
-            hasCenteredRef.current = true;
-            graphRef.current?.centerAt(rootNode.x, rootNode.y, 600);
-          } else if (graphData.nodes.length > 0) {
-            hasCenteredRef.current = true;
-            graphRef.current?.zoomToFit(400, 50);
-          }
-        }}
       />
 
       {/* Node Detail Dialog */}
