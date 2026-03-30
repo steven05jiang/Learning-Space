@@ -5,6 +5,40 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
+## 2026-03-30 — X.com (Twitter) integration design
+
+**Type:** Both
+**Trigger:** New requirements
+**Docs Affected:** `docs/technical-design.md`, `docs/design-resource-fetching.md`, `docs/ux-requirements.md`, `docs/design-twitter-integration.md` (new), `CLAUDE.md`
+**Summary:** Introduces the full X.com integration design. A new supplement doc `docs/design-twitter-integration.md` owns the complete specification for OAuth scope management, the `twitter_posts` / `twitter_bookmarks` normalized data model, the `twitter_bookmark_sync` cron job algorithm, API contracts for `/integrations/twitter/*` and `/discover/bookmarks`, cleanup logic (30-day TTL + orphaned-post sweep), and rate limit handling. Core docs are updated with targeted changes: new tables in §2.1, `token_scopes` column on `user_accounts`, new endpoint groups §4.7–4.8, updated ER diagram, Twitter Tier 1 status promoted to Implemented in design-resource-fetching.md, and new UX sections for the Discover page and Settings integration panel.
+
+### Changes
+
+#### Requirements
+- Added `docs/requirements.md` §8 (8 sub-requirements): X.com integration — OAuth scope grant, resource adding, Discover section, cron sync, pagination, quick-add, no-LLM preview, token scope tracking
+
+#### Design
+- Added `docs/design-twitter-integration.md`: full spec — OAuth scope flow, `twitter_posts`/`twitter_bookmarks` schemas, cron job algorithm (`sync_bookmarks_for_user`, `extract_preview`, `run_cleanup`), `has_scope()` helper, rate limit handling table, API contracts (GET status, POST authorize, DELETE disconnect, GET /discover/bookmarks, POST /discover/bookmarks/{id}/add), sequence diagrams §7–8
+- Modified `docs/technical-design.md` §2.1.2: Added `token_scopes TEXT` column to `user_accounts`
+- Added `docs/technical-design.md` §2.1.6: `twitter_posts` table schema
+- Added `docs/technical-design.md` §2.1.7: `twitter_bookmarks` table schema
+- Modified `docs/technical-design.md` §2.3: Updated ER diagram to include `twitter_posts` and `twitter_bookmarks`
+- Added `docs/technical-design.md` §4.7: Twitter Integration endpoints (GET status, POST authorize, DELETE disconnect)
+- Added `docs/technical-design.md` §4.8: Discover endpoints (GET /discover/bookmarks, POST /discover/bookmarks/{tweet_id}/add)
+- Modified `docs/design-resource-fetching.md` §2.1: Twitter/x.com integration status changed from `Planned` → `Implemented`
+- Modified `docs/ux-requirements.md` §7 Sidebar Navigation: Added "Discover" item with badge; visibility conditional on bookmark.read scope
+- Added `docs/ux-requirements.md` §7.2: Discover Page — layout wireframe, bookmark card fields, [+ Add] button states, empty/loading/no-scope states
+- Added `docs/ux-requirements.md` §14: Settings — X.com Integration Panel — three connection states (not connected, connected without scope, fully connected), disconnect confirmation dialog
+- Modified `CLAUDE.md` On-demand Loading Index: Added `X.com/Twitter integration → docs/design-twitter-integration.md`
+
+### Conflicts Resolved
+- None
+
+### Open Questions
+- Twitter API Article fields (`article.title`, `article.body`) require Basic+ tier plan. If the deployment is on the Free tier, long-form Article preview will fall back to truncated tweet text. Tier requirement should be confirmed before implementation.
+
+---
+
 ## 2026-03-28 — Unified search capability (user-facing + AI agent)
 
 **Type:** Both

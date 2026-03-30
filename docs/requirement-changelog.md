@@ -5,6 +5,33 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
+## 2026-03-30 — X.com (Twitter) integration requirements
+
+**Type:** Requirements
+**Trigger:** New requirements
+**Docs Affected:** `docs/requirements.md`
+**Summary:** Adds §8 X.com Integration to requirements, covering eight new requirements: OAuth scope grant for `bookmark.read`, adding x.com resources via the existing resource creation flow (Tier 1 now implemented), a new Discover sidebar section showing synced but unadded bookmarks, an hourly bookmark sync cron job with 7-day fetch window and 30-day TTL cleanup, pagination on the Discover page, quick-add from Discover into Learning Space, no-LLM preview content (first 200 words for Articles, full text for short tweets), and OAuth token scope tracking.
+
+### Changes
+
+#### Requirements
+- Added `docs/requirements.md` §8.1: OAuth permission grant — user connects X.com from Settings to grant `bookmark.read` scope; incremental re-auth if already linked for login without bookmark scope
+- Added `docs/requirements.md` §8.2: Adding x.com resources — Tier 1 fetch now implemented for twitter.com / x.com URLs
+- Added `docs/requirements.md` §8.3: Discover section — sidebar item showing synced bookmarks not yet in Learning Space; visible only when bookmark.read scope granted
+- Added `docs/requirements.md` §8.4: Bookmark sync cron job — hourly + on reboot; 7-day fetch window; 30-day TTL; global post cache to avoid redundant API calls across users
+- Added `docs/requirements.md` §8.5: Discover sort and pagination — `bookmarked_at DESC`, page size 20, `is_added=false` only
+- Added `docs/requirements.md` §8.6: Quick-add from Discover — delegates to existing `POST /resources` flow; marks `is_added=true` on success
+- Added `docs/requirements.md` §8.7: Preview content (no LLM) — first 200 words of Article body for long-form Articles; full tweet text for standard tweets
+- Added `docs/requirements.md` §8.8: Token scope tracking — `token_scopes` persisted per linked account; surfaced in Settings
+
+### Conflicts Resolved
+- None
+
+### Open Questions
+- None
+
+---
+
 ## 2026-03-14 — Initial product requirements
 
 **Type:** Requirements
