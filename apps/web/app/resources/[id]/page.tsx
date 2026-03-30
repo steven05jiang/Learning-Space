@@ -765,12 +765,12 @@ export default function ResourceDetailPage() {
                 {isReprocessing ? (
                   <>
                     <Spinner className="h-4 w-4" />
-                    Re-processing...
+                    <span className="hidden sm:inline">Re-processing...</span>
                   </>
                 ) : (
                   <>
                     <RefreshCw className="h-4 w-4" />
-                    Re-process
+                    <span className="hidden sm:inline">Re-process</span>
                   </>
                 )}
               </Button>
@@ -781,7 +781,7 @@ export default function ResourceDetailPage() {
                 className="gap-2"
               >
                 <Edit2 className="h-4 w-4" />
-                Edit Title
+                <span className="hidden sm:inline">Edit Title</span>
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -792,7 +792,7 @@ export default function ResourceDetailPage() {
                     disabled={isDeleting}
                   >
                     <Trash2 className="h-4 w-4" />
-                    Delete
+                    <span className="hidden sm:inline">Delete</span>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -907,26 +907,24 @@ export default function ResourceDetailPage() {
           {resource.url && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Source URL</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={resource.url}
-                  readOnly
-                  className="bg-muted"
-                />
-                {safeUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
+              <div className="flex items-center gap-2 min-w-0">
+                {safeUrl ? (
+                  <a
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 truncate rounded-md border border-input bg-muted px-3 py-2 text-sm text-blue-600 hover:underline dark:text-blue-400"
                   >
-                    <a
-                      href={safeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="gap-2"
-                    >
+                    {resource.url}
+                  </a>
+                ) : (
+                  <Input value={resource.url} readOnly className="bg-muted" />
+                )}
+                {safeUrl && (
+                  <Button variant="outline" size="icon" className="shrink-0" asChild>
+                    <a href={safeUrl} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4" />
-                      Open
+                      <span className="sr-only">Open</span>
                     </a>
                   </Button>
                 )}

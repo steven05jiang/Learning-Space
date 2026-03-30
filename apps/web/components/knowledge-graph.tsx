@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText,
   Link2,
@@ -136,6 +135,10 @@ export function KnowledgeGraph() {
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const hasCenteredRef = useRef(false);
+  // Stable ref to graphData so dimension-change effect always reads current node positions
+  const graphDataRef = useRef(graphData);
+  useEffect(() => { graphDataRef.current = graphData; }, [graphData]);
 
   // Derive category nodes from graph data
   const categoryNodes = useMemo(
@@ -165,7 +168,16 @@ export function KnowledgeGraph() {
     graphRef.current.d3Force('link')?.distance(80);
   }, [graphData]);
 
-  // Handle container resize (including when chat panel opens/closes)
+  // After a dimension change ForceGraph2D may shift its viewport. Re-pin to root instantly.
+  useEffect(() => {
+    if (!hasCenteredRef.current) return;
+    const rootNode = graphDataRef.current.nodes.find((n) => n.node_type === "root");
+    if (rootNode?.x != null && rootNode?.y != null) {
+      graphRef.current?.centerAt(rootNode.x, rootNode.y, 0);
+    }
+  }, [dimensions]);
+
+  // Handle container resize
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -176,7 +188,6 @@ export function KnowledgeGraph() {
           width: entry.contentRect.width,
           height: entry.contentRect.height,
         });
-        graphRef.current?.centerAt(0, 0, 300);
       }
     });
 
@@ -222,6 +233,7 @@ export function KnowledgeGraph() {
       });
       if (graphRes.ok) {
         const data: ApiGraphResponse = await graphRes.json();
+        hasCenteredRef.current = false;
         setGraphData(mapApiToGraphData(data));
       }
     } catch {
@@ -435,7 +447,7 @@ export function KnowledgeGraph() {
       {/* Graph Legend */}
       {categoryNodes.length > 0 && (
         <div
-          className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg border border-white/10 p-3 backdrop-blur-sm"
+          className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg border border-white/10 p-3 backdrop-blur-sm max-w-[45vw] sm:max-w-xs"
           style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
         >
           <p className="text-xs font-medium text-gray-200">
@@ -481,8 +493,8 @@ export function KnowledgeGraph() {
         </div>
       )}
 
-      {/* Top-right controls */}
-      <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
+      {/* Top-right controls — moved to bottom-right to avoid overlap with legend on mobile */}
+      <div className="absolute right-4 bottom-4 z-10 flex flex-col items-end gap-2">
         <div
           className="rounded-lg border border-white/10 px-3 py-2 backdrop-blur-sm"
           style={{ backgroundColor: "rgba(15, 15, 25, 0.85)" }}
@@ -526,6 +538,17 @@ export function KnowledgeGraph() {
         cooldownTicks={150}
         d3AlphaDecay={0.02}
         d3VelocityDecay={0.4}
+        onEngineStop={() => {
+          if (hasCenteredRef.current) return;
+          const rootNode = graphData.nodes.find((n) => n.node_type === "root");
+          if (rootNode?.x != null && rootNode?.y != null) {
+            hasCenteredRef.current = true;
+            graphRef.current?.centerAt(rootNode.x, rootNode.y, 600);
+          } else if (graphData.nodes.length > 0) {
+            hasCenteredRef.current = true;
+            graphRef.current?.zoomToFit(400, 50);
+          }
+        }}
       />
 
       {/* Node Detail Dialog */}
@@ -587,8 +610,8 @@ export function KnowledgeGraph() {
               <h4 className="mb-2 text-sm font-medium text-foreground shrink-0">
                 Related Resources
               </h4>
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="space-y-2 pr-4">
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="w-full space-y-2 pr-1">
                   {resourcesLoading ? (
                     <div className="flex items-center justify-center py-4">
                       <div className="text-sm text-muted-foreground">Loading resources...</div>
@@ -597,15 +620,15 @@ export function KnowledgeGraph() {
                     nodeResources.map((resource) => (
                       <div
                         key={resource.id}
-                        className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
+                        className="flex w-full min-w-0 items-start gap-3 overflow-hidden rounded-lg border border-border bg-card p-3"
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <Link
                             href={`/resources/${resource.id}`}
-                            className="text-sm font-medium text-foreground hover:underline overflow-hidden text-ellipsis whitespace-nowrap block"
+                            className="block text-sm font-medium text-foreground hover:underline"
                           >
                             {resource.title}
                           </Link>
@@ -614,7 +637,7 @@ export function KnowledgeGraph() {
                               href={resource.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800 overflow-hidden text-ellipsis whitespace-nowrap block"
+                              className="block truncate text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
                             >
                               {resource.url}
                             </a>
@@ -645,7 +668,7 @@ export function KnowledgeGraph() {
                     </div>
                   )}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           </div>
 

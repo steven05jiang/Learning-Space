@@ -551,7 +551,7 @@ export default function SettingsPage() {
             return (
               <div
                 key={provider.id}
-                className="flex items-center justify-between p-4 border border-border rounded-lg"
+                className="flex flex-wrap items-center justify-between gap-2 p-4 border border-border rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <provider.icon className="h-6 w-6 text-muted-foreground" />
@@ -584,7 +584,7 @@ export default function SettingsPage() {
                         ) : (
                           <Unlink className="h-4 w-4" />
                         )}
-                        {isUnlinking ? "Disconnecting..." : "Disconnect"}
+                        <span className="hidden sm:inline">{isUnlinking ? "Disconnecting..." : "Disconnect"}</span>
                       </Button>
                     </>
                   ) : provider.disabled ? (
