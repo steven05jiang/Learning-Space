@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # Set EMBEDDING_API_KEY / EMBEDDING_BASE_URL to override; falls back to siliconflow.
     embedding_model: str = "Qwen/Qwen3-Embedding-4B"
     embedding_dimensions: int = 2560
-    embedding_api_key: str = ""      # Falls back to siliconflow_api_key if empty
+    embedding_api_key: str = ""  # Falls back to siliconflow_api_key if empty
     embedding_base_url: str = "https://api.siliconflow.com/v1"
 
     # Search Settings
