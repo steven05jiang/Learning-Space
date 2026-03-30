@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # Embedding Settings
     # Provider for embeddings (any OpenAI-compatible provider).
-    # Defaults to siliconflow; set EMBEDDING_API_KEY / EMBEDDING_BASE_URL to use another.
+    # Set EMBEDDING_API_KEY / EMBEDDING_BASE_URL to override; falls back to siliconflow.
     embedding_model: str = "Qwen/Qwen3-Embedding-4B"
     embedding_dimensions: int = 2560
     embedding_api_key: str = ""      # Falls back to siliconflow_api_key if empty
