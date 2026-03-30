@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   SidebarProvider,
@@ -8,7 +7,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ChatPanel } from "@/components/chat-panel";
 import { Separator } from "@/components/ui/separator";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -17,12 +15,12 @@ const PAGE_TITLES: Record<string, string> = {
   "/resources/new": "Add Resource",
   "/knowledge-graph": "Knowledge Graph",
   "/search": "Search",
+  "/chat": "AI Chat",
   "/settings": "Settings",
 };
 
 function getPageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  // Handle dynamic sub-routes
   const match = Object.keys(PAGE_TITLES).find((key) =>
     pathname.startsWith(key + "/"),
   );
@@ -30,20 +28,13 @@ function getPageTitle(pathname: string): string {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const pathname = usePathname();
   const title = getPageTitle(pathname);
 
   return (
     <SidebarProvider>
-      <AppSidebar
-        onToggleChat={() => setIsChatOpen(!isChatOpen)}
-        isChatOpen={isChatOpen}
-      />
-      <SidebarInset
-        className="transition-all duration-300 overflow-hidden"
-        style={{ marginRight: isChatOpen ? "28rem" : 0 }}
-      >
+      <AppSidebar />
+      <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
@@ -55,7 +46,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 overflow-auto">{children}</main>
       </SidebarInset>
-      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </SidebarProvider>
   );
 }
