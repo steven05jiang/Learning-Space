@@ -147,8 +147,9 @@ export default function ChatPage() {
         const decoder = new TextDecoder();
         let buffer = "";
         let responseStarted = false;
+        let streamDone = false;
 
-        while (true) {
+        while (!streamDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -160,6 +161,7 @@ export default function ChatPage() {
             if (!line.startsWith("data: ")) continue;
             const raw = line.slice(6).trim();
             if (raw === "[DONE]") {
+              streamDone = true;
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === progressId ? { ...m, isStreaming: false } : m,
@@ -227,14 +229,14 @@ export default function ChatPage() {
               : m,
           ),
         );
+      } finally {
+        // Guarantee streaming flags are cleared regardless of how the stream ended
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === progressId ? { ...m, isStreaming: false, isProgress: false } : m,
+          ),
+        );
       }
-
-      // Ensure streaming flag is cleared when stream ends
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === progressId ? { ...m, isStreaming: false, isProgress: false } : m,
-        ),
-      );
     }
 
     setIsLoading(false);
