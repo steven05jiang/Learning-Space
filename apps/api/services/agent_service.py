@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import StructuredTool, Tool, tool
 from langgraph.graph import MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -471,6 +471,17 @@ class AgentService:
                     m.id,
                 )
                 messages.append(HumanMessage(content="..."))
+            elif is_empty and isinstance(m, ToolMessage):
+                # Groq (and some other providers) reject tool messages with empty
+                # content. Replace with a placeholder so the conversation is valid.
+                logger.warning(
+                    "[_call_model] empty ToolMessage detected (tool_call_id=%s) "
+                    "— replacing content with '...'",
+                    getattr(m, "tool_call_id", None),
+                )
+                messages.append(
+                    ToolMessage(content="...", tool_call_id=m.tool_call_id)
+                )
             else:
                 messages.append(m)
 
