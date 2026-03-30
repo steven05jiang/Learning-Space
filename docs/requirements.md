@@ -405,6 +405,48 @@ Responsibilities:
   - PostgreSQL
   - Neo4j
 
+## 8. X.com (Twitter) Integration
+
+### 8.1 OAuth Permission Grant
+
+Users can connect their X.com (Twitter) account to grant bookmark access from the Settings page. This is a separate step from logging in with Twitter. The system requests OAuth 2.0 scopes: `tweet.read`, `users.read`, `bookmark.read`, `offline.access`. If the user already has Twitter linked for login but without `bookmark.read` scope, Settings shows a "Grant bookmark access" button that triggers re-authorization with the full scope set. The system stores the granted scopes alongside the access token.
+
+### 8.2 Adding X.com Resources
+
+After a user has a linked X.com account with the required scopes, adding a resource via an `x.com` or `twitter.com` URL is fully supported. The system fetches the post content using the user's linked access token (Tier 1 fetch). If the user does not have the required scopes, the resource fails with a clear prompt to grant access in Settings.
+
+### 8.3 Discover Section (Bookmarks Queue)
+
+A new "Discover" section appears in the sidebar navigation. It shows the user's X.com bookmarks that have been synced but not yet added to their Learning Space. This section is only visible to users with a connected X.com account that has `bookmark.read` scope.
+
+### 8.4 Bookmark Sync Cron Job
+
+A background worker task runs every hour and immediately on worker reboot. For each user with an active X.com connection (`bookmark.read` scope granted), it:
+
+1. Fetches bookmarks from the past 7 days via the Twitter Bookmarks API.
+2. Skips any tweet already present in the bookmarks store (deduplication by `tweet_id`).
+3. Deletes bookmark records older than 30 days (measured from `first_fetched_at`) to keep the Discover queue focused on recent content.
+
+The job handles API rate limit errors (429) with exponential backoff. Post content (`twitter_posts`) is cached globally — if a post has already been fetched by another user, the cron job reuses the cached content without a redundant API call.
+
+### 8.5 Discover Page Sort and Pagination
+
+The Discover page displays bookmarks sorted by bookmark date, newest first. Pagination is supported (page size: 20). Already-added bookmarks (`is_added=true`) are excluded from the default view.
+
+### 8.6 Quick-Add from Discover
+
+Each bookmark item in the Discover section has an "Add" button. Clicking it triggers the standard add-resource flow using the tweet's x.com URL (`POST /resources` with `content_type=url`, `prefer_provider=twitter`). On success, the bookmark is marked `is_added=true` and removed from the Discover view.
+
+### 8.7 Bookmark Preview Content (No LLM)
+
+Bookmark preview content is sourced directly from the Twitter API response — no LLM summarization is performed. For long-form Articles (the primary use case), the preview shows the first 200 words of the article body. For standard tweets (≤280 chars), the full tweet text is shown. Preview fields displayed: title (Article title, or `@username` for standard tweets), author display name, author `@username`, post creation time, and the preview text. No LLM cost is incurred for Discover content.
+
+### 8.8 Token Scope Tracking
+
+The system tracks which OAuth scopes are granted for each linked account. This is used to determine whether a Twitter account has sufficient permissions for bookmark sync. Scope information is surfaced in the Settings page so users can see the current connection status and re-authorize if needed.
+
+---
+
 # Deployment Requirements
 
 1. Create docker images for the deployment
