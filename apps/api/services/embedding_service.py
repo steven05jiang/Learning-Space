@@ -1,4 +1,4 @@
-"""Embedding service for generating vector embeddings using SiliconFlow."""
+"""Embedding service for generating vector embeddings."""
 
 import logging
 from typing import Optional
@@ -16,10 +16,10 @@ class EmbeddingService:
     """Service for generating and managing resource embeddings."""
 
     def __init__(self):
-        """Initialize the embedding service with SiliconFlow client."""
+        """Initialize the embedding service client."""
         self.client = OpenAI(
-            api_key=settings.siliconflow_api_key,
-            base_url=settings.siliconflow_base_url,
+            api_key=settings.embedding_api_key or settings.siliconflow_api_key,
+            base_url=settings.embedding_base_url or settings.siliconflow_base_url,
         )
 
     def build_embedding_text(self, resource: Resource) -> str:

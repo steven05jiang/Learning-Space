@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, X, Bot, User } from "lucide-react";
+import { Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useMock } from "@/lib/mock/hooks";
 import { mockMessages } from "@/lib/mock";
 
@@ -13,11 +14,8 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-}
-
-interface ChatPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isProgress?: boolean;  // agent is still working — show inline progress row
+  isStreaming?: boolean; // final response is being streamed — show blinking cursor
 }
 
 const MOCK_RESPONSES = [
@@ -41,7 +39,24 @@ const EXAMPLE_PROMPTS = [
   "What gaps exist in my current knowledge collection?",
 ];
 
-export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
+function RainbowBotIcon() {
+  return (
+    <div className="relative h-8 w-8 shrink-0">
+      <div
+        className="absolute inset-0 animate-spin rounded-full"
+        style={{
+          background:
+            "conic-gradient(from 0deg, #f43f5e, #f97316, #eab308, #22c55e, #3b82f6, #a855f7, #f43f5e)",
+        }}
+      />
+      <div className="absolute inset-[2px] flex items-center justify-center rounded-full bg-background text-primary">
+        <Bot className="h-4 w-4" />
+      </div>
+    </div>
+  );
+}
+
+export default function ChatPage() {
   const isMock = useMock();
 
   const initialMessages: Message[] = isMock
@@ -58,14 +73,8 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   const mockResponseIndex = useRef(0);
 
   useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus();
-    } else {
-      setMessages(isMock ? initialMessages : [WELCOME_MESSAGE]);
-      setConversationId(null);
-      setInput("");
-    }
-  }, [isOpen]);
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -94,25 +103,19 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
     setIsLoading(true);
 
     if (isMock) {
-      // Mock mode: rotate through predefined responses
       await new Promise((resolve) => setTimeout(resolve, 800));
       const response =
         MOCK_RESPONSES[mockResponseIndex.current % MOCK_RESPONSES.length];
       mockResponseIndex.current++;
       setMessages((prev) => [
         ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: response,
-        },
+        { id: (Date.now() + 1).toString(), role: "assistant", content: response },
       ]);
     } else {
-      // API mode: streaming SSE from /chat/stream
       const progressId = (Date.now() + 1).toString();
       setMessages((prev) => [
         ...prev,
-        { id: progressId, role: "assistant", content: "Thinking..." },
+        { id: progressId, role: "assistant", content: "Thinking...", isProgress: true },
       ]);
 
       try {
@@ -123,9 +126,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
         const requestBody: { message: string; conversation_id?: string } = {
           message: userMessage.content,
         };
-        if (conversationId) {
-          requestBody.conversation_id = conversationId;
-        }
+        if (conversationId) requestBody.conversation_id = conversationId;
 
         const res = await fetch(`${apiBase}/chat/stream`, {
           method: "POST",
@@ -140,15 +141,15 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
           window.location.href = "/login";
           return;
         }
-        if (!res.ok || !res.body) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let responseStarted = false;
+        let streamDone = false;
 
-        while (true) {
+        while (!streamDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -159,28 +160,53 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
           for (const line of lines) {
             if (!line.startsWith("data: ")) continue;
             const raw = line.slice(6).trim();
-            if (raw === "[DONE]") break;
+            if (raw === "[DONE]") {
+              streamDone = true;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === progressId ? { ...m, isStreaming: false } : m,
+                ),
+              );
+              break;
+            }
 
             try {
               const event = JSON.parse(raw);
-
-              if (event.conversation_id) {
-                setConversationId(event.conversation_id);
-              }
+              if (event.conversation_id) setConversationId(event.conversation_id);
 
               if (event.type === "progress") {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === progressId
-                      ? { ...m, content: event.content }
+                      ? { ...m, content: event.content, isProgress: true, isStreaming: false }
                       : m,
                   ),
                 );
-              } else if (event.type === "response" || event.type === "error") {
+              } else if (event.type === "response") {
+                if (!responseStarted) {
+                  responseStarted = true;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === progressId
+                        ? { ...m, content: event.content ?? "", isProgress: false, isStreaming: true }
+                        : m,
+                    ),
+                  );
+                } else {
+                  // Append subsequent chunks for token-by-token streaming
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === progressId
+                        ? { ...m, content: m.content + (event.content ?? ""), isStreaming: true }
+                        : m,
+                    ),
+                  );
+                }
+              } else if (event.type === "error") {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === progressId
-                      ? { ...m, content: event.content ?? "No response." }
+                      ? { ...m, content: event.content ?? "An error occurred.", isProgress: false, isStreaming: false }
                       : m,
                   ),
                 );
@@ -196,10 +222,18 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             m.id === progressId
               ? {
                   ...m,
-                  content:
-                    "Sorry, I couldn't reach the AI service. Please try again.",
+                  content: "Sorry, I couldn't reach the AI service. Please try again.",
+                  isProgress: false,
+                  isStreaming: false,
                 }
               : m,
+          ),
+        );
+      } finally {
+        // Guarantee streaming flags are cleared regardless of how the stream ended
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === progressId ? { ...m, isStreaming: false, isProgress: false } : m,
           ),
         );
       }
@@ -209,80 +243,67 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   };
 
   return (
-    <div
-      className={cn(
-        "fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out",
-        isOpen ? "translate-x-0" : "translate-x-full",
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Bot className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-foreground">AI Assistant</h2>
-            <p className="text-xs text-muted-foreground">
-              {isMock ? "Mock mode" : "Always here to help"}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="h-8 w-8 rounded-full"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close chat</span>
-        </Button>
-      </div>
-
+    <div className="flex h-full flex-col">
       {/* Messages */}
       <ScrollArea className="min-h-0 flex-1 p-4">
-        <div className="flex flex-col gap-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex gap-3",
-                message.role === "user" && "flex-row-reverse",
-              )}
-            >
+        <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          {messages.map((message) =>
+            message.isProgress ? (
+              // Inline progress row: rainbow icon + progress text on one line, no bubble
+              <div key={message.id} className="flex items-center gap-3">
+                <RainbowBotIcon />
+                <span className="text-sm italic text-muted-foreground">
+                  {message.content}
+                </span>
+              </div>
+            ) : (
               <div
+                key={message.id}
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                  message.role === "assistant"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground",
+                  "flex gap-3",
+                  message.role === "user" && "flex-row-reverse",
                 )}
               >
-                {message.role === "assistant" ? (
-                  <Bot className="h-4 w-4" />
-                ) : (
-                  <User className="h-4 w-4" />
-                )}
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                    message.role === "assistant"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {message.role === "assistant" ? (
+                    <Bot className="h-4 w-4" />
+                  ) : (
+                    <User className="h-4 w-4" />
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                    message.role === "assistant"
+                      ? "w-full bg-muted text-foreground"
+                      : "max-w-[75%] bg-primary text-primary-foreground",
+                  )}
+                >
+                  {message.role === "assistant" ? (
+                    <div className="prose prose-sm max-w-none overflow-x-auto dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                      {message.isStreaming && (
+                        <span className="inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />
+                      )}
+                    </div>
+                  ) : (
+                    message.content
+                  )}
+                </div>
               </div>
-              <div
-                className={cn(
-                  "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-                  message.role === "assistant"
-                    ? "bg-muted text-foreground"
-                    : "bg-primary text-primary-foreground",
-                )}
-              >
-                {message.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  </div>
-                ) : (
-                  message.content
-                )}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
+            ),
+          )}
+          {/* Mock mode loading dots */}
+          {isLoading && isMock && (
             <div className="flex gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Bot className="h-4 w-4" />
@@ -313,12 +334,18 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
 
       {/* Input */}
       <div className="border-t border-border p-4">
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        <form
+          onSubmit={handleSubmit}
+          className="mx-auto flex max-w-3xl items-end gap-2"
+        >
           <textarea
             ref={inputRef}
             value={input}
             rows={1}
-            onChange={(e) => { setInput(e.target.value); resizeTextarea(); }}
+            onChange={(e) => {
+              setInput(e.target.value);
+              resizeTextarea();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

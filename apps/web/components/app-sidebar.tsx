@@ -35,15 +35,11 @@ const navItems = [
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
-interface AppSidebarProps {
-  onToggleChat: () => void;
-  isChatOpen: boolean;
-}
-
-export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
+export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const isMock = useMock();
+  const isChatOpen = pathname === "/chat";
 
   const handleSignOut = () => {
     if (!isMock) {
@@ -113,7 +109,7 @@ export function AppSidebar({ onToggleChat, isChatOpen }: AppSidebarProps) {
 
         {/* AI Chat Button */}
         <Button
-          onClick={onToggleChat}
+          onClick={() => router.push(isChatOpen ? "/dashboard" : "/chat")}
           className={`h-10 w-full rounded-xl transition-all flex items-center justify-center group-data-[collapsible=icon]:w-10 ${
             isChatOpen
               ? "bg-primary/20 text-primary ring-2 ring-primary/50"
