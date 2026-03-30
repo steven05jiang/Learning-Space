@@ -479,9 +479,7 @@ class AgentService:
                     "— replacing content with '...'",
                     getattr(m, "tool_call_id", None),
                 )
-                messages.append(
-                    ToolMessage(content="...", tool_call_id=m.tool_call_id)
-                )
+                messages.append(ToolMessage(content="...", tool_call_id=m.tool_call_id))
             else:
                 messages.append(m)
 
