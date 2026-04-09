@@ -1,0 +1,12 @@
+[project]
+name = "twikit-poc"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "twikit>=2.3.3",
+]
+
+[tool.uv.sources]
+twikit = { git = "https://github.com/d60/twikit.git" }

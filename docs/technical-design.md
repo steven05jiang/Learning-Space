@@ -977,7 +977,7 @@ flowchart LR
 
 - **PostgreSQL**: Managed (e.g. RDS, Cloud SQL) or in-cluster (e.g. Bitnami PostgreSQL Helm chart). Connection string in Secret.
 - **Neo4j**: Managed (e.g. Aura) or in-cluster. URI and credentials in Secret.
-- **Redis** (if using Celery): In-cluster or managed. URL in Secret.
+- **Redis** (if using Celery): Self-hosted on Railway (flat-rate) or in-cluster. URL in Secret. ARQ worker runs in burst mode (exit when queue empty), triggered every 30s via systemd timer or cron. See `docs/queue-enhancement-design.md` for full migration plan from Upstash.
 - **OAuth**: Per-provider apps (Twitter/X, Google, GitHub); callback URL for each = `https://<api-host>/auth/callback` (same endpoint; provider inferred from state or session during link flow).
 
 ---
@@ -1025,6 +1025,8 @@ Learning-Space/
 │   ├── design-resource-fetching.md        # Tiered URL fetch strategy (supplement)
 │   ├── design-category-taxonomy.md        # Category taxonomy + graph hierarchy (supplement)
 │   ├── design-search.md                   # Unified search service — full-text + hybrid vector (supplement)
+│   ├── design-twitter-integration.md      # X.com OAuth, bookmark sync, Discover endpoints (supplement)
+│   └── queue-enhancement-design.md         # Burst mode + Railway Redis migration plan
 │   ├── ux-requirements.md
 │   ├── ux-tech-spec.md
 │   └── integration-test-design.md
@@ -1081,7 +1083,7 @@ Return shape (`AgentResourceResult`): `{ id, title, summary, tags, top_level_cat
 | `DATABASE_URL`                                            | API, Worker         | PostgreSQL connection string                                                 |
 | `NEO4J_URI`                                               | API, Worker         | Neo4j bolt URI                                                               |
 | `NEO4J_USERNAME` / `NEO4J_PASSWORD`                       | API, Worker         | Neo4j auth                                                                   |
-| `REDIS_URL`                                               | API, Worker         | If using Celery                                                              |
+| `REDIS_URL` | API, Worker | Self-hosted Redis on Railway (flat-rate). ARQ worker uses burst mode — exit when queue empty, triggered every 30s. See `docs/queue-enhancement-design.md`. |
 | `OAUTH_TWITTER_CLIENT_ID` / `OAUTH_TWITTER_CLIENT_SECRET` | API                 | Twitter/X OAuth                                                              |
 | `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET`   | API                 | Google OAuth (when enabled)                                                  |
 | `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET`   | API                 | GitHub OAuth (when enabled)                                                  |
