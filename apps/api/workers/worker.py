@@ -30,7 +30,8 @@ class WorkerSettings:
     job_timeout = 600  # 10 minutes
     keep_result = 3600  # Keep results for 1 hour
     max_tries = 3  # Retry failed jobs up to 3 times
-    burst = False  # Override with BURST_MODE=true env var for self-hosted VPS
+    # Override with BURST_MODE=true env var
+    burst = os.environ.get("BURST_MODE", "").lower() == "true"
 
     # Poll interval in seconds (default 30s to reduce Upstash commands)
     poll_delay = int(os.environ.get("REDIS_POLL_INTERVAL", 30))

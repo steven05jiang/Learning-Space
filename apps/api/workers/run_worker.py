@@ -26,9 +26,6 @@ def signal_handler(signum, frame):
 
 
 if __name__ == "__main__":
-    if os.environ.get("BURST_MODE", "").lower() == "true":
-        WorkerSettings.burst = True
-
     # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
