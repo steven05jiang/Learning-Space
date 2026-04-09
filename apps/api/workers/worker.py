@@ -33,7 +33,7 @@ class WorkerSettings:
     burst = False  # Override with BURST_MODE=true env var for self-hosted VPS
 
     # Poll interval in seconds (default 30s to reduce Upstash commands)
-    poll_interval = int(os.environ.get("REDIS_POLL_INTERVAL", 30))
+    poll_delay = int(os.environ.get("REDIS_POLL_INTERVAL", 30))
 
     # Job failure handler
     on_job_failure = job_failed
