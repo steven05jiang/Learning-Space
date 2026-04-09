@@ -23,7 +23,7 @@ Each entry records what changed, why, and any conflicts resolved.
 
 | File | Change |
 | ---- | ------ |
-| `apps/api/workers/worker.py` | Add `poll_interval` (default 30s) and `burst = False` |
+| `apps/api/workers/worker.py` | Add `poll_delay` (default 30s) and `burst = False` |
 | `apps/api/workers/run_worker.py` | Replace `--burst` argparse with `BURST_MODE` env var |
 | `Makefile` | dev-stack-up uses default poll interval |
 | `deploy/railway/` | Removed systemd timer files (not applicable for Railway) |

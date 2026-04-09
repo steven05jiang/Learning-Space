@@ -18,9 +18,9 @@ The current Upstash Redis deployment charges per command. With default 0.5s poll
 
 ## Proposed Changes
 
-### 1. Add Poll Interval Configuration
+### 1. Add Poll Delay Configuration
 
-**Change:** Add configurable `poll_interval` to `WorkerSettings` in `apps/api/workers/worker.py`, defaulting to 30s.
+**Change:** Add configurable `poll_delay` to `WorkerSettings` in `apps/api/workers/worker.py`, defaulting to 30s.
 
 **Effect:**
 - Worker polls Redis at configured interval instead of default 0.5s
@@ -92,8 +92,8 @@ class WorkerSettings:
     on_job_failure = job_failed
     queue_name = QUEUE_NAME
 
-    # Poll interval in seconds (default 30s to reduce Upstash commands)
-    poll_interval = int(os.environ.get("REDIS_POLL_INTERVAL", 30))
+    # Poll delay in seconds (default 30s to reduce Upstash commands)
+    poll_delay = int(os.environ.get("REDIS_POLL_INTERVAL", 30))
 
     async def on_startup(ctx):
         await neo4j_driver.connect()
@@ -150,7 +150,7 @@ For **Railway deployment**, this doesn't apply because:
 
 | File | Change |
 |------|--------|
-| `apps/api/workers/worker.py` | Add `poll_interval` with `REDIS_POLL_INTERVAL` env var support |
+| `apps/api/workers/worker.py` | Add `poll_delay` with `REDIS_POLL_INTERVAL` env var support |
 | `apps/api/workers/run_worker.py` | Replace `--burst` argparse with `BURST_MODE` env var |
 | `Makefile` | dev-stack-up uses default poll interval (continuous) |
 | `docs/queue-enhancement-design.md` | Updated with poll interval approach |
