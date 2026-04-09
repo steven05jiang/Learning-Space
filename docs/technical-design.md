@@ -65,6 +65,7 @@ One row per linked social (OAuth) account. A user can have multiple accounts (e.
 | `external_id`   | VARCHAR(255) | NOT NULL                      | Provider's subject (e.g. Twitter user ID)                                                                                                                 |
 | `access_token`  | TEXT         |                               | Encrypted; used for provider API calls and for **fetching URL content** when a resource URL is from that provider and requires login (e.g. Twitter post). |
 | `refresh_token` | TEXT         |                               | If provider supports refresh                                                                                                                              |
+| `token_scopes`  | TEXT         |                               | Space-separated OAuth scope string granted by user, e.g. `tweet.read users.read bookmark.read offline.access`. Updated on every successful OAuth grant or token refresh. NULL for accounts created before scope tracking was introduced (treat as basic scope only). |
 | `email`         | VARCHAR(255) |                               | Email from provider (if available)                                                                                                                        |
 | `display_name`  | VARCHAR(255) |                               | Display name from provider                                                                                                                                |
 | `last_login_at` | TIMESTAMPTZ  |                               | Last time this account was used to log in                                                                                                                 |
@@ -133,6 +134,42 @@ Stores system-seeded and user-created top-level categories. Full specification: 
 
 **Unique constraints**: `(user_id, LOWER(name))` per user; partial unique index on `LOWER(name) WHERE user_id IS NULL` for system categories.
 
+#### 2.1.6 `twitter_posts`
+
+Global post content cache. One row per tweet or Article — shared across users. Full specification: `docs/design-twitter-integration.md`.
+
+| Column           | Type         | Constraints                   | Description |
+| ---------------- | ------------ | ----------------------------- | ----------- |
+| `tweet_id`       | VARCHAR(50)  | PK                            | Twitter's numeric ID (globally unique) |
+| `tweet_url`      | TEXT         | NOT NULL                      | `https://x.com/{username}/status/{id}` |
+| `author_name`    | VARCHAR(255) |                               | Author display name |
+| `author_username`| VARCHAR(100) |                               | Author @handle |
+| `title`          | VARCHAR(500) |                               | Article title; NULL for standard tweets (≤280 chars) |
+| `preview_text`   | TEXT         |                               | First 200 words of Article body, or full tweet text for short tweets |
+| `posted_at`      | TIMESTAMPTZ  | NOT NULL                      | Original post creation time on X.com |
+| `fetched_at`     | TIMESTAMPTZ  | NOT NULL, default now()       | When we fetched post content from Twitter API |
+| `created_at`     | TIMESTAMPTZ  | NOT NULL, default now()       | |
+
+#### 2.1.7 `twitter_bookmarks`
+
+Per-user bookmark records. Junction between a user and a cached post. Serves as the Discover queue. Full specification: `docs/design-twitter-integration.md`.
+
+| Column             | Type        | Constraints                              | Description |
+| ------------------ | ----------- | ---------------------------------------- | ----------- |
+| `id`               | UUID        | PK, default gen_random_uuid()            | |
+| `user_id`          | UUID        | FK(users.id), NOT NULL                   | Owner |
+| `tweet_id`         | VARCHAR(50) | FK(twitter_posts.tweet_id), NOT NULL     | Cached post |
+| `bookmarked_at`    | TIMESTAMPTZ | NOT NULL                                 | When user bookmarked it on X.com |
+| `first_fetched_at` | TIMESTAMPTZ | NOT NULL, default now()                  | When cron first recorded this bookmark; used for 30-day TTL |
+| `is_added`         | BOOLEAN     | NOT NULL, default false                  | True after user adds it to Learning Space |
+| `created_at`       | TIMESTAMPTZ | NOT NULL, default now()                  | |
+
+**Unique constraint**: `(user_id, tweet_id)`
+
+**Indexes**: `(user_id, is_added, bookmarked_at DESC)` — Discover list query; `first_fetched_at` — TTL cleanup; `tweet_id` — post lookup.
+
+**Cleanup**: Rows are deleted by the cron job after 30 days (`first_fetched_at < NOW() - INTERVAL '30 days'`). After bookmark cleanup, `twitter_posts` rows with no remaining `is_added=false` bookmarks are also deleted (see `docs/design-twitter-integration.md` §4).
+
 ---
 
 ### 2.2 Neo4j (Knowledge Graph)
@@ -190,12 +227,34 @@ Resolved via PostgreSQL only: query resources where `tags` array contains the ta
 erDiagram
     users ||--o{ user_accounts : "has"
     users ||--o{ resources : owns
+    users ||--o{ twitter_bookmarks : "has"
+    twitter_posts ||--o{ twitter_bookmarks : "referenced by"
     users {
         uuid id PK
         varchar display_name
         varchar email
         timestamptz created_at
         timestamptz updated_at
+    }
+    twitter_posts {
+        varchar tweet_id PK
+        text tweet_url
+        varchar author_name
+        varchar author_username
+        varchar title
+        text preview_text
+        timestamptz posted_at
+        timestamptz fetched_at
+        timestamptz created_at
+    }
+    twitter_bookmarks {
+        uuid id PK
+        uuid user_id FK
+        varchar tweet_id FK
+        timestamptz bookmarked_at
+        timestamptz first_fetched_at
+        boolean is_added
+        timestamptz created_at
     }
     user_accounts {
         uuid id PK
@@ -513,7 +572,26 @@ See full spec: `docs/design-category-taxonomy.md` §6.3.
 | GET    | `/chat/conversations`               | List conversations for current user.                                                                    |
 | GET    | `/chat/conversations/{id}/messages` | Get messages in a conversation.                                                                         |
 
-### 4.6 Example Request/Response
+### 4.7 Twitter Integration
+
+Full specification: `docs/design-twitter-integration.md`.
+
+| Method | Path                               | Description                                                                                                           | Auth |
+| ------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---- |
+| GET    | `/integrations/twitter/status`     | Return connection status and granted scopes. Response includes `connected`, `has_bookmark_scope`, `granted_scopes`, `account`, `last_synced_at`, `pending_bookmark_count`. | Yes  |
+| POST   | `/integrations/twitter/authorize`  | Start OAuth re-authorization with full scope set (`tweet.read users.read bookmark.read offline.access`). Returns `{ redirect_url }`. Frontend redirects user. Callback reuses `/auth/callback` with `state=twitter_bookmark_auth:<user_id>`. | Yes  |
+| DELETE | `/integrations/twitter/disconnect` | Revoke bookmark access. Clears `token_scopes` on the `user_accounts` row. If the Twitter account was not used for login, unlinks entirely. Deletes all `twitter_bookmarks` rows for this user. Returns 204. | Yes  |
+
+### 4.8 Discover
+
+Full specification: `docs/design-twitter-integration.md`.
+
+| Method | Path                                  | Description                                                                                                                                                          | Auth |
+| ------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| GET    | `/discover/bookmarks`                 | Paginated list of bookmarks where `is_added=false`, sorted by `bookmarked_at DESC`. Query params: `limit` (default 20), `offset` (default 0). Returns `{ total, limit, offset, items[] }`. | Yes  |
+| POST   | `/discover/bookmarks/{tweet_id}/add`  | Add bookmark to Learning Space. Internally calls `POST /resources` with `content_type=url`, `prefer_provider=twitter`. Sets `is_added=true` on success. Returns 202 with the created resource. Idempotent (200 if already added). | Yes  |
+
+### 4.9 Example Request/Response
 
 **POST /api/v1/resources**
 
@@ -899,7 +977,7 @@ flowchart LR
 
 - **PostgreSQL**: Managed (e.g. RDS, Cloud SQL) or in-cluster (e.g. Bitnami PostgreSQL Helm chart). Connection string in Secret.
 - **Neo4j**: Managed (e.g. Aura) or in-cluster. URI and credentials in Secret.
-- **Redis** (if using Celery): In-cluster or managed. URL in Secret.
+- **Redis**: Upstash (free tier, 500k commands/mo). URL in Secret. ARQ worker uses `REDIS_POLL_INTERVAL` env var (default 30s) to reduce command count. See `docs/queue-enhancement-design.md`.
 - **OAuth**: Per-provider apps (Twitter/X, Google, GitHub); callback URL for each = `https://<api-host>/auth/callback` (same endpoint; provider inferred from state or session during link flow).
 
 ---
@@ -947,6 +1025,8 @@ Learning-Space/
 │   ├── design-resource-fetching.md        # Tiered URL fetch strategy (supplement)
 │   ├── design-category-taxonomy.md        # Category taxonomy + graph hierarchy (supplement)
 │   ├── design-search.md                   # Unified search service — full-text + hybrid vector (supplement)
+│   ├── design-twitter-integration.md      # X.com OAuth, bookmark sync, Discover endpoints (supplement)
+│   └── queue-enhancement-design.md         # Upstash poll interval plan — REDIS_POLL_INTERVAL env var
 │   ├── ux-requirements.md
 │   ├── ux-tech-spec.md
 │   └── integration-test-design.md
@@ -1003,7 +1083,8 @@ Return shape (`AgentResourceResult`): `{ id, title, summary, tags, top_level_cat
 | `DATABASE_URL`                                            | API, Worker         | PostgreSQL connection string                                                 |
 | `NEO4J_URI`                                               | API, Worker         | Neo4j bolt URI                                                               |
 | `NEO4J_USERNAME` / `NEO4J_PASSWORD`                       | API, Worker         | Neo4j auth                                                                   |
-| `REDIS_URL`                                               | API, Worker         | If using Celery                                                              |
+| `REDIS_URL` | API, Worker | Upstash (free tier). ARQ worker uses `REDIS_POLL_INTERVAL` (default 30s) to stay within free tier. See `docs/queue-enhancement-design.md`. |
+| `REDIS_POLL_INTERVAL` | Worker | Poll interval in seconds (default 30). Lower = more responsive but more commands. |
 | `OAUTH_TWITTER_CLIENT_ID` / `OAUTH_TWITTER_CLIENT_SECRET` | API                 | Twitter/X OAuth                                                              |
 | `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET`   | API                 | Google OAuth (when enabled)                                                  |
 | `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET`   | API                 | GitHub OAuth (when enabled)                                                  |

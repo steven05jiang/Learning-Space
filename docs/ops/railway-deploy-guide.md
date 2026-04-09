@@ -36,8 +36,8 @@ NEO4J_URI=<your-neo4j-aura-uri>
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=<your-neo4j-password>
 
-# Redis
-REDIS_URL=<your-upstash-redis-url>
+# Redis (Upstash free tier)
+REDIS_URL=rediss://default:xxx@your-upstash-host.upstash.io:6379
 
 # Authentication
 JWT_SECRET_KEY=<generate-random-32-char-string>

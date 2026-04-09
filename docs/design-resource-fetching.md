@@ -37,8 +37,8 @@ The blocklist is config-driven (environment variable or config file: `API_REQUIR
 
 | Domain | Provider | Integration Status |
 |--------|----------|--------------------|
-| `twitter.com` | `twitter` | Planned |
-| `x.com` | `twitter` | Planned |
+| `twitter.com` | `twitter` | Implemented |
+| `x.com` | `twitter` | Implemented |
 
 Additional domains are added incrementally as official API integrations are implemented (e.g. YouTube, Instagram, LinkedIn).
 

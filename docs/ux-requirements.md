@@ -215,6 +215,8 @@ Navigation
 • Resources
 • Knowledge Graph
 • Search
+• Discover          ← only shown when X.com connected with bookmark.read scope
+                       shows numeric badge when pending_bookmark_count > 0
 • Settings
 
 ---------------------
@@ -262,6 +264,70 @@ The Search page is the target of the "Search" sidebar nav item.
 - Each result card links to the resource detail page on click.
 - Results show: title, summary (truncated to 2 lines), tags (as chips), and the URL/source if applicable.
 - `rank` score is not displayed to the user.
+
+---
+
+# 7.2 Discover Page
+
+The Discover page is the target of the "Discover" sidebar nav item. Only accessible to users with X.com connected and `bookmark.read` scope granted.
+
+### Layout
+
+```
++--------------------------------------------------+
+| Discover                                         |
+| Bookmarks from X.com not yet in your space       |
+|                                         [N items] |
++--------------------------------------------------+
+|                                                  |
+| ┌──────────────────────────────────────────────┐ |
+| │ Article Title (or @handle for short tweets)  │ |
+| │ @username · Mar 28, 2026                     │ |
+| │                                              │ |
+| │ Preview text up to 200 words... The first    │ |
+| │ few sentences of the article body appear     │ |
+| │ here, truncated with "..." if over limit.    │ |
+| │                                              │ |
+| │                          [View] [+ Add]      │ |
+| └──────────────────────────────────────────────┘ |
+|                                                  |
+| < Prev   Page 1 of N   Next >                    |
++--------------------------------------------------+
+```
+
+### Bookmark card fields
+
+- **Title**: Article title for long-form Articles; `@username` for standard tweets.
+- **Author line**: `@username · relative date` (e.g. "Mar 28, 2026")
+- **Preview text**: First 200 words of Article body (truncated with "..." if cut); full tweet text for short tweets.
+- **[View]** button: opens `tweet_url` in a new tab.
+- **[+ Add]** button: calls `POST /discover/bookmarks/{tweet_id}/add`.
+
+### [+ Add] button states
+
+- **Default**: "+ Add"
+- **Loading**: spinner, button disabled (prevents double-submit)
+- **Success**: checkmark icon, label changes to "Added" (muted, non-interactive). Card fades out and is removed from the list after 1.5 s.
+- **Error**: button re-enabled, toast notification with error message (e.g. "Failed to add — your X.com connection may need re-authorization.")
+
+### Empty state
+
+```
+  [X logo icon]
+  Your bookmarks are all caught up.
+  New bookmarks sync every hour.
+```
+
+### Loading state
+
+Show 3 skeleton cards while fetching `/discover/bookmarks`.
+
+### No-scope state (direct URL access without bookmark permission)
+
+```
+  Connect your X.com account to start discovering bookmarks.
+  [ Go to Settings → ]
+```
 
 ---
 
@@ -407,7 +473,60 @@ The UI should include:
 
 ---
 
-# 14. Visual Style Summary
+# 14. Settings — X.com Integration Panel
+
+Location: Settings page → "Integrations" sub-section (or under "Connected Accounts").
+
+### State A — Not connected
+
+```
+  X.com (Twitter)
+  ─────────────────────────────────────────────
+  Connect your X.com account to sync bookmarks
+  and add posts to your Learning Space.
+
+  [ Connect X.com ]
+```
+
+### State B — Connected, bookmark scope missing
+
+```
+  X.com (Twitter)                    [Disconnect]
+  ─────────────────────────────────────────────
+  Connected as @johndoe
+  ⚠ Bookmark access not granted
+
+  To use the Discover feature, grant bookmark
+  access to your X.com account.
+
+  [ Grant Bookmark Access ]
+```
+
+### State C — Fully connected
+
+```
+  X.com (Twitter)                    [Disconnect]
+  ─────────────────────────────────────────────
+  Connected as @johndoe
+  ✓ Bookmark access granted
+  Last synced: 10 minutes ago · 12 new bookmarks
+
+  Bookmarks sync automatically every hour.
+```
+
+### Disconnect confirmation dialog
+
+```
+Disconnect X.com?
+This will remove bookmark sync and clear all
+your Discover items. Your added resources will
+not be affected.
+[ Cancel ]  [ Disconnect ]
+```
+
+---
+
+# 15. Visual Style Summary
 
 Login Page:
 

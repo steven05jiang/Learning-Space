@@ -193,6 +193,75 @@ _Last updated: 2026-03-28_
 
 ---
 
+### v2.4 — X.com (Twitter) Integration (2026-03-30)
+
+**Status:** Active
+**Summary:** Translates the `docs/design-twitter-integration.md` spec (merged PR #245 on 2026-03-30) into 7 DEV tasks and 7 INT tests. Backend tasks cover: DB migration (token_scopes + twitter_posts + twitter_bookmarks), Twitter integration endpoints + has_scope() helper, Twitter API content fetcher (supersedes DEV-021), bookmark sync cron task, and Discover API endpoints. Frontend tasks cover the Settings X.com Integration Panel and the Discover page with bookmark cards, pagination, and quick-add flow. 7 new INT tests added to a new `twitter` CI group.
+
+#### Changes from v2.3
+
+**Dev Tasks:**
+
+- Added: DEV-081 — DB migration: token_scopes column + twitter_posts + twitter_bookmarks tables
+- Added: DEV-082 — Twitter integration endpoints (status / authorize / disconnect) + has_scope() helper
+- Added: DEV-083 — Twitter API content fetcher (Tier 1); supersedes DEV-021
+- Added: DEV-084 — twitter_bookmark_sync cron task (startup + hourly; 7-day window; cleanup)
+- Added: DEV-085 — Discover endpoints (GET /discover/bookmarks + POST /discover/bookmarks/{tweet_id}/add)
+- Added: DEV-086 — Settings — X.com Integration Panel UI
+- Added: DEV-087 — Discover page UI (bookmark cards, pagination, [+ Add] states)
+- Superseded: DEV-021 — superseded by DEV-083 (which provides the full Twitter API fetcher spec)
+- Total DEV tasks: 80 → 87
+
+**INT Tasks:**
+
+- Added: INT-060 — Twitter status endpoint reflects all connection variants (group: twitter)
+- Added: INT-061 — Authorize returns redirect_url; callback updates token_scopes (group: twitter)
+- Added: INT-062 — Disconnect clears token_scopes and deletes bookmarks (group: twitter)
+- Added: INT-063 — Bookmark sync creates twitter_posts + twitter_bookmarks (group: twitter)
+- Added: INT-064 — Sync skips already-cached posts (group: twitter)
+- Added: INT-065 — Discover list returns unprocessed bookmarks sorted by bookmarked_at DESC (group: twitter)
+- Added: INT-066 — Quick-add creates resource, sets is_added=true; post cleaned up if fully added (group: twitter)
+- Total INT tasks: 59 → 66
+
+**Total tasks: 151 → 165**
+
+**Dependencies:**
+
+- New: DEV-081 depends on DEV-002 ✅
+- New: DEV-082 depends on DEV-081, DEV-007 ✅
+- New: DEV-083 depends on DEV-056 ✅, DEV-082
+- New: DEV-084 depends on DEV-081, DEV-082
+- New: DEV-085 depends on DEV-081, DEV-083
+- New: DEV-086 depends on DEV-082, DEV-040 ✅
+- New: DEV-087 depends on DEV-085, DEV-086
+- New: INT-060–062 blocked on DEV-082
+- New: INT-063–064 blocked on DEV-084
+- New: INT-065 blocked on DEV-085
+- New: INT-066 blocked on DEV-085, DEV-083
+
+**Dependency graph:**
+```
+DEV-081 → DEV-082 → DEV-083 → DEV-085 → DEV-087
+                 ↘ DEV-084
+                 ↘ DEV-086 → DEV-087
+```
+
+**Priority / Tier Changes:**
+
+- DEV-081–DEV-087 added to Tier 3 (HIGH priority)
+- INT-060, INT-063, INT-065, INT-066 HIGH priority
+- INT-061, INT-062, INT-064 MEDIUM priority
+- New CI group `twitter` added (Layer 1 API integration, nightly)
+
+**Structural notes:**
+
+- Schema changes: `user_accounts` gains `token_scopes TEXT`; new `twitter_posts` + `twitter_bookmarks` tables
+- New API groups: `/integrations/twitter/*` (§4.7) and `/discover/bookmarks` (§4.8)
+- New background worker cron: `twitter_bookmark_sync` (startup + hourly)
+- DEV-021 formally superseded by DEV-083
+
+---
+
 ### v2.3 — Search Design Breakdown (2026-03-28)
 
 **Status:** Active
