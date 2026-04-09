@@ -5,28 +5,28 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
-## 2026-04-08 — Queue Enhancement: Burst Mode + Railway Redis
+## 2026-04-08 — Queue Enhancement: Poll Interval Configuration
 
 **Type:** Design
 **Trigger:** Cost optimization (Upstash per-command pricing)
 **Docs Affected:** `docs/technical-design.md`, `docs/queue-enhancement-design.md` (new), `docs/design-changelog.md`
-**Summary:** Introduces a two-part cost optimization for the ARQ/Redis queue infrastructure. (1) Enable ARQ burst mode — worker exits when queue is empty instead of continuously polling, triggered every 30s via cron/systemd. (2) Migrate from Upstash Redis (per-command, $50-200/mo) to self-hosted Redis on Railway (flat-rate, ~$5-20/mo). Zero code changes to queue logic; only `REDIS_URL` and worker CLI arguments change.
+**Summary:** Add `REDIS_POLL_INTERVAL` env var to configure ARQ worker poll interval (default 30s). This keeps command usage within Upstash free tier (500k/month) without code or deployment changes. Removed systemd timer files (not applicable for Railway deployment). Burst mode via `BURST_MODE` env var available for self-hosted VPS use.
 
 ### Changes
 
 #### Design
-- Added `docs/queue-enhancement-design.md`: Full spec — Railway Redis provisioning, ARQ burst mode configuration, systemd timer setup, Makefile changes, rollback plan, cost comparison
-- Modified `docs/technical-design.md` §7.5: Updated Redis dependency description to reflect Railway migration and burst mode
-- Modified `docs/technical-design.md` §8.5 (Environment variables): Updated `REDIS_URL` description to note burst mode and Railway
+- Added `docs/queue-enhancement-design.md`: Full spec — poll interval approach, Upstash free tier analysis, env var configuration, rollback plan, cost comparison
+- Modified `docs/technical-design.md` §7.5: Updated Redis dependency description
+- Modified `docs/technical-design.md` §8.5 (Environment variables): Added `REDIS_POLL_INTERVAL`
 
 ### Implementation Changes
 
 | File | Change |
 | ---- | ------ |
-| `apps/api/workers/worker.py` | Add `burst = True` to `WorkerSettings` |
-| `apps/api/workers/run_worker.py` | Add `--burst` CLI argument parsing via `argparse` |
-| `Makefile` | Worker startup in `dev-stack-up` uses `--burst` |
-| `.env.production` | `REDIS_URL` points to Railway Redis |
+| `apps/api/workers/worker.py` | Add `poll_delay` (default 30s) and `burst = False` |
+| `apps/api/workers/run_worker.py` | Replace `--burst` argparse with `BURST_MODE` env var |
+| `Makefile` | dev-stack-up uses default poll interval |
+| `deploy/railway/` | Removed systemd timer files (not applicable for Railway) |
 
 ### Conflicts Resolved
 - None
