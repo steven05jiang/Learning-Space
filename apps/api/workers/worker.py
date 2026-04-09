@@ -1,6 +1,7 @@
 """ARQ worker configuration and startup."""
 
 import logging
+import os
 
 from arq import run_worker
 
@@ -29,7 +30,10 @@ class WorkerSettings:
     job_timeout = 600  # 10 minutes
     keep_result = 3600  # Keep results for 1 hour
     max_tries = 3  # Retry failed jobs up to 3 times
-    burst = False  # Override with --burst flag for systemd timer (production)
+    burst = False  # Override with BURST_MODE=true env var for self-hosted VPS
+
+    # Poll interval in seconds (default 30s to reduce Upstash commands)
+    poll_interval = int(os.environ.get("REDIS_POLL_INTERVAL", 30))
 
     # Job failure handler
     on_job_failure = job_failed

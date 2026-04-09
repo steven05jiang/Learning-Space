@@ -1,4 +1,4 @@
-# Queue Enhancement Design: Burst Mode with Upstash Free Tier
+# Queue Enhancement Design: Upstash Poll Interval Configuration
 
 ## Status
 
@@ -6,63 +6,78 @@ Proposed — 2026-04-08
 
 ## Executive Summary
 
-Switch the ARQ worker to burst mode to reduce Redis command count, leveraging Upstash's free tier (500k commands/month) instead of migrating to Railway Redis. This keeps Redis costs at $0/mo while eliminating idle polling overhead.
+Reduce Redis command count on Upstash by configuring the worker poll interval to 30s instead of the default 0.5s. This keeps command usage within the free tier (500k/month) without code or deployment changes.
+
+**Note:** This approach is designed for Railway deployment where the worker runs as an always-on service. The poll interval is configured via `REDIS_POLL_INTERVAL` environment variable.
 
 ## Motivation
 
-The current Upstash Redis deployment charges per command. ARQ workers continuously poll Redis every 0.5s even when the queue is empty, generating excessive commands at ~$50-200/month. The polling architecture is the root cause.
+The current Upstash Redis deployment charges per command. With default 0.5s poll interval, ARQ workers generate ~5.2M commands/month — well beyond the free tier limit.
 
-**New insight:** Upstash has a free tier (500k commands/month). With burst mode at 30s intervals, command usage drops to ~250k/month — well within free tier limits.
+**New insight:** With 30s poll interval, command usage drops to ~250k/month — within free tier limits, costing $0/mo.
 
 ## Proposed Changes
 
-### 1. Enable ARQ Burst Mode
+### 1. Add Poll Interval Configuration
 
-**Change:** Add `burst = True` to `WorkerSettings` in `apps/api/workers/worker.py`.
+**Change:** Add configurable `poll_interval` to `WorkerSettings` in `apps/api/workers/worker.py`, defaulting to 30s.
 
 **Effect:**
-- Worker polls Redis every 0.5s (unchanged while active)
-- When queue is empty, worker exits immediately instead of continuing to poll
-- Next run is triggered by an external scheduler (cron/systemd)
+- Worker polls Redis at configured interval instead of default 0.5s
+- Lower command count = stays within Upstash free tier
+- No code changes needed in production — just set env var
 
-**Job latency:** With 30s timer interval, jobs may wait up to 30s before processing. This is acceptable for background processing.
+### 2. Environment Variable Configuration
 
-### 2. Configurable Timer Interval
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_POLL_INTERVAL` | `30` | Poll interval in seconds for ARQ worker |
 
-The systemd timer interval is configurable to balance latency vs command usage:
+Set `REDIS_POLL_INTERVAL=30` in Railway environment variables to reduce command count.
 
-| Interval | Commands/mo (idle) | Free Tier Coverage |
-|----------|-------------------|-------------------|
-| 10s | ~650k | Exceeded (~23 days) |
-| **30s** | ~250k | ✅ Covers ~2 months |
-| 60s | ~125k | ✅ Covers ~4 months |
+## Redis Command Analysis
 
-**Default: 30s** — balances responsiveness with free tier limits.
+### Current (0.5s Poll Interval)
 
-To change interval, modify `OnUnitActiveSec` in `arq-worker.timer`:
-```ini
-OnUnitActiveSec=30s  # default
-OnUnitActiveSec=10s  # lower latency, uses ~650k commands/mo
-OnUnitActiveSec=60s  # higher latency, uses ~125k commands/mo
-```
+| Metric | Value |
+|--------|-------|
+| Poll interval | 0.5s |
+| Commands per poll | ~2 |
+| Idle 24/7 | 172,800 commands/day |
+| Monthly | ~5.2M commands |
+| Upstash Free Tier (500k) | **Exceeded by ~4.7M** |
 
-### 3. Keep Upstash Redis
+### With 30s Poll Interval
 
-Continue using Upstash Redis (free tier). No migration needed.
+| Metric | Value |
+|--------|-------|
+| Poll interval | 30s |
+| Commands per poll | ~2 |
+| Idle 24/7 | 5,760 commands/day |
+| Monthly | ~173k commands |
+| Upstash Free Tier (500k) | ✅ Covered (~3 months) |
 
-**Why not Railway Redis?**
-- Railway Redis: $5-20/mo with flat-rate pricing
-- Upstash Free Tier: $0/mo (500k commands)
-- Burst mode keeps us well within free tier limits
-- **Railway Redis would cost more** than staying with Upstash
+### With 10s Poll Interval
+
+| Metric | Value |
+|--------|-------|
+| Poll interval | 10s |
+| Commands per poll | ~2 |
+| Idle 24/7 | 17,280 commands/day |
+| Monthly | ~518k commands |
+| Upstash Free Tier (500k) | ⚠️ Slightly exceeded |
+
+**Recommended:** `REDIS_POLL_INTERVAL=30` (default)
 
 ## Implementation
 
-### Step 1: Enable Burst Mode in WorkerSettings
+### Step 1: Add Poll Interval to WorkerSettings
 
 File: `apps/api/workers/worker.py`
 
 ```python
+import os
+
 class WorkerSettings:
     """ARQ worker configuration."""
 
@@ -77,8 +92,8 @@ class WorkerSettings:
     on_job_failure = job_failed
     queue_name = QUEUE_NAME
 
-    # Burst mode: exit when queue is empty
-    burst = True
+    # Poll interval in seconds (default 30s to reduce Upstash commands)
+    poll_interval = int(os.environ.get("REDIS_POLL_INTERVAL", 30))
 
     async def on_startup(ctx):
         await neo4j_driver.connect()
@@ -87,149 +102,66 @@ class WorkerSettings:
         await neo4j_driver.disconnect()
 ```
 
-### Step 2: Add CLI Argument for Burst Mode
+### Step 2: Update run_worker.py
 
 File: `apps/api/workers/run_worker.py`
 
+Read `BURST_MODE` env var (for VPS/self-hosted use case):
+
 ```python
-import argparse
+import os
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="ARQ Worker")
-    parser.add_argument("--burst", action="store_true", help="Exit when queue is empty")
-    args, _ = parser.parse_known_args()
-    
-    if args.burst:
-        WorkerSettings.burst = True
+if os.environ.get("BURST_MODE", "").lower() == "true":
+    WorkerSettings.burst = True
 ```
 
-### Step 3: Configure Systemd Timer
-
-**File:** `deploy/railway/arq-worker.timer`
-
-```ini
-[Unit]
-Description=Trigger ARQ Worker every 30 seconds
-Requires=arq-worker.service
-
-[Timer]
-OnUnitActiveSec=30s
-Persistent=true
-RandomizedDelaySec=5s
-
-[Install]
-WantedBy=timers.target
-```
-
-To change interval, edit `OnUnitActiveSec`:
-```ini
-OnUnitActiveSec=10s  # Lower latency, ~650k commands/mo
-OnUnitActiveSec=30s  # Default, ~250k commands/mo
-OnUnitActiveSec=60s  # Higher latency, ~125k commands/mo
-```
-
-### Step 4: Deploy Systemd Units (VPS/Production)
-
-```bash
-sudo cp deploy/railway/arq-worker.service /etc/systemd/system/
-sudo cp deploy/railway/arq-worker.timer /etc/systemd/system/
-
-# Edit service file with actual environment variables
-sudo nano /etc/systemd/system/arq-worker.service
-
-# Reload systemd, enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable arq-worker.timer
-sudo systemctl start arq-worker.timer
-
-# Verify
-sudo systemctl status arq-worker.timer
-sudo systemctl list-timers
-```
-
-### Step 5: Railway Worker Service
-
-For Railway deployment, set the worker to run continuously but invoke with `--burst`:
+### Step 3: Configure Railway Environment
 
 In Railway dashboard → Worker service → Variables:
+
 ```
-BURST_INTERVAL=30
+REDIS_POLL_INTERVAL=30
 ```
 
-The Railway worker service itself runs always-on, but internally uses burst mode with the configured interval.
+**For local development:** No changes needed. Default 30s poll interval works fine with local Docker Redis (no cost concern).
 
-## Redis Command Analysis
+## Why Not Burst Mode with Systemd Timer?
 
-### Poll Mode (Current, Always-On)
+Burst mode (worker exits when queue empty, triggered by systemd timer) works well for **self-hosted VPS deployments** where you control the scheduler.
 
-| Metric | Value |
-|--------|-------|
-| Poll interval | 0.5s |
-| Commands per poll | ~2 |
-| Idle 24/7 | 172,800 commands/day |
-| Monthly | ~5.2M commands |
-| Upstash Starter (500k free) | Overage: ~$10-50/mo |
+For **Railway deployment**, this doesn't apply because:
+- Railway worker service runs as an always-on managed service
+- You can't install systemd timers on Railway
+- Setting `burst=True` would cause the worker to exit and Railway would immediately restart it, creating a spin loop
 
-### Burst Mode (30s Interval)
-
-| Metric | Value |
-|--------|-------|
-| Wake-ups | 2,880/day |
-| Commands per wake-up (idle) | ~2-3 |
-| Idle commands | ~7,200/day |
-| Active processing (~10 jobs/day) | ~1,000/day |
-| Monthly total | ~250k commands |
-| Upstash Free Tier (500k) | ✅ Covered |
-
-### Burst Mode (10s Interval)
-
-| Metric | Value |
-|--------|-------|
-| Wake-ups | 8,640/day |
-| Commands per wake-up (idle) | ~2-3 |
-| Idle commands | ~21,600/day |
-| Active processing | ~1,000/day |
-| Monthly total | ~680k commands |
-| Upstash Free Tier (500k) | ❌ Exceeded by ~180k |
+**Therefore:** Use `REDIS_POLL_INTERVAL` instead — same command reduction without deployment model changes.
 
 ## Cost Comparison
 
-| Configuration | Redis Cost/mo |
-|---------------|---------------|
-| Upstash (poll mode) | $10-50 (overage) |
-| **Upstash (burst 30s)** | **$0 (free tier)** |
-| Upstash (burst 10s) | ~$1-3 (slight overage) |
-| Railway Redis (flat-rate) | $5-20 |
+| Configuration | Commands/mo | Upstash Cost |
+|---------------|-------------|-------------|
+| Default (0.5s) | 5.2M | $10-50/mo |
+| **Poll interval 30s** | ~173k | **$0 (free tier)** |
+| Poll interval 10s | ~518k | $0 (free tier, tight) |
 
-**Conclusion:** Burst mode + Upstash free tier is the lowest-cost option at $0/mo.
+**Conclusion:** `REDIS_POLL_INTERVAL=30` is the lowest-risk configuration.
 
 ## File Changes Summary
 
 | File | Change |
 |------|--------|
-| `apps/api/workers/worker.py` | Add `burst = True` to `WorkerSettings` |
-| `apps/api/workers/run_worker.py` | Add `--burst` CLI argument parsing |
-| `Makefile` | dev-stack-up uses poll mode (no `--burst`); burst for production only |
-| `deploy/railway/arq-worker.service` | Systemd service unit (new) |
-| `deploy/railway/arq-worker.timer` | Systemd timer with configurable `OnUnitActiveSec` (new) |
-| `docs/queue-enhancement-design.md` | This file (new) |
-
-## Environment Matrix
-
-| Environment | Worker Mode | Redis Provider | Cost |
-|-------------|-------------|----------------|------|
-| Local dev | Poll (continuous) | Docker Compose | $0 |
-| Production (VPS) | Burst + systemd timer | Upstash | $0 |
-| Railway worker | Burst via timer | Upstash | $0 |
+| `apps/api/workers/worker.py` | Add `poll_interval` with `REDIS_POLL_INTERVAL` env var support |
+| `apps/api/workers/run_worker.py` | Replace `--burst` argparse with `BURST_MODE` env var |
+| `Makefile` | dev-stack-up uses default poll interval (continuous) |
+| `docs/queue-enhancement-design.md` | Updated with poll interval approach |
 
 ## Rollback Plan
 
-1. Set `burst = False` in `WorkerSettings`
-2. Stop/disable systemd timer
-3. Deploy — worker runs continuously again
+1. Remove or increase `REDIS_POLL_INTERVAL` in Railway variables
+2. Restart worker service
 
 ## Open Questions
 
-- [x] Is 30s interval acceptable for job latency? (Yes, acceptable for background processing)
-- [ ] Should we add AOF persistence for durability? (Optional, adds ~$0.50-2/mo)
+- [x] Is 30s poll interval acceptable for job latency? (Yes, acceptable for background processing)
 - [ ] Monitor actual command usage via Upstash dashboard after deployment
+- [ ] Consider AOF persistence for durability? (Optional, adds ~$0.50-2/mo)
