@@ -5,19 +5,19 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
-## 2026-04-08 — Queue Enhancement: Burst Mode + Railway Redis
+## 2026-04-08 — Queue Enhancement: Burst Mode + Upstash Free Tier
 
 **Type:** Design
 **Trigger:** Cost optimization (Upstash per-command pricing)
 **Docs Affected:** `docs/technical-design.md`, `docs/queue-enhancement-design.md` (new), `docs/design-changelog.md`
-**Summary:** Introduces a two-part cost optimization for the ARQ/Redis queue infrastructure. (1) Enable ARQ burst mode — worker exits when queue is empty instead of continuously polling, triggered every 30s via cron/systemd. (2) Migrate from Upstash Redis (per-command, $50-200/mo) to self-hosted Redis on Railway (flat-rate, ~$5-20/mo). Zero code changes to queue logic; only `REDIS_URL` and worker CLI arguments change.
+**Summary:** Enable ARQ burst mode to reduce Redis command count, leveraging Upstash's free tier (500k commands/month). With 30s timer interval, usage drops to ~250k commands/mo — within free tier limits. Keep Upstash Redis (not migrating to Railway). Production uses burst + systemd timer; local dev uses continuous polling.
 
 ### Changes
 
 #### Design
-- Added `docs/queue-enhancement-design.md`: Full spec — Railway Redis provisioning, ARQ burst mode configuration, systemd timer setup, Makefile changes, rollback plan, cost comparison
-- Modified `docs/technical-design.md` §7.5: Updated Redis dependency description to reflect Railway migration and burst mode
-- Modified `docs/technical-design.md` §8.5 (Environment variables): Updated `REDIS_URL` description to note burst mode and Railway
+- Added `docs/queue-enhancement-design.md`: Full spec — ARQ burst mode, configurable timer interval, Upstash free tier analysis, systemd timer setup, rollback plan, cost comparison
+- Modified `docs/technical-design.md` §7.5: Updated Redis dependency description to reflect burst mode
+- Modified `docs/technical-design.md` §8.5 (Environment variables): Updated `REDIS_URL` description to note burst mode
 
 ### Implementation Changes
 
@@ -25,8 +25,10 @@ Each entry records what changed, why, and any conflicts resolved.
 | ---- | ------ |
 | `apps/api/workers/worker.py` | Add `burst = True` to `WorkerSettings` |
 | `apps/api/workers/run_worker.py` | Add `--burst` CLI argument parsing via `argparse` |
-| `Makefile` | Worker startup in `dev-stack-up` uses `--burst` |
-| `.env.production` | `REDIS_URL` points to Railway Redis |
+| `Makefile` | dev-stack-up uses poll mode (continuous); burst only for production timer |
+| `deploy/railway/arq-worker.service` | Systemd oneshot service (new) |
+| `deploy/railway/arq-worker.timer` | Systemd timer with configurable `OnUnitActiveSec` (new) |
+| `.env.production` | `REDIS_URL` remains Upstash (free tier) |
 
 ### Conflicts Resolved
 - None
