@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CLI script to start the ARQ worker process."""
 
+import argparse
 import asyncio
 import logging
 import signal
@@ -25,6 +26,17 @@ def signal_handler(signum, frame):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="ARQ worker runner")
+    parser.add_argument(
+        "--burst",
+        action="store_true",
+        help="Run in burst mode (exit when queue is empty)",
+    )
+    args = parser.parse_args()
+
+    if args.burst:
+        WorkerSettings.burst = True
+
     # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)

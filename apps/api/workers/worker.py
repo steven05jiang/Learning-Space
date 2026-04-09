@@ -29,6 +29,7 @@ class WorkerSettings:
     job_timeout = 600  # 10 minutes
     keep_result = 3600  # Keep results for 1 hour
     max_tries = 3  # Retry failed jobs up to 3 times
+    burst = True  # Exit when queue is empty, for use with systemd timer
 
     # Job failure handler
     on_job_failure = job_failed
