@@ -8,7 +8,7 @@ This guide walks through deploying the Learning Space backend API and worker ser
 
 - Railway account (free tier available)
 - GitHub repository access (for auto-deploy)
-- All external services provisioned (Supabase, Neo4j AuraDB, Upstash Redis)
+- All external services provisioned (Supabase, Neo4j AuraDB, Railway Redis)
 - Environment variables from `apps/api/.env.production.example`
 
 ## Step 1: Create Railway Project
@@ -36,8 +36,8 @@ NEO4J_URI=<your-neo4j-aura-uri>
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=<your-neo4j-password>
 
-# Redis
-REDIS_URL=<your-upstash-redis-url>
+# Redis (Railway self-hosted)
+REDIS_URL=rediss://user:password@your-redis-host.railway.app:6379
 
 # Authentication
 JWT_SECRET_KEY=<generate-random-32-char-string>
