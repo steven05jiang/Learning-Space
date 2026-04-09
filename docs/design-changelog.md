@@ -5,6 +5,39 @@ Each entry records what changed, why, and any conflicts resolved.
 
 ---
 
+## 2026-04-08 — Queue Enhancement: Burst Mode + Railway Redis
+
+**Type:** Design
+**Trigger:** Cost optimization (Upstash per-command pricing)
+**Docs Affected:** `docs/technical-design.md`, `docs/queue-enhancement-design.md` (new), `docs/design-changelog.md`
+**Summary:** Introduces a two-part cost optimization for the ARQ/Redis queue infrastructure. (1) Enable ARQ burst mode — worker exits when queue is empty instead of continuously polling, triggered every 30s via cron/systemd. (2) Migrate from Upstash Redis (per-command, $50-200/mo) to self-hosted Redis on Railway (flat-rate, ~$5-20/mo). Zero code changes to queue logic; only `REDIS_URL` and worker CLI arguments change.
+
+### Changes
+
+#### Design
+- Added `docs/queue-enhancement-design.md`: Full spec — Railway Redis provisioning, ARQ burst mode configuration, systemd timer setup, Makefile changes, rollback plan, cost comparison
+- Modified `docs/technical-design.md` §7.5: Updated Redis dependency description to reflect Railway migration and burst mode
+- Modified `docs/technical-design.md` §8.5 (Environment variables): Updated `REDIS_URL` description to note burst mode and Railway
+
+### Implementation Changes
+
+| File | Change |
+| ---- | ------ |
+| `apps/api/workers/worker.py` | Add `burst = True` to `WorkerSettings` |
+| `apps/api/workers/run_worker.py` | Add `--burst` CLI argument parsing via `argparse` |
+| `Makefile` | Worker startup in `dev-stack-up` uses `--burst` |
+| `.env.production` | `REDIS_URL` points to Railway Redis |
+
+### Conflicts Resolved
+- None
+
+### Open Questions
+- What is the current Upstash command count? (Measure before/after)
+- Is 30s poll interval acceptable for job latency?
+- Should a continuously-running worker be kept for low-latency needs?
+
+---
+
 ## 2026-03-30 — X.com (Twitter) integration design
 
 **Type:** Both
