@@ -41,8 +41,8 @@ RUN useradd --create-home --shell /bin/bash app \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Expose port 8000 for API service
-EXPOSE 8000
+# Expose ports for API and worker services
+EXPOSE 8000 8001
 
 # Use entrypoint script to handle service type logic
 ENTRYPOINT ["/entrypoint.sh"]

@@ -16,7 +16,8 @@ class Settings(BaseSettings):
 
     # Worker URL for fallback dispatch (used when Redis is unavailable)
     # Format: http://host:port - path /dispatch will be appended automatically
-    worker_url: str = "http://127.0.0.1:8001"
+    # Note: Use 0.0.0.0 to allow external access, 127.0.0.1 for localhost only
+    worker_url: str = "http://0.0.0.0:8001"
 
     # OAuth Settings
     github_client_id: str = ""

@@ -2,11 +2,13 @@
 set -e
 
 if [ "$SERVICE_TYPE" = "worker" ]; then
-    # Check if running as root and switch to app user if needed
+    # Worker service: start dispatch API server + ARQ worker (via uvicorn lifespan)
+    WORKER_HOST="${WORKER_HOST:-0.0.0.0}"
+    WORKER_PORT="${WORKER_PORT:-8001}"
     if [ "$(id -u)" = "0" ]; then
-        exec su app -c "python -m workers.run_worker"
+        exec su app -c "uvicorn workers.dispatch_api:dispatch_app --host $WORKER_HOST --port $WORKER_PORT"
     else
-        exec python -m workers.run_worker
+        exec uvicorn workers.dispatch_api:dispatch_app --host $WORKER_HOST --port $WORKER_PORT
     fi
 else
     # API service: run migrations then start server
