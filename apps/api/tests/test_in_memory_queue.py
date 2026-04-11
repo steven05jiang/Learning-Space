@@ -50,15 +50,21 @@ class TestInMemoryQueue:
         queue.stop()
 
     @pytest.mark.asyncio
-    async def test_dequeue_timeout_returns_none(self, queue):
-        """Test that dequeue returns None on timeout when queue is empty."""
+    async def test_dequeue_blocks_until_job_or_stop(self, queue):
+        """Test that dequeue blocks until a job is available or queue is stopped."""
         queue.start()
 
-        # Should timeout and return None after brief wait
-        job = await queue.dequeue()
-        assert job is None
+        # Dequeue should block, but we can unblock it by stopping
+        async def try_dequeue():
+            return await queue.dequeue()
 
+        dequeue_task = asyncio.create_task(try_dequeue())
+        await asyncio.sleep(0.1)  # Let it start waiting
+
+        # Stop should unblock dequeue and return None
         queue.stop()
+        result = await dequeue_task
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_stop_unblocks_dequeue(self, queue):

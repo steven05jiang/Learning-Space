@@ -39,6 +39,7 @@ class InMemoryQueue:
     def start(self) -> None:
         """Mark the queue as running."""
         import traceback
+
         logger.info(
             "In-memory queue start() called, id=%s, current running=%s",
             id(self),
@@ -46,9 +47,7 @@ class InMemoryQueue:
         )
         logger.info("Start called from:\n%s", "".join(traceback.format_stack()))
         self._running = True
-        logger.info(
-            "In-memory queue started, id=%s, _running set to True", id(self)
-        )
+        logger.info("In-memory queue started, id=%s, _running set to True", id(self))
 
     def stop(self) -> None:
         """Mark the queue as stopped and add sentinel to unblock consumers."""
@@ -98,17 +97,21 @@ class InMemoryQueue:
         Returns:
             QueuedJob or None if queue is stopped
         """
-        logger.debug("InMemoryQueue.dequeue called, running=%s", self._running)
+        if not self._running:
+            logger.info(
+                "InMemoryQueue.dequeue called but queue is stopped, returning None"
+            )
+            return None
+
         try:
-            job = await asyncio.wait_for(self._queue.get(), timeout=1.0)
-            logger.debug("Dequeued job from asyncio.Queue: %s", job)
+            job = await self._queue.get()
             if job is None:
                 # Sentinel received, queue is stopping
                 logger.info("InMemoryQueue received sentinel, returning None")
                 return None
             return job
-        except asyncio.TimeoutError:
-            logger.debug("Dequeue timed out, returning None")
+        except Exception as e:
+            logger.error("InMemoryQueue.dequeue error: %s", e)
             return None
 
     def task_done(self) -> None:
