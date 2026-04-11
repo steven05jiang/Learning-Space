@@ -178,9 +178,20 @@ def _run_arq_worker_subprocess() -> None:
 
     try:
         # Run ARQ worker - it manages its own event loop
+        # Note: If Redis is unavailable, ARQ will keep retrying internally
+        # and the subprocess stays alive. The in-memory queue handles
+        # fallback dispatches independently.
         run_worker(WorkerSettings)
+    except KeyboardInterrupt:
+        pass  # Normal shutdown
+    except Exception as e:
+        # Log but don't propagate - let the subprocess exit gracefully
+        logging.error("ARQ worker subprocess exiting: %s", e)
     finally:
-        loop.close()
+        try:
+            loop.close()
+        except Exception:
+            pass
 
 
 async def start_dual_worker() -> None:
