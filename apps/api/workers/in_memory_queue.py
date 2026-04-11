@@ -38,13 +38,27 @@ class InMemoryQueue:
 
     def start(self) -> None:
         """Mark the queue as running."""
+        import traceback
+        logger.info(
+            "In-memory queue start() called, id=%s, current running=%s",
+            id(self),
+            self._running,
+        )
+        logger.info("Start called from:\n%s", "".join(traceback.format_stack()))
         self._running = True
-        logger.info("In-memory queue started")
+        logger.info(
+            "In-memory queue started, id=%s, _running set to True", id(self)
+        )
 
     def stop(self) -> None:
         """Mark the queue as stopped and add sentinel to unblock consumers."""
         import traceback
-        logger.info("In-memory queue stop() called, current running=%s", self._running)
+
+        logger.info(
+            "In-memory queue stop() called, id=%s, current running=%s",
+            id(self),
+            self._running,
+        )
         logger.info("Stop called from:\n%s", "".join(traceback.format_stack()))
         self._running = False
         # Add sentinel to unblock any waiting consumers
@@ -52,7 +66,7 @@ class InMemoryQueue:
             self._queue.put_nowait(None)
         except asyncio.QueueFull:
             pass
-        logger.info("In-memory queue stopped")
+        logger.info("In-memory queue stopped, id=%s", id(self))
 
     async def enqueue(
         self, job_id: str, function_name: str, args: tuple, kwargs: dict
