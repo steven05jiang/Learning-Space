@@ -191,6 +191,9 @@ async def start_dual_worker() -> None:
     # Start the in-memory queue (before creating the worker task)
     in_memory_queue.start()
 
+    # Connect to Neo4j for in-memory queue worker
+    await neo4j_driver.connect()
+
     # Start dispatch API server and in-memory queue worker as background tasks
     dispatch_task = asyncio.create_task(run_dispatch_server())
     in_memory_task = asyncio.create_task(in_memory_queue_worker())
@@ -208,6 +211,15 @@ async def start_dual_worker() -> None:
             arq_process.join(timeout=5)
             if arq_process.is_alive():
                 arq_process.kill()
+        # Disconnect Neo4j
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(neo4j_driver.disconnect())
+            else:
+                loop.run_until_complete(neo4j_driver.disconnect())
+        except Exception as e:
+            logger.warning("Error disconnecting Neo4j: %s", e)
         logger.info("Dual-mode worker stopped")
 
     try:
