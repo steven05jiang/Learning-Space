@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     neo4j_password: str = "changeme"
     redis_url: str = "redis://localhost:6379"
 
+    # Worker URL for fallback dispatch (used when Redis is unavailable)
+    # Format: http://host:port - path /dispatch will be appended automatically
+    worker_url: str = "http://127.0.0.1:8001"
+
     # OAuth Settings
     github_client_id: str = ""
     github_client_secret: str = ""

@@ -176,7 +176,7 @@ dev-stack-up:
 	cd apps/api && uv run alembic upgrade head
 	@echo "   4. Starting API (uvicorn)..."
 	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
-	@echo "   5. Starting worker (arq)..."
+	@echo "   5. Starting worker..."
 	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
 	@echo "   6. Starting web (Next.js)..."
 	cd apps/web && npm run dev > /tmp/web.log 2>&1 &

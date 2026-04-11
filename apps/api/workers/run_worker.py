@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""CLI script to start the ARQ worker process."""
+"""CLI script to start the ARQ worker process.
+
+Always runs in dual-mode (Redis + in-memory fallback).
+"""
 
 import asyncio
 import logging
@@ -12,9 +15,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import after path modification to avoid import errors
-from arq import run_worker  # noqa: E402
-
-from workers.worker import WorkerSettings  # noqa: E402
+from workers.worker import start_dual_worker  # noqa: E402
 
 
 # Set up signal handling for graceful shutdown
@@ -38,14 +39,13 @@ if __name__ == "__main__":
 
     log_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
     logging.info("Worker starting up | log_level=%s", log_level)
-    print("Starting Learning Space task worker...")
+    logging.info("Starting in dual-mode (Redis + in-memory fallback)")
+
+    print("Starting Learning Space task worker (dual-mode)...")
     print("Press Ctrl+C to stop")
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
     try:
-        run_worker(WorkerSettings)
+        asyncio.run(start_dual_worker())
     except KeyboardInterrupt:
         print("\nWorker stopped by user")
     except Exception as e:
