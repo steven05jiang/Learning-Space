@@ -108,14 +108,21 @@ async def in_memory_queue_worker() -> None:
     This runs alongside the dispatch server and processes direct dispatches
     when Redis is unavailable.
     """
-    logger.info("In-memory queue worker started")
+    logger.info("In-memory queue worker started, running=%s", in_memory_queue.running)
 
-    while in_memory_queue.running:
+    while True:
+        if not in_memory_queue.running:
+            logger.warning("in_memory_queue.running is False, breaking loop")
+            break
+
         try:
+            logger.debug("Dequeueing from in-memory queue...")
             job = await in_memory_queue.dequeue()
+            logger.debug("Dequeued job: %s", job)
 
             if job is None:
-                # Queue is stopping
+                # Sentinel received, queue is stopping
+                logger.info("Received sentinel (None), queue is stopping")
                 break
 
             try:
