@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 # Dispatch API configuration from settings
 _parsed = urlparse(settings.worker_url)
-DISPATCH_HOST = _parsed.hostname or "127.0.0.1"
 DISPATCH_PORT = _parsed.port or 8001
 
 
@@ -54,7 +53,7 @@ async def lifespan(app: FastAPI):
     """Manage dispatch API lifecycle."""
     # Startup
     in_memory_queue.start()
-    logger.info(f"Dispatch API starting on {DISPATCH_HOST}:{DISPATCH_PORT}")
+    logger.info(f"Dispatch API starting on port {DISPATCH_PORT}")
     yield
     # Shutdown
     in_memory_queue.stop()
@@ -135,7 +134,6 @@ async def run_dispatch_server() -> None:
 
     config = uvicorn.Config(
         dispatch_app,
-        host=DISPATCH_HOST,
         port=DISPATCH_PORT,
         log_level="info",
         access_log=False,  # Reduce noise

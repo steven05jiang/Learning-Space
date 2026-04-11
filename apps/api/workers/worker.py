@@ -15,7 +15,7 @@ import uvicorn
 
 from core.queue import QUEUE_NAME, redis_settings
 from services.neo4j_driver import neo4j_driver
-from workers.dispatch_api import DISPATCH_HOST, DISPATCH_PORT, dispatch_app
+from workers.dispatch_api import DISPATCH_PORT, dispatch_app
 
 # Import in-memory queue
 from workers.in_memory_queue import in_memory_queue
@@ -144,7 +144,6 @@ async def run_dispatch_server() -> None:
     """Run the dispatch API server."""
     config = uvicorn.Config(
         dispatch_app,
-        host=DISPATCH_HOST,
         port=DISPATCH_PORT,
         log_level="info",
         access_log=False,
