@@ -190,8 +190,9 @@ def _run_arq_worker_subprocess() -> None:
     finally:
         try:
             loop.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            # Ignore errors during loop cleanup on shutdown
+            logging.debug("Event loop close error (shutdown): %s", exc)
 
 
 async def start_dual_worker() -> None:
