@@ -6,7 +6,6 @@ Supports dual-mode operation:
 """
 
 import logging
-import os
 import uuid
 from typing import Any, Dict
 from urllib.parse import urlparse
@@ -19,10 +18,8 @@ from core.config import settings
 
 QUEUE_NAME = "learning_space_queue"
 
-# Worker dispatch API configuration for fallback mode
-DISPATCH_HOST = os.environ.get("DISPATCH_HOST", "127.0.0.1")
-DISPATCH_PORT = int(os.environ.get("DISPATCH_PORT", "8001"))
-WORKER_DISPATCH_URL = f"http://{DISPATCH_HOST}:{DISPATCH_PORT}/dispatch"
+# Worker dispatch URL for fallback mode - constructed from settings.worker_url
+WORKER_DISPATCH_URL = f"{settings.worker_url}/dispatch"
 
 # Timeout for dispatch API calls
 DISPATCH_TIMEOUT = 30.0

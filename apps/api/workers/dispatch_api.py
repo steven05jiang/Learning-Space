@@ -6,20 +6,22 @@ pathway for job dispatch when Redis is unavailable.
 
 import asyncio
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 
+from core.config import settings
 from workers.in_memory_queue import in_memory_queue
 
 logger = logging.getLogger(__name__)
 
-# Dispatch API configuration
-DISPATCH_PORT = int(os.environ.get("DISPATCH_PORT", "8001"))
-DISPATCH_HOST = os.environ.get("DISPATCH_HOST", "127.0.0.1")
+# Dispatch API configuration from settings
+_parsed = urlparse(settings.worker_url)
+DISPATCH_HOST = _parsed.hostname or "127.0.0.1"
+DISPATCH_PORT = _parsed.port or 8001
 
 
 class DispatchRequest(BaseModel):
