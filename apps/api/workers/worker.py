@@ -163,8 +163,21 @@ async def run_dispatch_server() -> None:
 def _run_arq_worker_subprocess() -> None:
     """Run ARQ worker in a subprocess (entry point for Process)."""
     import asyncio
+    import logging
+    import sys
 
     from arq import run_worker
+
+    # Configure logging to reduce verbosity from ARQ/Redis libraries
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        stream=sys.stdout,
+    )
+    # Silence extremely verbose loggers
+    logging.getLogger("arq.worker").setLevel(logging.WARNING)
+    logging.getLogger("redis.asyncio").setLevel(logging.WARNING)
+    logging.getLogger("redis.io_asyncio").setLevel(logging.WARNING)
 
     # Create event loop for subprocess main thread (Python 3.14+ requirement)
     loop = asyncio.new_event_loop()
