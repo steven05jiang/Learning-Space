@@ -96,7 +96,7 @@ async def process_in_memory_job(
         logger.info(f"In-memory job {job_id} completed successfully")
         return result
     except Exception as e:
-        logger.error(f"In-memory job {job_id} failed: {e}", exc_info=True)
+        logger.error(f"In-memory job {job_id} failed: {e}")
         # Call job failure handler
         await job_failed(ctx, job_id, e)
         raise
