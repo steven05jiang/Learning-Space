@@ -1,15 +1,31 @@
-"""Task queue configuration and utilities."""
+"""Task queue configuration and utilities.
+
+Supports dual-mode operation:
+1. Primary: Redis queue via ARQ
+2. Fallback: Direct dispatch to worker when Redis is unavailable
+"""
 
 import logging
+import os
+import uuid
 from typing import Any, Dict
 from urllib.parse import urlparse
 
+import httpx
 from arq import create_pool
 from arq.connections import RedisSettings
 
 from core.config import settings
 
 QUEUE_NAME = "learning_space_queue"
+
+# Worker dispatch API configuration for fallback mode
+DISPATCH_HOST = os.environ.get("DISPATCH_HOST", "127.0.0.1")
+DISPATCH_PORT = int(os.environ.get("DISPATCH_PORT", "8001"))
+WORKER_DISPATCH_URL = f"http://{DISPATCH_HOST}:{DISPATCH_PORT}/dispatch"
+
+# Timeout for dispatch API calls
+DISPATCH_TIMEOUT = 30.0
 
 
 def _build_redis_settings() -> RedisSettings:
@@ -35,6 +51,8 @@ async def create_queue_pool():
 async def enqueue_job(job_name: str, *args, **kwargs) -> str:
     """Enqueue a job for processing.
 
+    Tries Redis first, falls back to direct worker dispatch if Redis fails.
+
     Args:
         job_name: Name of the job function to execute
         *args: Positional arguments for the job
@@ -44,19 +62,68 @@ async def enqueue_job(job_name: str, *args, **kwargs) -> str:
         Job ID as string
 
     Raises:
-        ConnectionError: If unable to connect to Redis
+        ConnectionError: If both Redis and fallback dispatch fail
         ValueError: If job_name is not valid
     """
-    pool = await create_queue_pool()
+    job_id = str(uuid.uuid4())
+    redis_error_msg = None
+
+    # Try Redis first (primary path)
     try:
-        job = await pool.enqueue_job(job_name, *args, _queue_name=QUEUE_NAME, **kwargs)
-        return job.job_id
-    finally:
-        await pool.aclose()
+        pool = await create_queue_pool()
+        try:
+            job = await pool.enqueue_job(
+                job_name, *args, _queue_name=QUEUE_NAME, **kwargs
+            )
+            logger.debug(f"Job {job_id} enqueued to Redis")
+            return job.job_id
+        finally:
+            await pool.aclose()
+    except Exception as e:
+        redis_error_msg = str(e)
+        logger.warning(f"Redis enqueue failed for job {job_id}, trying fallback: {e}")
+
+    # Fallback: direct dispatch to worker
+    try:
+        async with httpx.AsyncClient(timeout=DISPATCH_TIMEOUT) as client:
+            response = await client.post(
+                WORKER_DISPATCH_URL,
+                json={
+                    "job_id": job_id,
+                    "function_name": job_name,
+                    "args": list(args),
+                    "kwargs": kwargs,
+                },
+            )
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"Job {job_id} dispatched via fallback to worker")
+                return result.get("job_id", job_id)
+            else:
+                raise ConnectionError(
+                    f"Worker dispatch failed with status "
+                    f"{response.status_code}: {response.text}"
+                )
+    except httpx.ConnectError as e:
+        logger.error(f"Worker dispatch endpoint unavailable: {e}")
+        raise ConnectionError(
+            "Both Redis and worker dispatch are unavailable. "
+            f"Redis error: {redis_error_msg}, Dispatch error: {e}"
+        )
+    except Exception as dispatch_error:
+        logger.error(f"Worker dispatch failed: {dispatch_error}")
+        raise ConnectionError(
+            "Both Redis and worker dispatch failed. "
+            f"Redis error: {redis_error_msg}, "
+            f"Dispatch error: {dispatch_error}"
+        )
 
 
 async def get_job_status(job_id: str) -> Dict[str, Any] | None:
     """Get job status and result.
+
+    Note: Jobs dispatched via fallback (in-memory queue) don't have
+    persistent status tracking. This function only works for Redis-queued jobs.
 
     Args:
         job_id: The job ID to check
@@ -78,6 +145,9 @@ async def get_job_status(job_id: str) -> Dict[str, Any] | None:
             "start_time": job.start_time,
             "finish_time": job.finish_time,
         }
+    except Exception as e:
+        logger.warning(f"Failed to get job status for {job_id}: {e}")
+        return None
     finally:
         await pool.aclose()
 

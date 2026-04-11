@@ -176,8 +176,8 @@ dev-stack-up:
 	cd apps/api && uv run alembic upgrade head
 	@echo "   4. Starting API (uvicorn)..."
 	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
-	@echo "   5. Starting worker (arq)..."
-	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
+	@echo "   5. Starting worker (arq with dual-mode)..."
+	cd apps/api && DUAL_MODE=true DISPATCH_PORT=8001 uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
 	@echo "   6. Starting web (Next.js)..."
 	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
 	@echo "   7. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
@@ -228,7 +228,7 @@ dev-restart-worker:
 	@echo "── Restarting worker ──────────────────────────────────"
 	pkill -f "workers/run_worker.py" 2>/dev/null || true
 	sleep 1
-	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
+	cd apps/api && DUAL_MODE=true DISPATCH_PORT=8001 uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
 	@sleep 2 && pgrep -f "run_worker.py" > /dev/null && echo "   Worker restarted ✓  (log: /tmp/worker.log)" || (echo "   ERROR: Worker failed to start. Check /tmp/worker.log"; exit 1)
 
 dev-restart-web:

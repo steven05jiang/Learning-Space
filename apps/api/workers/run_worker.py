@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-"""CLI script to start the ARQ worker process."""
+"""CLI script to start the ARQ worker process.
+
+Supports two modes:
+- Standard mode: Redis queue only (default)
+- Dual mode: Redis + in-memory fallback (DUAL_MODE=true)
+"""
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 from pathlib import Path
@@ -14,7 +20,7 @@ sys.path.insert(0, str(project_root))
 # Import after path modification to avoid import errors
 from arq import run_worker  # noqa: E402
 
-from workers.worker import WorkerSettings  # noqa: E402
+from workers.worker import WorkerSettings, start_dual_worker  # noqa: E402
 
 
 # Set up signal handling for graceful shutdown
@@ -38,16 +44,34 @@ if __name__ == "__main__":
 
     log_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
     logging.info("Worker starting up | log_level=%s", log_level)
-    print("Starting Learning Space task worker...")
-    print("Press Ctrl+C to stop")
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Check if we should run in dual-mode (Redis + in-memory fallback)
+    if os.environ.get("DUAL_MODE", "").lower() == "true":
+        logging.info("Starting in dual-mode (Redis + in-memory fallback)")
+        logging.info(
+            "Dispatch API will listen on %s:%s",
+            os.environ.get("DISPATCH_HOST", "127.0.0.1"),
+            os.environ.get("DISPATCH_PORT", "8001"),
+        )
+        print("Starting Learning Space task worker (dual-mode)...")
+        print("Press Ctrl+C to stop")
 
-    try:
-        run_worker(WorkerSettings)
-    except KeyboardInterrupt:
-        print("\nWorker stopped by user")
-    except Exception as e:
-        logging.error(f"Worker failed: {e}")
-        sys.exit(1)
+        try:
+            asyncio.run(start_dual_worker())
+        except KeyboardInterrupt:
+            print("\nWorker stopped by user")
+        except Exception as e:
+            logging.error(f"Worker failed: {e}")
+            sys.exit(1)
+    else:
+        logging.info("Starting in standard mode (Redis queue only)")
+        print("Starting Learning Space task worker...")
+        print("Press Ctrl+C to stop")
+
+        try:
+            run_worker(WorkerSettings)
+        except KeyboardInterrupt:
+            print("\nWorker stopped by user")
+        except Exception as e:
+            logging.error(f"Worker failed: {e}")
+            sys.exit(1)
