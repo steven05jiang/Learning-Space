@@ -977,7 +977,7 @@ flowchart LR
 
 - **PostgreSQL**: Managed (e.g. RDS, Cloud SQL) or in-cluster (e.g. Bitnami PostgreSQL Helm chart). Connection string in Secret.
 - **Neo4j**: Managed (e.g. Aura) or in-cluster. URI and credentials in Secret.
-- **Redis**: Upstash (free tier, 500k commands/mo). URL in Secret. ARQ worker uses `REDIS_POLL_INTERVAL` env var (default 30s) to reduce command count. See `docs/queue-enhancement-design.md`.
+- **Redis**: Upstash (free tier, 500k commands/mo). URL in Secret. ARQ worker uses `REDIS_POLL_INTERVAL` env var (default 30s) to reduce command count. See `docs/queue-enhancement-design.md`. Dual-mode (Redis + in-memory fallback via HTTP dispatch) ensures zero task loss during Redis outages. See `docs/queue-dual-mode-design.md`.
 - **OAuth**: Per-provider apps (Twitter/X, Google, GitHub); callback URL for each = `https://<api-host>/auth/callback` (same endpoint; provider inferred from state or session during link flow).
 
 ---
@@ -1027,6 +1027,7 @@ Learning-Space/
 │   ├── design-search.md                   # Unified search service — full-text + hybrid vector (supplement)
 │   ├── design-twitter-integration.md      # X.com OAuth, bookmark sync, Discover endpoints (supplement)
 │   └── queue-enhancement-design.md         # Upstash poll interval plan — REDIS_POLL_INTERVAL env var
+│   └── queue-dual-mode-design.md           # Dual-mode queue (Redis + in-memory fallback)
 │   ├── ux-requirements.md
 │   ├── ux-tech-spec.md
 │   └── integration-test-design.md
@@ -1085,6 +1086,7 @@ Return shape (`AgentResourceResult`): `{ id, title, summary, tags, top_level_cat
 | `NEO4J_USERNAME` / `NEO4J_PASSWORD`                       | API, Worker         | Neo4j auth                                                                   |
 | `REDIS_URL` | API, Worker | Upstash (free tier). ARQ worker uses `REDIS_POLL_INTERVAL` (default 30s) to stay within free tier. See `docs/queue-enhancement-design.md`. |
 | `REDIS_POLL_INTERVAL` | Worker | Poll interval in seconds (default 30). Lower = more responsive but more commands. |
+| `WORKER_URL` | API, Worker | Worker dispatch API URL for in-memory fallback (default `http://127.0.0.1:8001`). See `docs/queue-dual-mode-design.md`. |
 | `OAUTH_TWITTER_CLIENT_ID` / `OAUTH_TWITTER_CLIENT_SECRET` | API                 | Twitter/X OAuth                                                              |
 | `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_GOOGLE_CLIENT_SECRET`   | API                 | Google OAuth (when enabled)                                                  |
 | `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET`   | API                 | GitHub OAuth (when enabled)                                                  |
