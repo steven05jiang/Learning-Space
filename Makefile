@@ -176,8 +176,8 @@ dev-stack-up:
 	cd apps/api && uv run alembic upgrade head
 	@echo "   4. Starting API (uvicorn)..."
 	cd apps/api && uv run uvicorn main:app --reload --port 8000 > /tmp/api.log 2>&1 &
-	@echo "   5. Starting worker..."
-	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
+	@echo "   5. Starting worker (dispatch API + ARQ worker)..."
+	cd apps/api && uv run uvicorn workers.dispatch_api:dispatch_app --port 8001 > /tmp/worker.log 2>&1 &
 	@echo "   6. Starting web (Next.js)..."
 	cd apps/web && npm run dev > /tmp/web.log 2>&1 &
 	@echo "   7. Waiting for API to be healthy (up to 5 attempts, 30s each)..."
@@ -226,10 +226,10 @@ dev-restart-api:
 
 dev-restart-worker:
 	@echo "── Restarting worker ──────────────────────────────────"
-	pkill -f "workers/run_worker.py" 2>/dev/null || true
+	lsof -ti :8001 | xargs kill -9 2>/dev/null || true
 	sleep 1
-	cd apps/api && uv run python workers/run_worker.py > /tmp/worker.log 2>&1 &
-	@sleep 2 && pgrep -f "run_worker.py" > /dev/null && echo "   Worker restarted ✓  (log: /tmp/worker.log)" || (echo "   ERROR: Worker failed to start. Check /tmp/worker.log"; exit 1)
+	cd apps/api && uv run uvicorn workers.dispatch_api:dispatch_app --port 8001 > /tmp/worker.log 2>&1 &
+	@sleep 2 && pgrep -f "dispatch_api" > /dev/null && echo "   Worker restarted ✓  (log: /tmp/worker.log)" || (echo "   ERROR: Worker failed to start. Check /tmp/worker.log"; exit 1)
 
 dev-restart-web:
 	@echo "── Restarting web ─────────────────────────────────────"
@@ -253,8 +253,8 @@ dev-stack-down:
 	$(MAKE) obs-down
 	@echo "   3. Killing API process on port 8000..."
 	lsof -ti :8000 | xargs kill -9 || true
-	@echo "   4. Killing worker (arq)..."
-	pkill -f "workers/run_worker.py" || true
+	@echo "   4. Killing worker process on port 8001..."
+	lsof -ti :8001 | xargs kill -9 || true
 	@echo "   5. Killing web process on port 3000..."
 	lsof -ti :3000 | xargs kill -9 || true
 	@echo "   Development stack stopped."

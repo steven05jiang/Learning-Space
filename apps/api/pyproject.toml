@@ -85,7 +85,8 @@ markers = [
 [tool.bandit]
 exclude_dirs = [".venv", "tests"]
 # B105: false positives on OAuth token type strings ("bearer") and token endpoint URLs
-skips = ["B105"]
+# B104: intentional binding to 0.0.0.0 for dispatch API server accessibility (development/local only)
+skips = ["B105", "B104"]
 
 [dependency-groups]
 dev = [

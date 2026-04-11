@@ -15,7 +15,7 @@ import uvicorn
 
 from core.queue import QUEUE_NAME, redis_settings
 from services.neo4j_driver import neo4j_driver
-from workers.dispatch_api import DISPATCH_PORT, dispatch_app
+from workers.dispatch_api import dispatch_app
 
 # Import in-memory queue
 from workers.in_memory_queue import in_memory_queue
@@ -140,11 +140,12 @@ async def in_memory_queue_worker() -> None:
     logger.info("In-memory queue worker stopped")
 
 
-async def run_dispatch_server() -> None:
+async def run_dispatch_server(host: str, port: int) -> None:
     """Run the dispatch API server."""
     config = uvicorn.Config(
         dispatch_app,
-        port=DISPATCH_PORT,
+        host=host,
+        port=port,
         log_level="info",
         access_log=False,
     )
@@ -194,11 +195,15 @@ def _run_arq_worker_subprocess() -> None:
             logging.debug("Event loop close error (shutdown): %s", exc)
 
 
-async def start_dual_worker() -> None:
+async def start_dual_worker(host: str = "0.0.0.0", port: int = 8001) -> None:
     """Start both the dispatch server and in-memory queue worker.
 
     The ARQ worker runs in a separate process to avoid event loop conflicts.
     The dispatch server and in-memory worker run in the main process.
+
+    Args:
+        host: Host to bind the dispatch API server (default: 0.0.0.0)
+        port: Port to bind the dispatch API server (default: 8001)
     """
     # Start ARQ worker as a subprocess
     arq_process = Process(target=_run_arq_worker_subprocess, daemon=True)
@@ -212,7 +217,7 @@ async def start_dual_worker() -> None:
     await neo4j_driver.connect()
 
     # Start dispatch API server and in-memory queue worker as background tasks
-    dispatch_task = asyncio.create_task(run_dispatch_server())
+    dispatch_task = asyncio.create_task(run_dispatch_server(host=host, port=port))
     in_memory_task = asyncio.create_task(in_memory_queue_worker())
 
     logger.info("Dual-mode worker started (Redis + in-memory queue)")
