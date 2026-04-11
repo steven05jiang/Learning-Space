@@ -38,34 +38,18 @@ class InMemoryQueue:
 
     def start(self) -> None:
         """Mark the queue as running."""
-        import traceback
-
-        logger.info(
-            "In-memory queue start() called, id=%s, current running=%s",
-            id(self),
-            self._running,
-        )
-        logger.info("Start called from:\n%s", "".join(traceback.format_stack()))
         self._running = True
-        logger.info("In-memory queue started, id=%s, _running set to True", id(self))
+        logger.info("In-memory queue started")
 
     def stop(self) -> None:
         """Mark the queue as stopped and add sentinel to unblock consumers."""
-        import traceback
-
-        logger.info(
-            "In-memory queue stop() called, id=%s, current running=%s",
-            id(self),
-            self._running,
-        )
-        logger.info("Stop called from:\n%s", "".join(traceback.format_stack()))
         self._running = False
         # Add sentinel to unblock any waiting consumers
         try:
             self._queue.put_nowait(None)
         except asyncio.QueueFull:
             pass
-        logger.info("In-memory queue stopped, id=%s", id(self))
+        logger.info("In-memory queue stopped")
 
     async def enqueue(
         self, job_id: str, function_name: str, args: tuple, kwargs: dict
@@ -98,16 +82,12 @@ class InMemoryQueue:
             QueuedJob or None if queue is stopped
         """
         if not self._running:
-            logger.info(
-                "InMemoryQueue.dequeue called but queue is stopped, returning None"
-            )
             return None
 
         try:
             job = await self._queue.get()
             if job is None:
                 # Sentinel received, queue is stopping
-                logger.info("InMemoryQueue received sentinel, returning None")
                 return None
             return job
         except Exception as e:
