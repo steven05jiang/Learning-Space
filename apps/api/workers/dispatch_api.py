@@ -119,7 +119,9 @@ def run_arq_subprocess():
     import sys
 
     from arq import run_worker
-    from core.queue import QUEUE_NAME, redis_settings as _redis_settings
+
+    from core.queue import QUEUE_NAME
+    from core.queue import redis_settings as _redis_settings
     from services.neo4j_driver import neo4j_driver
     from workers.tasks import job_failed, process_resource, sync_graph
 

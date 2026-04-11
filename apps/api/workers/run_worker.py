@@ -4,6 +4,7 @@
 Always runs in dual-mode (Redis + in-memory fallback).
 """
 
+import argparse
 import asyncio
 import logging
 import signal
@@ -16,9 +17,6 @@ sys.path.insert(0, str(project_root))
 
 # Import after path modification to avoid import errors
 from workers.worker import start_dual_worker  # noqa: E402
-
-# CLI argument parsing
-import argparse
 
 
 def parse_args():
